@@ -4,6 +4,7 @@ const User = require("../models/User");
 const RefreshToken = require("../models/RefreshToken");
 const Role = require("../models/Role");
 const { AppError } = require("../utils/errorHandler");
+const sendEmail = require("../utils/sendEmail");
 
 /**
  * Generate access token (1 day)
@@ -148,4 +149,68 @@ const getUserById = async (id) => {
     return user;
 };
 
-module.exports = { login, refreshAccessToken, logout, getUserById, register };
+/**
+ * Forgot Password
+ */
+const forgotPassword = async (email, origin) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new AppError("There is no user with that email address.", 404);
+    }
+
+    // Get reset token
+    const resetToken = user.createPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Create reset url
+    const resetUrl = `${origin}/reset-password/${resetToken}`;
+
+    const message = `
+        <h1>You have requested a password reset</h1>
+        <p>Please go to this link to reset your password:</p>
+        <a href="${resetUrl}" clicktracking="off">${resetUrl}</a>
+    `;
+
+    try {
+        await sendEmail({
+            email: user.email,
+            subject: "Password Reset Request - TransitOps",
+            html: message,
+        });
+    } catch (err) {
+        console.error("Email sending failed:", err);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save({ validateBeforeSave: false });
+
+        throw new AppError("Email could not be sent: " + err.message, 500);
+    }
+};
+
+/**
+ * Reset Password
+ */
+const resetPassword = async (resetToken, newPassword) => {
+    // Hash token to compare with DB
+    const resetPasswordToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+        throw new AppError("Invalid or expired token", 400);
+    }
+
+    // Set new password
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+};
+
+module.exports = { login, refreshAccessToken, logout, getUserById, register, forgotPassword, resetPassword };

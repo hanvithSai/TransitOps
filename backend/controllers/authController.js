@@ -16,7 +16,8 @@ const registerUser = async (req, res, next) => {
             });
         }
 
-        const { name, email, password, roleName } = req.body;
+        let { name, email, password, roleName } = req.body;
+        email = email.trim();
         const { user } = await authService.register(name, email, password, roleName);
 
         res.status(201).json({
@@ -43,7 +44,8 @@ const loginUser = async (req, res, next) => {
             });
         }
 
-        const { email, password } = req.body;
+        let { email, password } = req.body;
+        email = email.trim();
         const { user, accessToken, refreshToken } = await authService.login(email, password);
 
         // Set refresh token as httpOnly cookie
@@ -114,4 +116,65 @@ const getMe = async (req, res, next) => {
     }
 };
 
-module.exports = { registerUser, loginUser, refreshToken, logoutUser, getMe };
+/**
+ * POST /api/auth/forgot-password
+ */
+const forgotPassword = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed",
+                errors: errors.array(),
+            });
+        }
+
+        let { email } = req.body;
+        console.log("RECEIVED EMAIL:", JSON.stringify(email));
+        email = email.trim();
+        console.log("TRIMMED EMAIL:", JSON.stringify(email));
+        // Determine frontend origin for the reset link
+        // Use the origin header if it exists, otherwise use a default (from env or hardcoded fallback)
+        const originUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
+
+        await authService.forgotPassword(email, originUrl);
+
+        res.status(200).json({
+            success: true,
+            message: "Email sent with password reset instructions",
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * POST /api/auth/reset-password/:token
+ */
+const resetPassword = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed",
+                errors: errors.array(),
+            });
+        }
+
+        const { token } = req.params;
+        const { password } = req.body;
+
+        await authService.resetPassword(token, password);
+
+        res.status(200).json({
+            success: true,
+            message: "Password updated successfully. You may now log in.",
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { registerUser, loginUser, refreshToken, logoutUser, getMe, forgotPassword, resetPassword };

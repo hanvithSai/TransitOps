@@ -227,6 +227,10 @@ describe('RBAC Middleware Tests', () => {
     describe('Administration Module (Users & Roles)', () => {
         it('allows read/write for admin only', async () => {
             await testAccess('get', '/api/users', 'admin', 200);
+            await testAccess('post', '/api/users', 'admin', 201);
+            await testAccess('put', '/api/users/1', 'admin', 200);
+            await testAccess('delete', '/api/users/1', 'admin', 200);
+
             await testAccess('get', '/api/roles', 'admin', 200);
         });
         
@@ -234,6 +238,10 @@ describe('RBAC Middleware Tests', () => {
             const others = ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'];
             for (let role of others) {
                 await testAccess('get', '/api/users', role, 403);
+                await testAccess('post', '/api/users', role, 403);
+                await testAccess('put', '/api/users/1', role, 403);
+                await testAccess('delete', '/api/users/1', role, 403);
+                
                 await testAccess('get', '/api/roles', role, 403);
             }
         });
