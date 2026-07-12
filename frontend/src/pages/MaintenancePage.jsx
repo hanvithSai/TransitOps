@@ -1,11 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
+import { Modal } from '../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
+import { Toast } from '../components/ui/Toast';
 
 /* ─── helpers ──────────────────────────────────────────────── */
-const STATUS_BADGE = {
-  'Active':    'bg-amber-500/20  text-amber-300  border-amber-500/30',
-  'Completed': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+const STATUS_VARIANT = {
+  'Active':    'warning',
+  'Completed': 'success',
 };
 
 const getStatusLabel = (status) => {
@@ -13,7 +20,7 @@ const getStatusLabel = (status) => {
 };
 
 const formatCost = (cost) => {
-  return new Intl.NumberFormat().format(cost);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cost);
 };
 
 const formatDate = (dateStr) => {
@@ -27,89 +34,32 @@ const formatDateForInput = (dateStr) => {
   return dateStr.split('T')[0];
 };
 
-/* ─── FormField ────────────────────────────────────────────── */
-const FormField = ({ label, id, error, children }) => (
-  <div className="space-y-1.5">
-    <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-      {label}
-    </label>
-    {children}
-    {error && <p className="text-xs text-red-400">{error}</p>}
-  </div>
-);
-
-const inputCls =
-  'w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20';
-
 /* ─── ConfirmDeleteModal ─────────────────────────────────────── */
 const ConfirmDeleteModal = ({ log, onConfirm, onCancel, loading }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-    <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-surface-800)] shadow-2xl shadow-black/60">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
-        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Delete Service Record</h2>
-        <button onClick={onCancel} className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-700)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+  <div className="space-y-4">
+    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+        <svg className="h-5 w-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+        </svg>
       </div>
-      <div className="px-6 py-5 space-y-4">
-        <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Delete this record?</p>
-            <p className="text-xs text-[var(--color-text-muted)]">
-              {log?.vehicle?.registrationNumber} - {log?.serviceType} (${formatCost(log?.cost)})
-            </p>
-          </div>
-        </div>
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          This will delete the maintenance log permanently. If the status is currently <span className="text-amber-300 font-semibold">Active</span>, the vehicle status may automatically return to <span className="text-emerald-300 font-semibold">Available</span> if no other active logs exist.
+      <div>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">Delete this record?</p>
+        <p className="text-xs text-[var(--text-muted)]">
+          {log?.vehicle?.registrationNumber} - {log?.serviceType} ({formatCost(log?.cost)})
         </p>
-        <div className="flex justify-end gap-3 pt-2">
-          <button onClick={onCancel} className="rounded-lg border border-[var(--color-border-light)] px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-700)]">
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
-          >
-            {loading && <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>}
-            Delete
-          </button>
-        </div>
       </div>
+    </div>
+    <p className="text-sm text-[var(--text-secondary)]">
+      This will delete the maintenance log permanently. If the status is currently <span className="font-semibold text-amber-600 dark:text-amber-500">Active</span>, the vehicle status may automatically return to <span className="font-semibold text-emerald-600 dark:text-emerald-500">Available</span> if no other active logs exist.
+    </p>
+    <div className="flex justify-end gap-3 pt-2">
+      <Button variant="outline" onClick={onCancel}>Cancel</Button>
+      <Button variant="danger" onClick={onConfirm} loading={loading}>Delete</Button>
     </div>
   </div>
 );
 
-/* ─── Toast ────────────────────────────────────────────────── */
-const Toast = ({ message, type, onDismiss }) => {
-  useEffect(() => {
-    const t = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(t);
-  }, [onDismiss]);
-
-  return (
-    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-xl backdrop-blur-sm transition-all ${
-      type === 'success'
-        ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
-        : 'border-red-500/30 bg-red-500/15 text-red-300'
-    }`}>
-      {type === 'success'
-        ? <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
-        : <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-      }
-      {message}
-    </div>
-  );
-};
 
 /* ─── MaintenancePage ────────────────────────────────────────────── */
 const MaintenancePage = () => {
@@ -149,7 +99,6 @@ const MaintenancePage = () => {
   const fetchVehicles = async () => {
     try {
       const { data } = await api.get('/vehicles?limit=200');
-      // We want to list all non-retired vehicles for scheduling
       setVehicles(data.data.vehicles.filter(v => v.status !== 'Retired'));
     } catch {
       showToast('Failed to load vehicle list', 'error');
@@ -186,13 +135,11 @@ const MaintenancePage = () => {
 
     try {
       if (editingLog) {
-        // Edit flow
-        const { data } = await api.put(`/maintenance/${editingLog._id}`, form);
+        await api.put(`/maintenance/${editingLog._id}`, form);
         showToast('Service record updated successfully');
         resetForm();
       } else {
-        // Create flow
-        const { data } = await api.post('/maintenance', form);
+        await api.post('/maintenance', form);
         showToast('Service record created successfully');
         resetForm();
       }
@@ -251,11 +198,11 @@ const MaintenancePage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Maintenance logs</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Maintenance Logs</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Manage repairs, maintenance records, and costs
         </p>
       </div>
@@ -265,14 +212,14 @@ const MaintenancePage = () => {
         
         {/* Left Pane: LOG SERVICE RECORD Form */}
         <div className="lg:col-span-4">
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)] p-5">
-            <h2 className="text-md font-bold text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-3 mb-4">
+          <Card className="p-6">
+            <h2 className="text-md font-bold text-[var(--text-primary)] border-b border-[var(--border-base)] pb-4 mb-5">
               {editingLog ? 'Edit Service Record' : 'Log Service Record'}
             </h2>
 
             <form onSubmit={handleSave} className="space-y-4">
               {formError && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+                <div className="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
                   <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
@@ -281,71 +228,73 @@ const MaintenancePage = () => {
               )}
 
               {/* VEHICLE dropdown */}
-              <FormField label="Vehicle" id="vehicle">
-                <select id="vehicle" className={inputCls} value={form.vehicle} onChange={set('vehicle')} required disabled={!!editingLog}>
-                  <option value="">Select Vehicle</option>
-                  {vehicles.map((v) => (
-                    <option key={v._id} value={v._id}>
-                      {v.registrationNumber} ({v.vehicleName}) - {v.status}
-                    </option>
-                  ))}
-                  {editingLog && editingLog.vehicle && (
-                    <option value={editingLog.vehicle._id}>
-                      {editingLog.vehicle.registrationNumber} ({editingLog.vehicle.vehicleName})
-                    </option>
-                  )}
-                </select>
-              </FormField>
+              <div className="space-y-1.5">
+                <label htmlFor="vehicle" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Vehicle</label>
+                <div className="relative">
+                  <select id="vehicle" className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] disabled:opacity-60 disabled:cursor-not-allowed" value={form.vehicle} onChange={set('vehicle')} required disabled={!!editingLog}>
+                    <option value="">Select Vehicle</option>
+                    {vehicles.map((v) => (
+                      <option key={v._id} value={v._id}>
+                        {v.registrationNumber} ({v.vehicleName}) - {v.status}
+                      </option>
+                    ))}
+                    {editingLog && editingLog.vehicle && (
+                      <option value={editingLog.vehicle._id}>
+                        {editingLog.vehicle.registrationNumber} ({editingLog.vehicle.vehicleName})
+                      </option>
+                    )}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </div>
+                </div>
+              </div>
 
               {/* SERVICE TYPE */}
-              <FormField label="Service Type" id="serviceType">
-                <input id="serviceType" className={inputCls} placeholder="Oil Change, Engine Repair, etc." value={form.serviceType} onChange={set('serviceType')} required />
-              </FormField>
+              <div className="space-y-1.5">
+                <label htmlFor="serviceType" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Service Type</label>
+                <Input id="serviceType" placeholder="Oil Change, Engine Repair, etc." value={form.serviceType} onChange={set('serviceType')} required />
+              </div>
 
               {/* COST */}
-              <FormField label="Cost" id="cost">
-                <input id="cost" type="number" min="0" className={inputCls} placeholder="Cost" value={form.cost} onChange={set('cost')} required />
-              </FormField>
+              <div className="space-y-1.5">
+                <label htmlFor="cost" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Cost</label>
+                <Input id="cost" type="number" min="0" placeholder="Cost" value={form.cost} onChange={set('cost')} required />
+              </div>
 
               {/* DATE */}
-              <FormField label="Date" id="date">
-                <input id="date" type="date" className={inputCls} value={form.date} onChange={set('date')} required />
-              </FormField>
+              <div className="space-y-1.5">
+                <label htmlFor="date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Date</label>
+                <Input id="date" type="date" value={form.date} onChange={set('date')} required />
+              </div>
 
               {/* STATUS */}
-              <FormField label="Status" id="status">
-                <select id="status" className={inputCls} value={form.status} onChange={set('status')} required>
-                  <option value="Active">Active</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </FormField>
+              <div className="space-y-1.5">
+                <label htmlFor="status" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Status</label>
+                <div className="relative">
+                  <select id="status" className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={form.status} onChange={set('status')} required>
+                    <option value="Active">Active</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </div>
+                </div>
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-700 hover:bg-amber-600 py-2.5 text-sm font-semibold text-white shadow-md transition-all cursor-pointer disabled:opacity-60"
-                >
-                  {formLoading && (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                      <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
-                    </svg>
-                  )}
+              <div className="flex flex-col gap-3 pt-4">
+                <Button type="submit" loading={formLoading} className="w-full">
                   Save
-                </button>
+                </Button>
                 {editingLog && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="w-full rounded-lg border border-[var(--color-border-light)] py-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-700)] transition-colors"
-                  >
+                  <Button variant="outline" type="button" onClick={resetForm} className="w-full">
                     Cancel Edit
-                  </button>
+                  </Button>
                 )}
               </div>
             </form>
-          </div>
+          </Card>
         </div>
 
         {/* Right Pane: SERVICE LOGS Table */}
@@ -353,7 +302,7 @@ const MaintenancePage = () => {
           
           {/* Search bar at the top */}
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--color-text-muted)]">
+            <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
@@ -363,108 +312,100 @@ const MaintenancePage = () => {
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-800)] py-2.5 pl-9 pr-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+              className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
             />
           </div>
 
           {/* Logs Table Container */}
-          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)]">
-            <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider bg-[var(--color-surface-900)]/40 px-5 py-3 border-b border-[var(--color-border)]">
+          <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)]">
+            <h3 className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-base)] px-5 py-4 border-b border-[var(--border-base)]">
               Service Logs
             </h3>
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <svg className="h-8 w-8 animate-spin text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <circle cx="12" cy="12" r="10" strokeOpacity="0.2" /><path d="M12 2a10 10 0 0 1 10 10" />
-                </svg>
+              <div className="flex h-64 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
               </div>
             ) : logs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface-700)]">
-                  <svg className="h-6 w-6 text-[var(--color-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)]">
+                  <svg className="h-6 w-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-[var(--color-text-secondary)]">No service logs found</p>
-                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Try adjusting your search criteria</p>
+                <p className="text-sm font-medium text-[var(--text-secondary)]">No service logs found</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Try adjusting your search criteria</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-900)]/50">
-                      {['Vehicle', 'Service', 'Cost', 'Status', ''].map((h) => (
-                        <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-border)]">
-                    {logs.map((log) => {
-                      const isSelected = editingLog && editingLog._id === log._id;
-                      return (
-                        <tr
-                          key={log._id}
-                          onClick={() => handleRowClick(log)}
-                          className={`group transition-colors hover:bg-[var(--color-surface-700)]/40 cursor-pointer ${
-                            isSelected ? 'bg-amber-500/10 hover:bg-amber-500/15' : ''
-                          }`}
-                        >
-                          {/* VEHICLE */}
-                          <td className="px-5 py-4">
-                            <p className="font-semibold text-[var(--color-text-primary)]">
-                              {log.vehicle?.registrationNumber || 'Unknown Vehicle'}
-                            </p>
-                            <p className="text-xs text-[var(--color-text-muted)]">
-                              {log.vehicle?.vehicleName}
-                            </p>
-                          </td>
-                          
-                          {/* SERVICE */}
-                          <td className="px-5 py-4">
-                            <p className="font-medium text-[var(--color-text-primary)]">
-                              {log.serviceType}
-                            </p>
-                            <p className="text-xs text-[var(--color-text-muted)]">
-                              Logged on {formatDate(log.date)}
-                            </p>
-                          </td>
+              <Table>
+                <TableHead>
+                  <TableHeader>Vehicle</TableHeader>
+                  <TableHeader>Service</TableHeader>
+                  <TableHeader>Cost</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader className="text-right"></TableHeader>
+                </TableHead>
+                <tbody className="divide-y divide-[var(--border-base)]">
+                  {logs.map((log) => {
+                    const isSelected = editingLog && editingLog._id === log._id;
+                    return (
+                      <TableRow
+                        key={log._id}
+                        onClick={() => handleRowClick(log)}
+                        className={`cursor-pointer ${
+                          isSelected ? 'bg-[var(--bg-surface-hover)]' : ''
+                        }`}
+                      >
+                        {/* VEHICLE */}
+                        <TableCell>
+                          <p className="font-semibold text-[var(--text-primary)]">
+                            {log.vehicle?.registrationNumber || 'Unknown Vehicle'}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {log.vehicle?.vehicleName}
+                          </p>
+                        </TableCell>
+                        
+                        {/* SERVICE */}
+                        <TableCell>
+                          <p className="font-medium text-[var(--text-primary)]">
+                            {log.serviceType}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            Logged on {formatDate(log.date)}
+                          </p>
+                        </TableCell>
 
-                          {/* COST */}
-                          <td className="px-5 py-4 font-semibold text-[var(--color-text-secondary)]">
-                            {formatCost(log.cost)}
-                          </td>
+                        {/* COST */}
+                        <TableCell className="font-semibold text-[var(--text-secondary)]">
+                          {formatCost(log.cost)}
+                        </TableCell>
 
-                          {/* STATUS */}
-                          <td className="px-5 py-4">
-                            <span className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE[log.status] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
-                              {getStatusLabel(log.status)}
-                            </span>
-                          </td>
+                        {/* STATUS */}
+                        <TableCell>
+                          <Badge variant={STATUS_VARIANT[log.status] || 'default'}>{getStatusLabel(log.status)}</Badge>
+                        </TableCell>
 
-                          {/* ACTIONS */}
-                          <td className="px-5 py-4 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingLog(log);
-                              }}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-400 opacity-0 group-hover:opacity-100"
-                              title="Delete log record"
-                            >
-                              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2" />
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        {/* ACTIONS */}
+                        <TableCell className="text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingLog(log);
+                            }}
+                            className="p-1.5 text-[var(--text-muted)] hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete log record"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2" />
+                            </svg>
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </tbody>
+              </Table>
             )}
           </div>
         </div>
@@ -473,12 +414,14 @@ const MaintenancePage = () => {
 
       {/* Delete Confirmation Modal */}
       {deletingLog && (
-        <ConfirmDeleteModal
-          log={deletingLog}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeletingLog(null)}
-          loading={formLoading}
-        />
+        <Modal title="Delete Service Record" onClose={() => setDeletingLog(null)}>
+          <ConfirmDeleteModal
+            log={deletingLog}
+            onConfirm={handleDeleteConfirm}
+            onCancel={() => setDeletingLog(null)}
+            loading={formLoading}
+          />
+        </Modal>
       )}
 
       {/* Toast Notification */}

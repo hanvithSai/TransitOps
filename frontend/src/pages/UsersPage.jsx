@@ -1,59 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
+import { Modal } from '../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
+import { Toast } from '../components/ui/Toast';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const ROLE_BADGE = {
-  admin:             'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  fleet_manager:     'bg-blue-500/20   text-blue-300   border-blue-500/30',
-  driver:        'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  safety_officer:    'bg-amber-500/20  text-amber-300  border-amber-500/30',
-  financial_analyst: 'bg-rose-500/20   text-rose-300   border-rose-500/30',
+  admin:             'danger',
+  fleet_manager:     'info',
+  driver:        'success',
+  safety_officer:    'warning',
+  financial_analyst: 'default',
 };
 
 const STATUS_BADGE = {
-  true:  'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  false: 'bg-red-500/15     text-red-400     border-red-500/30',
+  true:  'success',
+  false: 'danger',
 };
-
-/* ─── Modal ────────────────────────────────────────────────── */
-const Modal = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    {/* Backdrop */}
-    <div
-      className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    />
-    {/* Panel */}
-    <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-surface-800)] shadow-2xl shadow-black/60">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
-        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h2>
-        <button
-          onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)]"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </div>
-  </div>
-);
-
-/* ─── FormField ────────────────────────────────────────────── */
-const FormField = ({ label, id, error, children }) => (
-  <div className="space-y-1.5">
-    <label htmlFor={id} className="block text-sm font-medium text-[var(--color-text-secondary)]">
-      {label}
-    </label>
-    {children}
-    {error && <p className="text-xs text-red-400">{error}</p>}
-  </div>
-);
-
-const inputCls =
-  'w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20';
 
 /* ─── UserForm ─────────────────────────────────────────────── */
 const EMPTY_FORM = { name: '', email: '', password: '', roleId: '', isActive: true };
@@ -76,7 +43,7 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
           <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
@@ -85,21 +52,18 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Full Name" id="name">
-          <input id="name" className={inputCls} placeholder="Jane Smith" value={form.name} onChange={set('name')} required />
-        </FormField>
-        <FormField label="Email Address" id="email">
-          <input id="email" type="email" className={inputCls} placeholder="jane@company.com" value={form.email} onChange={set('email')} required />
-        </FormField>
+        <Input id="name" label="Full Name" placeholder="Jane Smith" value={form.name} onChange={set('name')} required />
+        <Input id="email" type="email" label="Email Address" placeholder="jane@company.com" value={form.email} onChange={set('email')} required />
       </div>
 
       {!isEdit ? (
-        <FormField label="Password" id="password">
+        <div className="space-y-1.5">
+          <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Password</label>
           <div className="relative">
             <input
               id="password"
               type={showPass ? 'text' : 'password'}
-              className={inputCls + ' pr-10'}
+              className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
               placeholder="Min 6 characters"
               value={form.password}
               onChange={set('password')}
@@ -109,7 +73,7 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
             <button
               type="button"
               onClick={() => setShowPass(!showPass)}
-              className="absolute inset-y-0 right-3 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+              className="absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             >
               {showPass
                 ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22" /></svg>
@@ -117,59 +81,51 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
               }
             </button>
           </div>
-        </FormField>
+        </div>
       ) : (
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Reset Password</label>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Reset Password</label>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setForm((p) => ({ ...p, password: 'TransitOps2026!' }))}
-              className="rounded-lg bg-[var(--color-surface-700)] px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface-600)] transition-colors border border-[var(--color-border-light)]"
-            >
+            <Button variant="outline" type="button" onClick={() => setForm((p) => ({ ...p, password: 'TransitOps2026!' }))}>
               Set to Default (TransitOps2026!)
-            </button>
+            </Button>
             {form.password === 'TransitOps2026!' && (
-              <span className="text-xs text-emerald-400">✓ Password will be reset on save</span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ Password will be reset on save</span>
             )}
           </div>
         </div>
       )}
 
-      <FormField label="Role" id="roleId">
-        <select id="roleId" className={inputCls} value={form.roleId} onChange={set('roleId')} required>
-          <option value="">— Select a role —</option>
-          {roles.map((r) => (
-            <option key={r._id} value={r._id}>{r.displayName}</option>
-          ))}
-        </select>
-      </FormField>
+      <div className="space-y-1.5">
+        <label htmlFor="roleId" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Role</label>
+        <div className="relative">
+          <select id="roleId" className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={form.roleId} onChange={set('roleId')} required>
+            <option value="">— Select a role —</option>
+            {roles.map((r) => (
+              <option key={r._id} value={r._id}>{r.displayName}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+          </div>
+        </div>
+      </div>
 
       {isEdit && (
         <label className="flex cursor-pointer items-center gap-3">
           <div className="relative">
             <input type="checkbox" className="peer sr-only" checked={form.isActive} onChange={set('isActive')} />
-            <div className="h-5 w-9 rounded-full bg-[var(--color-surface-600)] transition-colors peer-checked:bg-[var(--color-brand-600)]" />
+            <div className="h-5 w-9 rounded-full bg-[var(--border-base)] transition-colors peer-checked:bg-[var(--color-brand-500)]" />
             <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
           </div>
-          <span className="text-sm text-[var(--color-text-secondary)]">Account active</span>
+          <span className="text-sm font-medium text-[var(--text-secondary)]">Account active</span>
         </label>
       )}
 
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={loading}
-          id={isEdit ? 'user-update-btn' : 'user-create-btn'}
-          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[var(--color-brand-600)] to-[var(--color-brand-700)] px-5 py-2 text-sm font-semibold text-white shadow-md shadow-blue-900/30 transition-all hover:from-[var(--color-brand-500)] hover:to-[var(--color-brand-600)] disabled:opacity-60"
-        >
-          {loading && (
-            <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-              <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
-            </svg>
-          )}
+      <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)]">
+        <Button type="submit" loading={loading} className="w-full sm:w-auto">
           {isEdit ? 'Save Changes' : 'Create User'}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -177,62 +133,29 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
 
 /* ─── ConfirmModal ─────────────────────────────────────────── */
 const ConfirmModal = ({ user, onConfirm, onCancel, loading }) => (
-  <Modal title="Delete User" onClose={onCancel}>
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20">
-          <svg className="h-5 w-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--color-text-primary)]">Delete {user.name}?</p>
-          <p className="text-xs text-[var(--color-text-muted)]">{user.email}</p>
-        </div>
+  <div className="space-y-4">
+    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+        <svg className="h-5 w-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+        </svg>
       </div>
-      <p className="text-sm text-[var(--color-text-secondary)]">
-        This action <span className="font-semibold text-red-400">cannot be undone</span>. The user will lose all access immediately.
-      </p>
-      <div className="flex justify-end gap-3">
-        <button onClick={onCancel} className="rounded-lg border border-[var(--color-border-light)] px-4 py-2 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-700)]">
-          Cancel
-        </button>
-        <button
-          id="user-delete-confirm-btn"
-          onClick={onConfirm}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:opacity-60"
-        >
-          {loading && <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>}
-          Delete User
-        </button>
+      <div>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">Delete {user.name}?</p>
+        <p className="text-xs text-[var(--text-muted)]">{user.email}</p>
       </div>
     </div>
-  </Modal>
+    <p className="text-sm text-[var(--text-secondary)]">
+      This action <span className="font-semibold text-red-600 dark:text-red-400">cannot be undone</span>. The user will lose all access immediately.
+    </p>
+    <div className="flex justify-end gap-3 pt-2">
+      <Button variant="outline" onClick={onCancel}>Cancel</Button>
+      <Button variant="danger" onClick={onConfirm} loading={loading}>Delete User</Button>
+    </div>
+  </div>
 );
 
-/* ─── Toast ────────────────────────────────────────────────── */
-const Toast = ({ message, type, onDismiss }) => {
-  useEffect(() => {
-    const t = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(t);
-  }, [onDismiss]);
-
-  return (
-    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-xl backdrop-blur-sm transition-all ${
-      type === 'success'
-        ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
-        : 'border-red-500/30 bg-red-500/15 text-red-300'
-    }`}>
-      {type === 'success'
-        ? <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
-        : <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-      }
-      {message}
-    </div>
-  );
-};
 
 /* ─── UsersPage ────────────────────────────────────────────── */
 const UsersPage = () => {
@@ -362,152 +285,143 @@ const UsersPage = () => {
 
   /* ── render ── */
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">User Management</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">User Management</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Manage system accounts and role assignments
           </p>
         </div>
-        <button
-          id="open-create-user-btn"
-          onClick={() => { setFormError(''); setModal('create'); }}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--color-brand-600)] to-[var(--color-brand-700)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-all hover:from-[var(--color-brand-500)] hover:to-[var(--color-brand-600)] hover:shadow-blue-700/40"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+        <Button onClick={() => { setFormError(''); setModal('create'); }}>
+          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Add User
-        </button>
+        </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: 'Total Users',  value: users.length,                          color: 'text-[var(--color-brand-400)]' },
-          { label: 'Active',       value: users.filter((u) => u.isActive).length, color: 'text-emerald-400' },
-          { label: 'Inactive',     value: users.filter((u) => !u.isActive).length, color: 'text-red-400' },
-          { label: 'Roles',        value: roles.length,                           color: 'text-purple-400' },
+          { label: 'Total Users',  value: users.length,                          color: 'text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]' },
+          { label: 'Active',       value: users.filter((u) => u.isActive).length, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Inactive',     value: users.filter((u) => !u.isActive).length, color: 'text-red-600 dark:text-red-400' },
+          { label: 'Roles',        value: roles.length,                           color: 'text-purple-600 dark:text-purple-400' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)] px-4 py-3">
-            <p className="text-xs text-[var(--color-text-muted)]">{label}</p>
-            <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-          </div>
+          <Card key={label} className="p-4 flex flex-col justify-center">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
+            <p className={`mt-2 text-2xl font-bold tracking-tight ${color}`}>{value}</p>
+          </Card>
         ))}
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--color-text-muted)]">
+        <div className="relative flex-1 min-w-[200px]">
+          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </div>
           <input
-            id="user-search"
             type="text"
             placeholder="Search by name or email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-800)] py-2.5 pl-9 pr-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20"
+            className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
           />
         </div>
-        <select
-          id="role-filter"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-800)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20"
-        >
-          <option value="">All Roles</option>
-          {roles.map((r) => (
-            <option key={r._id} value={r.name}>{r.displayName}</option>
-          ))}
-        </select>
+        <div className="relative w-full sm:w-48">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] px-3 py-2.5 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
+          >
+            <option value="">All Roles</option>
+            {roles.map((r) => (
+              <option key={r._id} value={r.name}>{r.displayName}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)]">
+      <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)]">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <svg className="h-8 w-8 animate-spin text-[var(--color-brand-500)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <circle cx="12" cy="12" r="10" strokeOpacity="0.2" /><path d="M12 2a10 10 0 0 1 10 10" />
-            </svg>
+          <div className="flex h-64 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface-700)]">
-              <svg className="h-6 w-6 text-[var(--color-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)]">
+              <svg className="h-6 w-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-[var(--color-text-secondary)]">No users found</p>
-            <p className="mt-1 text-xs text-[var(--color-text-muted)]">Try adjusting your search or filters</p>
+            <p className="text-sm font-medium text-[var(--text-secondary)]">No users found</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Try adjusting your search or filters</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-900)]/50">
-                  {['User', 'Role', 'Status', 'Last Login', 'Pwd Updated', 'Actions'].map((h) => (
-                    <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border)]">
+            <Table>
+              <TableHead>
+                <TableHeader>User</TableHeader>
+                <TableHeader>Role</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Last Login</TableHeader>
+                <TableHeader>Pwd Updated</TableHeader>
+                <TableHeader className="text-right">Actions</TableHeader>
+              </TableHead>
+              <tbody className="divide-y divide-[var(--border-base)]">
                 {filtered.map((user) => {
                   const initials = user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
                   return (
-                    <tr key={user._id} className="group transition-colors hover:bg-[var(--color-surface-700)]/40">
+                    <TableRow key={user._id}>
                       {/* User */}
-                      <td className="px-5 py-4">
+                      <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-brand-500)] to-purple-600 text-xs font-bold text-white">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-brand-500)] to-[var(--color-brand-700)] text-xs font-bold text-white shadow-sm shadow-[var(--color-brand-500)]/20">
                             {initials}
                           </div>
                           <div>
-                            <p className="font-medium text-[var(--color-text-primary)]">{user.name}</p>
-                            <p className="text-xs text-[var(--color-text-muted)]">{user.email}</p>
+                            <p className="font-semibold text-[var(--text-primary)]">{user.name}</p>
+                            <p className="text-xs text-[var(--text-muted)]">{user.email}</p>
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
                       {/* Role */}
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ROLE_BADGE[user.role?.name] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
-                          {user.role?.displayName || '—'}
-                        </span>
-                      </td>
+                      <TableCell>
+                        <Badge variant={ROLE_BADGE[user.role?.name] || 'default'}>{user.role?.displayName || '—'}</Badge>
+                      </TableCell>
                       {/* Status */}
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE[user.isActive]}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
+                      <TableCell>
+                        <Badge variant={STATUS_BADGE[user.isActive]}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
+                      </TableCell>
                       {/* Last Login */}
-                      <td className="px-5 py-4 text-xs text-[var(--color-text-muted)]">
+                      <TableCell className="text-xs text-[var(--text-muted)]">
                         {user.lastLogin
                           ? new Date(user.lastLogin).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
                           : 'Never'}
-                      </td>
+                      </TableCell>
                       {/* Password Updated */}
-                      <td className="px-5 py-4 text-xs text-[var(--color-text-muted)]">
+                      <TableCell className="text-xs text-[var(--text-muted)]">
                         {user.passwordUpdatedAt
                           ? new Date(user.passwordUpdatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
                           : 'Never'}
-                      </td>
+                      </TableCell>
                       {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <button
                             onClick={() => openEdit(user)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-brand-600)]/15 hover:text-[var(--color-brand-400)]"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]"
                             title="Edit user"
                           >
                             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -517,7 +431,7 @@ const UsersPage = () => {
                           </button>
                           <button
                             onClick={() => openDelete(user)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                             title="Delete user"
                           >
                             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -526,12 +440,12 @@ const UsersPage = () => {
                             </svg>
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
               </tbody>
-            </table>
+            </Table>
           </div>
         )}
       </div>
@@ -556,7 +470,9 @@ const UsersPage = () => {
       )}
 
       {modal === 'delete' && selected && (
-        <ConfirmModal user={selected} onConfirm={handleDelete} onCancel={closeModal} loading={formLoading} />
+        <Modal title="Delete User" onClose={closeModal}>
+          <ConfirmModal user={selected} onConfirm={handleDelete} onCancel={closeModal} loading={formLoading} />
+        </Modal>
       )}
 
       {/* Toast */}
