@@ -23,18 +23,18 @@ const formatDate = (dateStr) => {
 };
 
 const isNearExpiryOrExpired = (dateStr) => {
-  if (!dateStr) return { expired: false, near: false };
+  if (!dateStr) return { expired: false, near: false, days: Infinity };
   const expiry = new Date(dateStr);
   const now = new Date();
   const diffTime = expiry - now;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
   if (diffDays <= 0) {
-    return { expired: true, near: false };
+    return { expired: true, near: false, days: diffDays };
   } else if (diffDays <= 30) {
     return { expired: false, near: true, days: diffDays };
   }
-  return { expired: false, near: false };
+  return { expired: false, near: false, days: diffDays };
 };
 
 /* ─── Modal ────────────────────────────────────────────────── */
@@ -266,6 +266,11 @@ const DriversPage = () => {
     fetchDrivers();
   }, [fetchDrivers]);
 
+  const expiringSoonDrivers = drivers.filter((d) => {
+    const check = isNearExpiryOrExpired(d.expiryDate);
+    return !check.expired && check.days <= 7;
+  });
+
   /* create */
   const handleCreate = async (form) => {
     setFormLoading(true);
@@ -352,6 +357,21 @@ const DriversPage = () => {
           </button>
         )}
       </div>
+
+      {/* Alert */}
+      {expiringSoonDrivers.length > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-semibold text-amber-500">Action Required: Upcoming License Expirations</h3>
+            <p className="mt-1 text-sm text-amber-500/80">
+              {expiringSoonDrivers.length} driver(s) have licenses expiring in 7 days or less.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
