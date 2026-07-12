@@ -10,6 +10,7 @@ import VehiclesPage from './pages/VehiclesPage';
 import DriversPage from './pages/DriversPage';
 import TripsPage from './pages/TripsPage';
 import MaintenancePage from './pages/MaintenancePage';
+import FinancePage from './pages/FinancePage';
 
 function App() {
   return (
@@ -59,13 +60,27 @@ function App() {
             <Route
               path="/maintenance"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'fleet_manager']}>
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
                   <MaintenancePage />
                 </ProtectedRoute>
               }
             />
-            <Route path="/fuel"        element={<ComingSoon title="Fuel Management"    phase={6} />} />
-            <Route path="/expenses"    element={<ComingSoon title="Expense Tracking"   phase={6} />} />
+            <Route
+              path="/fuel"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                  <FinancePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/expenses"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                  <FinancePage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/reports"     element={<ComingSoon title="Reports & Analytics" phase={8} />} />
             <Route
               path="/users"
