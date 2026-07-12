@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import VehiclesPage from './pages/VehiclesPage';
+import DriversPage from './pages/DriversPage';
 
 function App() {
   return (
@@ -37,7 +38,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/drivers"     element={<ComingSoon title="Driver Management"  phase={3} />} />
+            <Route
+              path="/drivers"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'dispatcher', 'safety_officer']}>
+                  <DriversPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/trips"       element={<ComingSoon title="Trip Management"    phase={4} />} />
             <Route path="/maintenance" element={<ComingSoon title="Maintenance"        phase={5} />} />
             <Route path="/fuel"        element={<ComingSoon title="Fuel Management"    phase={6} />} />
