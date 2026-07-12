@@ -15,6 +15,7 @@ const tripRoutes = require("./routes/tripRoutes");
 const maintenanceRoutes = require("./routes/maintenanceRoutes");
 const fuelRoutes = require("./routes/fuelRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use("/api/trips", tripRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/fuel", fuelRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

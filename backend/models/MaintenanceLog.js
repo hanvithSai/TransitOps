@@ -12,6 +12,10 @@ const maintenanceLogSchema = new mongoose.Schema({
     required: [true, 'Service type is required'],
     trim: true,
   },
+  description: {
+    type: String,
+    trim: true,
+  },
   cost: {
     type: Number,
     required: [true, 'Cost is required'],
@@ -21,6 +25,9 @@ const maintenanceLogSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Date is required'],
     default: Date.now,
+  },
+  closeDate: {
+    type: Date,
   },
   status: {
     type: String,
