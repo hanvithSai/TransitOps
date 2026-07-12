@@ -453,7 +453,7 @@ const UsersPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-900)]/50">
-                  {['User', 'Role', 'Status', 'Last Login', 'Actions'].map((h) => (
+                  {['User', 'Role', 'Status', 'Last Login', 'Pwd Updated', 'Actions'].map((h) => (
                     <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
                       {h}
                     </th>
@@ -494,6 +494,12 @@ const UsersPage = () => {
                       <td className="px-5 py-4 text-xs text-[var(--color-text-muted)]">
                         {user.lastLogin
                           ? new Date(user.lastLogin).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                          : 'Never'}
+                      </td>
+                      {/* Password Updated */}
+                      <td className="px-5 py-4 text-xs text-[var(--color-text-muted)]">
+                        {user.passwordUpdatedAt
+                          ? new Date(user.passwordUpdatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
                           : 'Never'}
                       </td>
                       {/* Actions */}

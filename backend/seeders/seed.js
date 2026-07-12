@@ -71,11 +71,16 @@ const seed = async () => {
         console.log("✅ Roles seeded.");
 
         const usersToCreate = [
-            { name: "Rahul Sharma", email: "admin@transitops.com", password: "Password@123", roleName: "admin" },
-            { name: "Vikram Singh", email: "manager@transitops.com", password: "Password@123", roleName: "fleet_manager" },
-            { name: "Arjun Reddy", email: "driver@transitops.com", password: "Password@123", roleName: "driver" },
-            { name: "Priya Patel", email: "safety@transitops.com", password: "Password@123", roleName: "safety_officer" },
-            { name: "Ananya Iyer", email: "finance@transitops.com", password: "Password@123", roleName: "financial_analyst" },
+            // Active users
+            { name: "Rahul Sharma", email: "admin@transitops.com", password: "Password@123", roleName: "admin", isActive: true },
+            { name: "Vikram Singh", email: "manager@transitops.com", password: "Password@123", roleName: "fleet_manager", isActive: true },
+            { name: "Arjun Reddy", email: "driver@transitops.com", password: "Password@123", roleName: "driver", isActive: true },
+            { name: "Priya Patel", email: "safety@transitops.com", password: "Password@123", roleName: "safety_officer", isActive: true },
+            { name: "Ananya Iyer", email: "finance@transitops.com", password: "Password@123", roleName: "financial_analyst", isActive: true },
+            // Inactive users
+            { name: "Karan Desai", email: "karan.d@transitops.com", password: "Password@123", roleName: "driver", isActive: false },
+            { name: "Sneha Rao", email: "sneha.r@transitops.com", password: "Password@123", roleName: "financial_analyst", isActive: false },
+            { name: "Amit Kumar", email: "amit.k@transitops.com", password: "Password@123", roleName: "fleet_manager", isActive: false },
         ];
         
         const createdUsers = [];
@@ -85,7 +90,8 @@ const seed = async () => {
                 email: u.email,
                 password: u.password,
                 role: roleMap[u.roleName],
-                isActive: true
+                isActive: u.isActive,
+                passwordUpdatedAt: faker.date.recent({ days: 90 })
             });
             createdUsers.push(user);
         }
