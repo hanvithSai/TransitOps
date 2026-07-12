@@ -22,7 +22,6 @@ const LoginPage = () => {
   const { login, register, isAuthenticated, loading: authLoading } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const from      = location.state?.from?.pathname || '/dashboard';
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [form, setForm]         = useState({ name: '', email: '', password: '', role: 'Driver' });
@@ -34,8 +33,8 @@ const LoginPage = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (!authLoading && isAuthenticated) navigate(from, { replace: true });
-  }, [isAuthenticated, authLoading, navigate, from]);
+    if (!authLoading && isAuthenticated) navigate('/dashboard', { replace: true });
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -77,7 +76,7 @@ const LoginPage = () => {
       setLoading(false);
 
       if (result.success) {
-        navigate(from, { replace: true });
+        navigate('/dashboard', { replace: true });
       } else {
         setError(result.message);
         setShake(true);
@@ -181,7 +180,7 @@ const LoginPage = () => {
                 autoComplete="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="raven.k@transitops.in"
+                placeholder="john.doe@company.com"
                 className="w-full rounded border border-[var(--color-border-light)] bg-transparent py-2.5 px-3 text-sm text-white placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
               />
             </div>
