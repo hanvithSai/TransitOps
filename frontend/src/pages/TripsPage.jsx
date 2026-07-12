@@ -197,10 +197,10 @@ const TripsPage = () => {
       <div>
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Trip Dispatcher</h1>
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Trip Driver</h1>
             <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Manage dispatch workflow and monitor active trips</p>
           </div>
-          {(user.role.name === 'admin' || user.role.name === 'dispatcher') && (
+          {(user.role.name === 'admin' || user.role.name === 'driver') && (
             <button
               onClick={handleNewTripClick}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--color-brand-600)] to-[var(--color-brand-700)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-all hover:from-[var(--color-brand-500)] hover:to-[var(--color-brand-600)]"
@@ -370,13 +370,13 @@ const TripsPage = () => {
                 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  {selectedTrip.status === 'Draft' && (user.role.name === 'admin' || user.role.name === 'dispatcher') && (
+                  {selectedTrip.status === 'Draft' && (user.role.name === 'admin' || user.role.name === 'driver') && (
                     <>
                       <button onClick={() => setModalType('cancel')} disabled={actionLoading} className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10">Cancel</button>
                       <button onClick={handleDispatch} disabled={actionLoading} className="rounded-lg bg-emerald-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500">Dispatch Trip</button>
                     </>
                   )}
-                  {selectedTrip.status === 'Dispatched' && (user.role.name === 'admin' || user.role.name === 'dispatcher' || user.role.name === 'fleet_manager') && (
+                  {selectedTrip.status === 'Dispatched' && (user.role.name === 'admin' || user.role.name === 'driver' || user.role.name === 'fleet_manager') && (
                     <button onClick={() => { setCompleteForm({ actualDistance: selectedTrip.plannedDistance, fuelUsed: '' }); setModalType('complete'); }} disabled={actionLoading} className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500">Complete Trip</button>
                   )}
                 </div>

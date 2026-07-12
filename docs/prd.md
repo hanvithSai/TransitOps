@@ -52,7 +52,7 @@ The platform emphasizes:
 - Schedule maintenance
 - Monitor fleet utilization
 
-## Dispatcher
+## Driver
 - Create trips
 - Assign drivers
 - Assign vehicles

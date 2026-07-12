@@ -36,7 +36,7 @@ function App() {
             <Route
               path="/vehicles"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver']}>
                   <VehiclesPage />
                 </ProtectedRoute>
               }
@@ -44,7 +44,7 @@ function App() {
             <Route
               path="/drivers"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'dispatcher', 'safety_officer']}>
+                <ProtectedRoute allowedRoles={['admin', 'driver', 'safety_officer']}>
                   <DriversPage />
                 </ProtectedRoute>
               }
@@ -52,7 +52,7 @@ function App() {
             <Route
               path="/trips"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher', 'safety_officer']}>
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver', 'safety_officer']}>
                   <TripsPage />
                 </ProtectedRoute>
               }
@@ -60,7 +60,7 @@ function App() {
             <Route
               path="/maintenance"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager']}>
                   <MaintenancePage />
                 </ProtectedRoute>
               }
@@ -68,7 +68,7 @@ function App() {
             <Route
               path="/fuel"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver', 'financial_analyst']}>
                   <FinancePage />
                 </ProtectedRoute>
               }
@@ -76,7 +76,7 @@ function App() {
             <Route
               path="/expenses"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver', 'financial_analyst']}>
                   <FinancePage />
                 </ProtectedRoute>
               }

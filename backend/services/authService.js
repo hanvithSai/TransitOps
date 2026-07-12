@@ -74,7 +74,7 @@ const register = async (name, email, password, roleName) => {
     // Map UI role names to DB role names if needed
     const roleMap = {
         "Fleet Manager": "fleet_manager",
-        "Dispatcher": "dispatcher",
+        "Driver": "driver",
         "Safety Officer": "safety_officer",
         "Financial Analyst": "financial_analyst"
     };

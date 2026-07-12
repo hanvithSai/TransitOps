@@ -11,21 +11,21 @@ router.use(authenticate);
 // GET /api/expenses
 router.get(
     '/',
-    authorize('admin', 'fleet_manager', 'dispatcher'),
+    authorize('admin', 'fleet_manager', 'driver', 'financial_analyst'),
     expenseController.getAllExpenses
 );
 
 // GET /api/expenses/:id
 router.get(
     '/:id',
-    authorize('admin', 'fleet_manager', 'dispatcher'),
+    authorize('admin', 'fleet_manager', 'driver', 'financial_analyst'),
     expenseController.getExpenseById
 );
 
 // POST /api/expenses
 router.post(
     '/',
-    authorize('admin', 'fleet_manager'),
+    authorize('admin', 'fleet_manager', 'financial_analyst'),
     createExpenseValidator,
     expenseController.createExpense
 );
@@ -33,7 +33,7 @@ router.post(
 // PUT /api/expenses/:id
 router.put(
     '/:id',
-    authorize('admin', 'fleet_manager'),
+    authorize('admin', 'fleet_manager', 'financial_analyst'),
     updateExpenseValidator,
     expenseController.updateExpense
 );
@@ -41,7 +41,7 @@ router.put(
 // DELETE /api/expenses/:id
 router.delete(
     '/:id',
-    authorize('admin', 'fleet_manager'),
+    authorize('admin', 'fleet_manager', 'financial_analyst'),
     expenseController.deleteExpense
 );
 

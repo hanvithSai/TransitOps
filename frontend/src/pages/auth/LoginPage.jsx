@@ -25,7 +25,7 @@ const LoginPage = () => {
   const from      = location.state?.from?.pathname || '/dashboard';
 
   const [isSignUp, setIsSignUp] = useState(false);
-  const [form, setForm]         = useState({ name: '', email: '', password: '', role: 'Dispatcher' });
+  const [form, setForm]         = useState({ name: '', email: '', password: '', role: 'Driver' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
@@ -105,7 +105,7 @@ const LoginPage = () => {
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">One login, four roles:</h2>
           <ul className="space-y-3">
-            {['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'].map(role => (
+            {['Fleet Manager', 'Driver', 'Safety Officer', 'Financial Analyst'].map(role => (
               <li key={role} className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full bg-orange-600"></span>
                 <span className="text-gray-700 font-medium">{role}</span>
@@ -228,7 +228,7 @@ const LoginPage = () => {
                     className="w-full appearance-none rounded border border-[var(--color-border-light)] bg-transparent py-2.5 px-3 pr-8 text-sm text-white outline-none transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 [&>option]:bg-[#1e1e1e]"
                   >
                     <option value="Fleet Manager">Fleet Manager</option>
-                    <option value="Dispatcher">Dispatcher</option>
+                    <option value="Driver">Driver</option>
                     <option value="Safety Officer">Safety Officer</option>
                     <option value="Financial Analyst">Financial Analyst</option>
                   </select>
@@ -285,7 +285,7 @@ const LoginPage = () => {
             <p className="mb-2">Access is scoped by role after login:</p>
             <ul className="space-y-1">
               <li>• Fleet Manager → Fleet, Maintenance</li>
-              <li>• Dispatcher → Dashboard, Trips</li>
+              <li>• Driver → Dashboard, Trips</li>
               <li>• Safety Officer → Drivers, Compliance</li>
               <li>• Financial Analyst → Fuel & Expenses, Analytics</li>
             </ul>

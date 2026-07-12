@@ -5,7 +5,7 @@ import api from '../services/api';
 const ROLE_BADGE = {
   admin:             'bg-purple-500/20 text-purple-300 border-purple-500/30',
   fleet_manager:     'bg-blue-500/20   text-blue-300   border-blue-500/30',
-  dispatcher:        'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  driver:        'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   safety_officer:    'bg-amber-500/20  text-amber-300  border-amber-500/30',
   financial_analyst: 'bg-rose-500/20   text-rose-300   border-rose-500/30',
 };

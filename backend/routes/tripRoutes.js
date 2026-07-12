@@ -11,21 +11,21 @@ router.use(authenticate);
 // GET /api/trips
 router.get(
     '/',
-    authorize('admin', 'fleet_manager', 'dispatcher', 'safety_officer'),
+    authorize('admin', 'fleet_manager', 'driver', 'safety_officer'),
     tripController.getAllTrips
 );
 
 // GET /api/trips/:id
 router.get(
     '/:id',
-    authorize('admin', 'fleet_manager', 'dispatcher', 'safety_officer'),
+    authorize('admin', 'fleet_manager', 'driver', 'safety_officer'),
     tripController.getTripById
 );
 
 // POST /api/trips (Create Draft)
 router.post(
     '/',
-    authorize('admin', 'dispatcher'),
+    authorize('admin', 'driver'),
     createTripValidator,
     tripController.createTrip
 );
@@ -33,14 +33,14 @@ router.post(
 // PUT /api/trips/:id/dispatch (Draft -> Dispatched)
 router.put(
     '/:id/dispatch',
-    authorize('admin', 'dispatcher'),
+    authorize('admin', 'driver'),
     tripController.dispatchTrip
 );
 
 // PUT /api/trips/:id/complete (Dispatched -> Completed)
 router.put(
     '/:id/complete',
-    authorize('admin', 'dispatcher', 'fleet_manager'),
+    authorize('admin', 'driver', 'fleet_manager'),
     completeTripValidator,
     tripController.completeTrip
 );
@@ -48,7 +48,7 @@ router.put(
 // PUT /api/trips/:id/cancel (Draft -> Cancelled)
 router.put(
     '/:id/cancel',
-    authorize('admin', 'dispatcher'),
+    authorize('admin', 'driver'),
     tripController.cancelTrip
 );
 
