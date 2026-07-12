@@ -1,4 +1,5 @@
 const Driver = require('../models/Driver');
+const Trip = require('../models/Trip');
 const { AppError } = require('../utils/errorHandler');
 
 exports.getAllDrivers = async (page = 1, limit = 20, search = '', status = '') => {
@@ -75,6 +76,11 @@ exports.deleteDriver = async (id) => {
   const driver = await Driver.findById(id);
   if (!driver) {
     throw new AppError('Driver not found', 404);
+  }
+
+  const tripsCount = await Trip.countDocuments({ driver: id });
+  if (tripsCount > 0) {
+    throw new AppError("Cannot delete driver with associated trips. Please set status to 'Off Duty' instead.", 409);
   }
 
   await Driver.findByIdAndDelete(id);
