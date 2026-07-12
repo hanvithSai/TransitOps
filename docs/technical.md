@@ -1,8 +1,8 @@
 # TransitOps – Technical Implementation Reference
 
-> **Branch:** `maintenance`
-> **Phases:** 1–5 — Auth, Vehicles, Drivers, Trips, Maintenance
-> **Status:** ✅ Phases 1–5 Complete
+> **Branch:** `FuEx`
+> **Phases:** 1–6 — Auth, Vehicles, Drivers, Trips, Maintenance, Fuel & Expenses
+> **Status:** ✅ Phases 1–6 Complete
 > **Stack:** MERN (MongoDB · Express.js · React · Node.js)
 > **Last Updated:** 2026-07-12
 
@@ -21,7 +21,9 @@ TransitOps/
 │   │   ├── vehicleController.js          # Vehicle CRUD
 │   │   ├── driverController.js           # Driver CRUD
 │   │   ├── tripController.js             # Trip create/dispatch/complete/cancel
-│   │   └── maintenanceController.js      # Maintenance log CRUD
+│   │   ├── maintenanceController.js      # Maintenance log CRUD
+│   │   ├── fuelController.js             # Fuel log CRUD
+│   │   └── expenseController.js          # Expense CRUD
 │   ├── middlewares/
 │   │   ├── authenticate.js               # JWT Bearer verification
 │   │   └── authorize.js                  # RBAC role-gate factory
@@ -32,7 +34,9 @@ TransitOps/
 │   │   ├── Vehicle.js                    # Vehicle schema
 │   │   ├── Driver.js                     # Driver schema
 │   │   ├── Trip.js                       # Trip schema (compound indexes)
-│   │   └── MaintenanceLog.js             # Maintenance log schema
+│   │   ├── MaintenanceLog.js             # Maintenance log schema
+│   │   ├── FuelLog.js                    # Fuel log schema
+│   │   └── Expense.js                    # Expense schema
 │   ├── routes/
 │   │   ├── authRoutes.js                 # /api/auth
 │   │   ├── userRoutes.js                 # /api/users (admin only)
@@ -40,7 +44,9 @@ TransitOps/
 │   │   ├── vehicleRoutes.js              # /api/vehicles
 │   │   ├── driverRoutes.js               # /api/drivers
 │   │   ├── tripRoutes.js                 # /api/trips
-│   │   └── maintenanceRoutes.js          # /api/maintenance
+│   │   ├── maintenanceRoutes.js          # /api/maintenance
+│   │   ├── fuelRoutes.js                 # /api/fuel
+│   │   └── expenseRoutes.js              # /api/expenses
 │   ├── seeders/
 │   │   └── seed.js                       # Seeds roles + default admin
 │   ├── services/
@@ -49,7 +55,9 @@ TransitOps/
 │   │   ├── vehicleService.js             # Vehicle CRUD business logic
 │   │   ├── driverService.js              # Driver CRUD business logic
 │   │   ├── tripService.js                # Trip lifecycle + business rules
-│   │   └── maintenanceService.js         # Maintenance log + vehicle status transitions
+│   │   ├── maintenanceService.js         # Maintenance log + vehicle status transitions
+│   │   ├── fuelService.js                # Fuel log CRUD logic
+│   │   └── expenseService.js             # Expense CRUD logic
 │   ├── utils/
 │   │   └── errorHandler.js              # AppError class + global handler
 │   ├── validators/
@@ -57,7 +65,8 @@ TransitOps/
 │   │   ├── vehicleValidator.js           # Vehicle field rules
 │   │   ├── driverValidator.js            # Driver field rules
 │   │   ├── tripValidator.js              # Trip field rules
-│   │   └── maintenanceValidator.js       # Maintenance log field rules
+│   │   ├── maintenanceValidator.js       # Maintenance log field rules
+│   │   └── financeValidator.js           # Fuel & Expense field rules
 │   ├── .env                              # Environment variables
 │   ├── server.js                         # Express app entry point
 │   └── package.json
@@ -79,6 +88,7 @@ TransitOps/
     │   │   ├── DriversPage.jsx           # Driver Registry UI
     │   │   ├── TripsPage.jsx             # Trip management UI
     │   │   ├── MaintenancePage.jsx       # Maintenance split-pane UI
+    │   │   ├── FinancePage.jsx           # Tabbed Fuel & Expense UI
     │   │   └── UnauthorizedPage.jsx      # 403 page
     │   ├── services/
     │   │   └── api.js                    # Axios instance + interceptors
@@ -136,7 +146,7 @@ NODE_ENV=development                 # Environment flag
 
 ---
 
-## 4. Database Collections (Phases 1–5)
+## 4. Database Collections (Phases 1–6)
 
 ### 4.1 `roles` Collection
 
@@ -266,6 +276,46 @@ NODE_ENV=development                 # Environment flag
 | `createdAt` | Date | Auto (timestamps) |
 | `updatedAt` | Date | Auto (timestamps) |
 
+### 4.8 `fuel_logs` Collection
+
+**Model:** `backend/models/FuelLog.js`
+
+| Field | Type | Notes |
+|---|---|---|
+| `vehicle` | ObjectId → Vehicle | Required reference, indexed |
+| `trip` | ObjectId → Trip | Optional reference, indexed |
+| `liters` | Number | Required, min > 0 |
+| `cost` | Number | Required, min > 0 |
+| `odometer` | Number | Required, min >= 0 |
+| `date` | Date | Required, default `Date.now` |
+| `createdBy` | ObjectId → User | Required reference |
+| `createdAt` | Date | Auto (timestamps) |
+| `updatedAt` | Date | Auto (timestamps) |
+
+**Indexes:**
+- `{ vehicle: 1, date: -1 }` — fast lookup per vehicle, chronological
+- `{ trip: 1 }` — fast lookup per trip
+
+### 4.9 `expenses` Collection
+
+**Model:** `backend/models/Expense.js`
+
+| Field | Type | Notes |
+|---|---|---|
+| `vehicle` | ObjectId → Vehicle | Required reference, indexed |
+| `trip` | ObjectId → Trip | Optional reference |
+| `amount` | Number | Required, min > 0 |
+| `category` | String (enum) | `Toll` · `Repair` · `Parking` · `Insurance` · `Miscellaneous` |
+| `notes` | String | Optional, trimmed |
+| `date` | Date | Required, default `Date.now` |
+| `createdBy` | ObjectId → User | Required reference |
+| `createdAt` | Date | Auto (timestamps) |
+| `updatedAt` | Date | Auto (timestamps) |
+
+**Indexes:**
+- `{ vehicle: 1, date: -1 }` — fast lookup per vehicle, chronological
+- `{ category: 1, date: -1 }` — fast lookup by category
+
 ---
 
 ## 5. API Endpoints
@@ -339,7 +389,27 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 | `PUT` | `/api/maintenance/:id` | admin, fleet_manager | Updated `{ log }` — handles vehicle status transitions |
 | `DELETE` | `/api/maintenance/:id` | admin, fleet_manager | `{ message }` — restores vehicle if no other active logs |
 
-### 5.8 Standard Response Envelope
+### 5.8 Fuel Routes — `/api/fuel`
+
+| Method | Endpoint | Auth Roles | Response |
+|---|---|---|---|
+| `GET` | `/api/fuel?page=1&limit=20&vehicleId=&tripId=` | admin, fleet_manager, dispatcher | Paginated `{ logs, total, page, pages }` populated |
+| `GET` | `/api/fuel/:id` | admin, fleet_manager, dispatcher | Single `{ log }` populated |
+| `POST` | `/api/fuel` | admin, fleet_manager | Created `{ log }` |
+| `PUT` | `/api/fuel/:id` | admin, fleet_manager | Updated `{ log }` |
+| `DELETE` | `/api/fuel/:id` | admin, fleet_manager | `{ message }` |
+
+### 5.9 Expense Routes — `/api/expenses`
+
+| Method | Endpoint | Auth Roles | Response |
+|---|---|---|---|
+| `GET` | `/api/expenses?page=1&limit=20&vehicleId=&tripId=&category=` | admin, fleet_manager, dispatcher | Paginated `{ expenses, total, page, pages }` populated |
+| `GET` | `/api/expenses/:id` | admin, fleet_manager, dispatcher | Single `{ expense }` populated |
+| `POST` | `/api/expenses` | admin, fleet_manager | Created `{ expense }` |
+| `PUT` | `/api/expenses/:id` | admin, fleet_manager | Updated `{ expense }` |
+| `DELETE` | `/api/expenses/:id` | admin, fleet_manager | `{ message }` |
+
+### 5.10 Standard Response Envelope
 
 ```json
 // Success
@@ -429,6 +499,10 @@ Uses `express-validator` across all modules.
 | `completeTripValidator` | `PUT /api/trips/:id/complete` | actualDistance (>=0), fuelUsed (>=0) |
 | `createMaintenanceValidator` | `POST /api/maintenance` | vehicle (MongoId), serviceType, cost (>=0), date (ISO8601) |
 | `updateMaintenanceValidator` | `PUT /api/maintenance/:id` | All optional — same rules |
+| `createFuelValidator` | `POST /api/fuel` | vehicle (MongoId), trip (MongoId, opt), liters (>0), cost (>0), odometer (>=0) |
+| `updateFuelValidator` | `PUT /api/fuel/:id` | All optional — same rules |
+| `createExpenseValidator` | `POST /api/expenses` | vehicle (MongoId), category (enum), amount (>0), notes, date |
+| `updateExpenseValidator` | `PUT /api/expenses/:id` | All optional — same rules |
 
 ---
 
@@ -532,6 +606,16 @@ Stack traces included only in `NODE_ENV=development`.
 | `updateLog(id, data)` | Handles status transitions: `Active → Completed` restores vehicle to `Available` if no other active logs; `Completed → Active` puts vehicle back `In Shop` |
 | `deleteLog(id)` | Deletes log; if `Active`, restores vehicle to `Available` if no other active logs exist |
 
+### 9.7 fuelService.js & 9.8 expenseService.js
+
+| Function | Description |
+|---|---|
+| `getAll*({ page, limit, vehicleId, tripId, category })` | Paginated, filterable queries; fully populated vehicle/trip |
+| `get*ById(id)` | Returns single populated log; 404 if not found |
+| `create*(data, userId)` | Validates vehicle exists, validates trip matches vehicle if provided; creates record |
+| `update*(id, data)` | Validates vehicle/trip relations on patch; updates record |
+| `delete*(id)` | Hard deletes record |
+
 ---
 
 ## 10. Seeder
@@ -564,8 +648,8 @@ Protected (ProtectedRoute wrapping AppLayout):
   /drivers            → DriversPage (admin, dispatcher, safety_officer)
   /trips              → TripsPage (admin, fleet_manager, dispatcher, safety_officer)
   /maintenance        → MaintenancePage (admin, fleet_manager)
-  /fuel               → ComingSoon (Phase 6)
-  /expenses           → ComingSoon (Phase 6)
+  /fuel               → FinancePage (admin, fleet_manager, dispatcher)
+  /expenses           → FinancePage (admin, fleet_manager, dispatcher)
   /reports            → ComingSoon (Phase 8)
   /users              → UsersPage (admin only)
 
@@ -715,6 +799,19 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Business rule display | Automatic vehicle status updates reflected after save/delete |
 | RBAC UI | Write controls restricted to `admin` and `fleet_manager` |
 
+### 11.12 FinancePage — Fuel & Expenses
+
+**File:** `frontend/src/pages/FinancePage.jsx`
+
+| Feature | Implementation |
+|---|---|
+| Dual Tab Navigation | A single page rendering either Fuel Logs or Expenses depending on URL (`/fuel` vs `/expenses`) |
+| Dynamic Data Table | Table columns swap based on the active tab (Liters/Odometer vs Category/Notes) |
+| Shared Action Modal | Modal form swaps inputs based on active tab; fetches active Vehicles and Trips for dropdowns |
+| Relational Validation | UI alerts user if the selected trip doesn't belong to the selected vehicle |
+| Category Badges | Unique color styling for Expense categories (`Toll`, `Repair`, `Parking`, etc.) |
+| RBAC UI | Creation restricted to `admin` and `fleet_manager`; `dispatcher` has read-only access |
+
 ---
 
 ## 12. Design System
@@ -783,6 +880,6 @@ npm run preview # Preview production build
 | **3** | Driver Management | ✅ **Complete** |
 | **4** | Trip Engine | ✅ **Complete** |
 | **5** | Maintenance | ✅ **Complete** |
-| 6 | Fuel & Expenses | ⏳ Pending |
+| **6** | Fuel & Expenses | ✅ **Complete** |
 | 7 | Dashboard KPIs | ⏳ Pending |
 | 8 | Reports & Bonus Features | ⏳ Pending |
