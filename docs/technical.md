@@ -1,8 +1,8 @@
 # TransitOps – Technical Implementation Reference
 
-> **Branch:** `RBAC`
-> **Phase:** 1 — Authentication & RBAC
-> **Status:** ✅ Complete
+> **Branch:** `maintenance`
+> **Phases:** 1–5 — Auth, Vehicles, Drivers, Trips, Maintenance
+> **Status:** ✅ Phases 1–5 Complete
 > **Stack:** MERN (MongoDB · Express.js · React · Node.js)
 > **Last Updated:** 2026-07-12
 
@@ -14,58 +14,77 @@
 TransitOps/
 ├── backend/
 │   ├── config/
-│   │   └── db.js                    # MongoDB connection
+│   │   └── db.js                         # MongoDB connection
 │   ├── controllers/
-│   │   ├── authController.js        # Login, refresh, logout, getMe
-│   │   ├── userController.js        # User CRUD
-│   │   └── vehicleController.js     # Vehicle CRUD
+│   │   ├── authController.js             # Login, refresh, logout, getMe
+│   │   ├── userController.js             # User CRUD
+│   │   ├── vehicleController.js          # Vehicle CRUD
+│   │   ├── driverController.js           # Driver CRUD
+│   │   ├── tripController.js             # Trip create/dispatch/complete/cancel
+│   │   └── maintenanceController.js      # Maintenance log CRUD
 │   ├── middlewares/
-│   │   ├── authenticate.js          # JWT Bearer verification
-│   │   └── authorize.js             # RBAC role-gate factory
+│   │   ├── authenticate.js               # JWT Bearer verification
+│   │   └── authorize.js                  # RBAC role-gate factory
 │   ├── models/
-│   │   ├── Role.js                  # Role schema
-│   │   ├── User.js                  # User schema (bcrypt pre-save)
-│   │   ├── RefreshToken.js          # Refresh token with TTL index
-│   │   └── Vehicle.js               # Vehicle schema
+│   │   ├── Role.js                       # Role schema
+│   │   ├── User.js                       # User schema (bcrypt pre-save)
+│   │   ├── RefreshToken.js               # Refresh token with TTL index
+│   │   ├── Vehicle.js                    # Vehicle schema
+│   │   ├── Driver.js                     # Driver schema
+│   │   ├── Trip.js                       # Trip schema (compound indexes)
+│   │   └── MaintenanceLog.js             # Maintenance log schema
 │   ├── routes/
-│   │   ├── authRoutes.js            # /api/auth
-│   │   ├── userRoutes.js            # /api/users (admin only)
-│   │   ├── roleRoutes.js            # /api/roles (admin only)
-│   │   └── vehicleRoutes.js         # /api/vehicles
+│   │   ├── authRoutes.js                 # /api/auth
+│   │   ├── userRoutes.js                 # /api/users (admin only)
+│   │   ├── roleRoutes.js                 # /api/roles (admin only)
+│   │   ├── vehicleRoutes.js              # /api/vehicles
+│   │   ├── driverRoutes.js               # /api/drivers
+│   │   ├── tripRoutes.js                 # /api/trips
+│   │   └── maintenanceRoutes.js          # /api/maintenance
 │   ├── seeders/
-│   │   └── seed.js                  # Seeds roles + default admin
+│   │   └── seed.js                       # Seeds roles + default admin
 │   ├── services/
-│   │   ├── authService.js           # Auth business logic
-│   │   ├── userService.js           # User CRUD business logic
-│   │   └── vehicleService.js        # Vehicle CRUD business logic
+│   │   ├── authService.js                # Auth business logic
+│   │   ├── userService.js                # User CRUD business logic
+│   │   ├── vehicleService.js             # Vehicle CRUD business logic
+│   │   ├── driverService.js              # Driver CRUD business logic
+│   │   ├── tripService.js                # Trip lifecycle + business rules
+│   │   └── maintenanceService.js         # Maintenance log + vehicle status transitions
 │   ├── utils/
-│   │   └── errorHandler.js          # AppError class + global handler
+│   │   └── errorHandler.js              # AppError class + global handler
 │   ├── validators/
-│   │   └── authValidator.js         # express-validator rule sets
-│   ├── .env                         # Environment variables
-│   ├── server.js                    # Express app entry point
+│   │   ├── authValidator.js              # express-validator rule sets
+│   │   ├── vehicleValidator.js           # Vehicle field rules
+│   │   ├── driverValidator.js            # Driver field rules
+│   │   ├── tripValidator.js              # Trip field rules
+│   │   └── maintenanceValidator.js       # Maintenance log field rules
+│   ├── .env                              # Environment variables
+│   ├── server.js                         # Express app entry point
 │   └── package.json
 │
 └── frontend/
     ├── src/
     │   ├── components/
-    │   │   └── ProtectedRoute.jsx   # Auth + role guard component
+    │   │   └── ProtectedRoute.jsx        # Auth + role guard component
     │   ├── contexts/
-    │   │   └── AuthContext.jsx      # Auth state + login/logout + useAuth()
+    │   │   └── AuthContext.jsx           # Auth state + login/logout + useAuth()
     │   ├── layouts/
-    │   │   └── AppLayout.jsx        # Collapsible sidebar + top bar
+    │   │   └── AppLayout.jsx             # Collapsible sidebar + top bar
     │   ├── pages/
     │   │   ├── auth/
-    │   │   │   └── LoginPage.jsx    # Premium dark login page
-    │   │   ├── DashboardPage.jsx    # Phase 1 placeholder
-    │   │   ├── UsersPage.jsx        # Admin user management UI
-    │   │   ├── VehiclesPage.jsx     # Vehicle Registry UI
-    │   │   └── UnauthorizedPage.jsx # 403 page
+    │   │   │   └── LoginPage.jsx         # Premium dark login page
+    │   │   ├── DashboardPage.jsx         # Phase 7 placeholder
+    │   │   ├── UsersPage.jsx             # Admin user management UI
+    │   │   ├── VehiclesPage.jsx          # Vehicle Registry UI
+    │   │   ├── DriversPage.jsx           # Driver Registry UI
+    │   │   ├── TripsPage.jsx             # Trip management UI
+    │   │   ├── MaintenancePage.jsx       # Maintenance split-pane UI
+    │   │   └── UnauthorizedPage.jsx      # 403 page
     │   ├── services/
-    │   │   └── api.js               # Axios instance + interceptors
-    │   ├── App.jsx                  # React Router + route definitions
-    │   ├── index.css                # Tailwind v4 + design tokens
-    │   └── main.jsx                 # React entry point
+    │   │   └── api.js                    # Axios instance + interceptors
+    │   ├── App.jsx                       # React Router + route definitions
+    │   ├── index.css                     # Tailwind v4 + design tokens
+    │   └── main.jsx                      # React entry point
     ├── vite.config.js
     └── package.json
 ```
@@ -117,11 +136,11 @@ NODE_ENV=development                 # Environment flag
 
 ---
 
-## 4. Database Collections (Phase 1 & 2)
+## 4. Database Collections (Phases 1–5)
 
 ### 4.1 `roles` Collection
 
-**Model:** [`backend/models/Role.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/models/Role.js)
+**Model:** `backend/models/Role.js`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -144,7 +163,7 @@ NODE_ENV=development                 # Environment flag
 
 ### 4.2 `users` Collection
 
-**Model:** [`backend/models/User.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/models/User.js)
+**Model:** `backend/models/User.js`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -157,14 +176,9 @@ NODE_ENV=development                 # Environment flag
 | `createdAt` | Date | Auto |
 | `updatedAt` | Date | Auto |
 
-**Key behaviours:**
-- `pre('save')` hook: hashes password with `bcrypt.genSalt(12)` only when `password` field is modified
-- `comparePassword(candidate)` instance method: uses `bcrypt.compare`
-- Password field never returned in API responses
-
 ### 4.3 `refreshtokens` Collection
 
-**Model:** [`backend/models/RefreshToken.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/models/RefreshToken.js)
+**Model:** `backend/models/RefreshToken.js`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -174,12 +188,11 @@ NODE_ENV=development                 # Environment flag
 | `isRevoked` | Boolean | Set `true` on logout |
 | `createdAt` | Date | Auto |
 
-**Key behaviour:**
-- MongoDB TTL index on `expiresAt` (`expireAfterSeconds: 0`) — documents auto-deleted by MongoDB when expired
+**Key behaviour:** MongoDB TTL index on `expiresAt` (`expireAfterSeconds: 0`) — documents auto-deleted by MongoDB when expired.
 
 ### 4.4 `vehicles` Collection
 
-**Model:** [`backend/models/Vehicle.js`](file:///h:/H%20Space/H%202023-27/Hackathon/Odoo%202026/TransitOps/backend/models/Vehicle.js)
+**Model:** `backend/models/Vehicle.js`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -187,10 +200,69 @@ NODE_ENV=development                 # Environment flag
 | `vehicleName` | String | Required |
 | `model` | String | Required |
 | `type` | String | Required |
-| `capacity` | Number | Required, minimum 0.1 |
+| `capacity` | Number | Required, minimum 0.1 (tons) |
 | `odometer` | Number | Required, minimum 0 |
 | `acquisitionCost` | Number | Optional, >= 0 |
 | `status` | String (enum) | `Available` · `On Trip` · `In Shop` · `Retired`. Default `Available` |
+| `createdAt` | Date | Auto (timestamps) |
+| `updatedAt` | Date | Auto (timestamps) |
+
+### 4.5 `drivers` Collection
+
+**Model:** `backend/models/Driver.js`
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | String | Required, trimmed |
+| `licenseNumber` | String | Required, unique, uppercase |
+| `licenseCategory` | String | Required, trimmed |
+| `expiryDate` | Date | Required — license expiry |
+| `contact` | String | Required, trimmed |
+| `safetyScore` | Number | 0–100, default `100` |
+| `status` | String (enum) | `Available` · `On Trip` · `Off Duty` · `Suspended`. Default `Available` |
+| `createdAt` | Date | Auto (timestamps) |
+| `updatedAt` | Date | Auto (timestamps) |
+
+### 4.6 `trips` Collection
+
+**Model:** `backend/models/Trip.js`
+
+| Field | Type | Notes |
+|---|---|---|
+| `source` | String | Required, trimmed |
+| `destination` | String | Required, trimmed |
+| `vehicle` | ObjectId → Vehicle | Required reference |
+| `driver` | ObjectId → Driver | Required reference |
+| `cargoWeight` | Number | Required, >= 0 (tons) |
+| `plannedDistance` | Number | Required, >= 0 (km) |
+| `revenue` | Number | Optional, >= 0 |
+| `actualDistance` | Number | Optional (set on complete), >= 0 |
+| `fuelUsed` | Number | Optional (set on complete), >= 0 |
+| `status` | String (enum) | `Draft` · `Dispatched` · `Completed` · `Cancelled`. Default `Draft` |
+| `dispatchedAt` | Date | Set when dispatched |
+| `completedAt` | Date | Set when completed |
+| `cancelledAt` | Date | Set when cancelled |
+| `notes` | String | Optional, trimmed |
+| `createdBy` | ObjectId → User | Required reference |
+| `createdAt` | Date | Auto (timestamps) |
+| `updatedAt` | Date | Auto (timestamps) |
+
+**Indexes:**
+- `{ vehicle: 1, status: 1 }` — fast active-trip lookup per vehicle
+- `{ driver: 1, status: 1 }` — fast active-trip lookup per driver
+- `{ status: 1, createdAt: -1 }` — fast list queries by status
+
+### 4.7 `maintenancelogs` Collection
+
+**Model:** `backend/models/MaintenanceLog.js`
+
+| Field | Type | Notes |
+|---|---|---|
+| `vehicle` | ObjectId → Vehicle | Required reference, indexed |
+| `serviceType` | String | Required, trimmed (e.g. `Oil Change`, `Engine Repair`) |
+| `cost` | Number | Required, >= 0 |
+| `date` | Date | Required, default `Date.now` |
+| `status` | String (enum) | `Active` · `Completed`. Default `Active`, indexed |
 | `createdAt` | Date | Auto (timestamps) |
 | `updatedAt` | Date | Auto (timestamps) |
 
@@ -228,17 +300,46 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 ### 5.4 Vehicle Routes — `/api/vehicles`
 
-Requires `Authorization: Bearer <accessToken>`.
-
 | Method | Endpoint | Auth Roles | Response |
 |---|---|---|---|
-| `GET` | `/api/vehicles?page=1&limit=20` | admin, fleet_manager, dispatcher | Paginated `{ vehicles, total, page, pages }` |
+| `GET` | `/api/vehicles?page=1&limit=20&search=&status=` | admin, fleet_manager, dispatcher | Paginated `{ vehicles, total, page, pages }` |
 | `GET` | `/api/vehicles/:id` | admin, fleet_manager, dispatcher | Single `{ vehicle }` |
 | `POST` | `/api/vehicles` | admin, fleet_manager | Created `{ vehicle }` |
 | `PUT` | `/api/vehicles/:id` | admin, fleet_manager | Updated `{ vehicle }` |
 | `DELETE` | `/api/vehicles/:id` | admin, fleet_manager | `{ message }` |
 
-### 5.5 Standard Response Envelope
+### 5.5 Driver Routes — `/api/drivers`
+
+| Method | Endpoint | Auth Roles | Response |
+|---|---|---|---|
+| `GET` | `/api/drivers?page=1&limit=20&search=&status=` | admin, dispatcher, safety_officer | Paginated `{ drivers, total, page, pages }` |
+| `GET` | `/api/drivers/:id` | admin, dispatcher, safety_officer | Single `{ driver }` |
+| `POST` | `/api/drivers` | admin, safety_officer | Created `{ driver }` |
+| `PUT` | `/api/drivers/:id` | admin, safety_officer | Updated `{ driver }` |
+| `DELETE` | `/api/drivers/:id` | admin, safety_officer | `{ message }` |
+
+### 5.6 Trip Routes — `/api/trips`
+
+| Method | Endpoint | Auth Roles | Body | Response |
+|---|---|---|---|---|
+| `GET` | `/api/trips?page=1&limit=20&search=&status=` | admin, fleet_manager, dispatcher, safety_officer | — | Paginated `{ trips, total, page, pages }` |
+| `GET` | `/api/trips/:id` | admin, fleet_manager, dispatcher, safety_officer | — | Single `{ trip }` populated |
+| `POST` | `/api/trips` | admin, dispatcher | `{ source, destination, vehicle, driver, cargoWeight, plannedDistance, revenue?, notes? }` | Created `{ trip }` (status: `Draft`) |
+| `PUT` | `/api/trips/:id/dispatch` | admin, dispatcher | — | Updated `{ trip }` (status: `Dispatched`) |
+| `PUT` | `/api/trips/:id/complete` | admin, dispatcher, fleet_manager | `{ actualDistance, fuelUsed }` | Updated `{ trip }` (status: `Completed`) |
+| `PUT` | `/api/trips/:id/cancel` | admin, dispatcher | — | Updated `{ trip }` (status: `Cancelled`) |
+
+### 5.7 Maintenance Routes — `/api/maintenance`
+
+| Method | Endpoint | Auth Roles | Response |
+|---|---|---|---|
+| `GET` | `/api/maintenance?page=1&limit=20&search=&status=` | admin, fleet_manager | Paginated `{ logs, total, page, pages }` populated with vehicle |
+| `GET` | `/api/maintenance/:id` | admin, fleet_manager | Single `{ log }` populated |
+| `POST` | `/api/maintenance` | admin, fleet_manager | Created `{ log }` — vehicle status → `In Shop` |
+| `PUT` | `/api/maintenance/:id` | admin, fleet_manager | Updated `{ log }` — handles vehicle status transitions |
+| `DELETE` | `/api/maintenance/:id` | admin, fleet_manager | `{ message }` — restores vehicle if no other active logs |
+
+### 5.8 Standard Response Envelope
 
 ```json
 // Success
@@ -313,21 +414,27 @@ Route → authenticate → authorize("role1", "role2") → controller
 
 ## 7. Input Validation
 
-**File:** [`backend/validators/authValidator.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/validators/authValidator.js)
+Uses `express-validator` across all modules.
 
-Uses `express-validator`. Three rule sets:
-
-| Validator | Used On | Fields Validated |
+| Validator | Used On | Key Fields |
 |---|---|---|
 | `loginValidator` | `POST /api/auth/login` | email (format + normalise), password (min 6) |
 | `createUserValidator` | `POST /api/users` | name, email, password, roleId (MongoId) |
 | `updateUserValidator` | `PUT /api/users/:id` | All optional — same rules + isActive (boolean) |
+| `createVehicleValidator` | `POST /api/vehicles` | registrationNumber, vehicleName, model, type, capacity (>0.1), odometer (>=0) |
+| `updateVehicleValidator` | `PUT /api/vehicles/:id` | All optional — same rules |
+| `createDriverValidator` | `POST /api/drivers` | name, licenseNumber, licenseCategory, expiryDate (ISO8601), contact, safetyScore (0–100) |
+| `updateDriverValidator` | `PUT /api/drivers/:id` | All optional — same rules |
+| `createTripValidator` | `POST /api/trips` | source, destination, vehicle (MongoId), driver (MongoId), cargoWeight (>=0), plannedDistance (>=0) |
+| `completeTripValidator` | `PUT /api/trips/:id/complete` | actualDistance (>=0), fuelUsed (>=0) |
+| `createMaintenanceValidator` | `POST /api/maintenance` | vehicle (MongoId), serviceType, cost (>=0), date (ISO8601) |
+| `updateMaintenanceValidator` | `PUT /api/maintenance/:id` | All optional — same rules |
 
 ---
 
 ## 8. Error Handling
 
-**File:** [`backend/utils/errorHandler.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/utils/errorHandler.js)
+**File:** `backend/utils/errorHandler.js`
 
 ### AppError Class
 
@@ -337,8 +444,6 @@ throw new AppError("Message", statusCode)
 All operational errors thrown using `AppError`. Non-operational errors bubble to global handler.
 
 ### Global Error Handler (Express middleware)
-
-Normalises errors from multiple sources:
 
 | Error Type | Detection | Response |
 |---|---|---|
@@ -356,8 +461,6 @@ Stack traces included only in `NODE_ENV=development`.
 
 ### 9.1 authService.js
 
-**File:** [`backend/services/authService.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/services/authService.js)
-
 | Function | Description |
 |---|---|
 | `login(email, password)` | Finds user (with `+password`), verifies bcrypt, updates `lastLogin`, issues both tokens |
@@ -369,21 +472,71 @@ Stack traces included only in `NODE_ENV=development`.
 
 ### 9.2 userService.js
 
-**File:** [`backend/services/userService.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/services/userService.js)
-
 | Function | Description |
 |---|---|
 | `getAllUsers(page, limit)` | Paginated list sorted by `createdAt` desc, role populated |
-| `createUser({ name, email, password, roleId })` | Validates role exists, checks duplicate email, creates user (pre-save hook hashes password) |
+| `createUser({ name, email, password, roleId })` | Validates role exists, checks duplicate email, creates user |
 | `updateUser(id, updates)` | Patches only provided fields; password re-hashed via pre-save hook |
 | `deleteUser(id, requestingUserId)` | Prevents self-deletion; hard deletes |
 | `getUserById(id)` | Returns single user with full role data |
+
+### 9.3 vehicleService.js
+
+| Function | Description |
+|---|---|
+| `getAllVehicles(page, limit, search, status)` | Paginated, regex search on reg/name/model, status filter |
+| `getVehicleById(id)` | Returns single vehicle; 404 if not found |
+| `createVehicle(data)` | Checks registration uniqueness (409 on collision), creates |
+| `updateVehicle(id, data)` | Checks registration uniqueness excluding current; updates |
+| `deleteVehicle(id)` | Hard deletes vehicle |
+
+### 9.4 driverService.js
+
+| Function | Description |
+|---|---|
+| `getAllDrivers(page, limit, search, status)` | Paginated, regex search on name/licenseNumber/licenseCategory, status filter |
+| `getDriverById(id)` | Returns single driver; 404 if not found |
+| `createDriver(data)` | Checks license number uniqueness (409 on collision), creates |
+| `updateDriver(id, data)` | Checks license number uniqueness excluding current; updates |
+| `deleteDriver(id)` | Hard deletes driver |
+
+### 9.5 tripService.js
+
+| Function | Description |
+|---|---|
+| `getAllTrips({ page, limit, status, search })` | Paginated, regex search on source/destination, status filter; fully populated |
+| `getTripById(id)` | Returns single fully-populated trip; 404 if not found |
+| `createTrip(data, userId)` | Creates a `Draft` trip with `createdBy` set |
+| `dispatchTrip(tripId)` | Enforces 9 PRD business rules (vehicle/driver availability, license validity, cargo capacity), transitions to `Dispatched`, sets vehicle → `On Trip`, driver → `On Trip` |
+| `completeTrip(tripId, { actualDistance, fuelUsed })` | Transitions `Dispatched` → `Completed`, restores vehicle and driver to `Available` |
+| `cancelTrip(tripId)` | Transitions `Draft` → `Cancelled` only |
+
+**Dispatch business rules enforced sequentially:**
+1. Vehicle must not be `Retired`
+2. Vehicle must not be `In Shop`
+3. Vehicle must be `Available`
+4. Vehicle must not be in another active (`Dispatched`) trip
+5. Driver must not be `Suspended`
+6. Driver must be `Available`
+7. Driver license must not be expired
+8. Driver must not be in another active trip
+9. Cargo weight must not exceed vehicle capacity
+
+### 9.6 maintenanceService.js
+
+| Function | Description |
+|---|---|
+| `getAllLogs({ page, limit, search, status })` | Paginated, regex search on serviceType and vehicle reg/name; populated |
+| `getLogById(id)` | Returns single populated log; 404 if not found |
+| `createLog(data)` | Validates vehicle is not `Retired` or `On Trip`, creates log, sets vehicle → `In Shop` |
+| `updateLog(id, data)` | Handles status transitions: `Active → Completed` restores vehicle to `Available` if no other active logs; `Completed → Active` puts vehicle back `In Shop` |
+| `deleteLog(id)` | Deletes log; if `Active`, restores vehicle to `Available` if no other active logs exist |
 
 ---
 
 ## 10. Seeder
 
-**File:** [`backend/seeders/seed.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/backend/seeders/seed.js)
+**File:** `backend/seeders/seed.js`
 **Command:** `npm run seed`
 
 **Idempotent** — safe to re-run. Uses `findOneAndUpdate` with `upsert: true`.
@@ -398,7 +551,7 @@ Stack traces included only in `NODE_ENV=development`.
 
 ### 11.1 Routing Structure
 
-**File:** [`frontend/src/App.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/App.jsx)
+**File:** `frontend/src/App.jsx`
 
 ```
 /                     → redirect to /dashboard
@@ -406,11 +559,11 @@ Stack traces included only in `NODE_ENV=development`.
 /unauthorized         → UnauthorizedPage (public)
 
 Protected (ProtectedRoute wrapping AppLayout):
-  /dashboard          → DashboardPage
+  /dashboard          → DashboardPage (placeholder)
   /vehicles           → VehiclesPage (admin, fleet_manager, dispatcher)
-  /drivers            → ComingSoon (Phase 3)
-  /trips              → ComingSoon (Phase 4)
-  /maintenance        → ComingSoon (Phase 5)
+  /drivers            → DriversPage (admin, dispatcher, safety_officer)
+  /trips              → TripsPage (admin, fleet_manager, dispatcher, safety_officer)
+  /maintenance        → MaintenancePage (admin, fleet_manager)
   /fuel               → ComingSoon (Phase 6)
   /expenses           → ComingSoon (Phase 6)
   /reports            → ComingSoon (Phase 8)
@@ -421,7 +574,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ### 11.2 AuthContext
 
-**File:** [`frontend/src/contexts/AuthContext.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/contexts/AuthContext.jsx)
+**File:** `frontend/src/contexts/AuthContext.jsx`
 
 **State:**
 ```js
@@ -442,7 +595,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ### 11.3 API Service
 
-**File:** [`frontend/src/services/api.js`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/services/api.js)
+**File:** `frontend/src/services/api.js`
 
 - **Base URL:** `http://localhost:5000/api`
 - **`withCredentials: true`** — sends refresh token cookie on every request
@@ -456,7 +609,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ### 11.4 ProtectedRoute
 
-**File:** [`frontend/src/components/ProtectedRoute.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/components/ProtectedRoute.jsx)
+**File:** `frontend/src/components/ProtectedRoute.jsx`
 
 **Behaviour:**
 1. While `loading === true` → shows full-screen spinner
@@ -466,11 +619,11 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ### 11.5 AppLayout — Sidebar
 
-**File:** [`frontend/src/layouts/AppLayout.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/layouts/AppLayout.jsx)
+**File:** `frontend/src/layouts/AppLayout.jsx`
 
 - Collapsible sidebar (260px expanded / 72px collapsed)
 - Toggle button on sidebar edge
-- Navigation links filtered by `user.role.name` — each nav item has an `roles[]` whitelist
+- Navigation links filtered by `user.role.name` — each nav item has a `roles[]` whitelist
 - Role badge with colour-coded styling per role
 - User avatar (initials), online status dot, logout button
 - Top header with welcome message and role badge
@@ -478,7 +631,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ### 11.6 UsersPage — Admin User Management
 
-**File:** [`frontend/src/pages/UsersPage.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/pages/UsersPage.jsx)
+**File:** `frontend/src/pages/UsersPage.jsx`
 
 | Feature | Implementation |
 |---|---|
@@ -490,11 +643,10 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Edit modal | Pre-filled form + `isActive` toggle switch |
 | Delete modal | Confirmation dialog before hard delete |
 | Toast notifications | 3.5s auto-dismiss; success (green) / error (red) |
-| Row actions | Edit + delete buttons visible on hover (`group-hover`) |
 
 ### 11.7 LoginPage
 
-**File:** [`frontend/src/pages/auth/LoginPage.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/pages/auth/LoginPage.jsx)
+**File:** `frontend/src/pages/auth/LoginPage.jsx`
 
 - Split-screen aesthetic with light branding/roles pane and dark form pane
 - Toggle between "Sign In" and "Create Account"
@@ -507,7 +659,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ### 11.8 VehiclesPage — Vehicle Registry
 
-**File:** [`frontend/src/pages/VehiclesPage.jsx`](file:///h:/H%20Space/H%202023-27/Hackathon/Odoo%202026/TransitOps/frontend/src/pages/VehiclesPage.jsx)
+**File:** `frontend/src/pages/VehiclesPage.jsx`
 
 | Feature | Implementation |
 |---|---|
@@ -518,11 +670,56 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Delete modal | Confirmation dialog before hard delete |
 | RBAC UI | Create/Edit/Delete actions hidden from `dispatcher` |
 
+### 11.9 DriversPage — Driver Registry
+
+**File:** `frontend/src/pages/DriversPage.jsx`
+
+| Feature | Implementation |
+|---|---|
+| Stats bar | Total / Available / On Trip / Off Duty & Suspended counts |
+| Search & Filter | Real-time filter on name/licenseNumber/category + Status dropdown |
+| Driver table | Avatar initials, license details, expiry date with warning highlights |
+| Expiry warnings | Color-coded badges for expired (red) or expiring within 30 days (amber) |
+| Safety Score | Color-coded badge: >= 90 green, >= 70 amber, < 70 red |
+| Create/Edit modal | Full form with date picker for expiry |
+| Delete modal | Confirmation dialog before hard delete |
+| RBAC UI | Create/Edit/Delete actions restricted to `admin` and `safety_officer` |
+
+### 11.10 TripsPage — Trip Management
+
+**File:** `frontend/src/pages/TripsPage.jsx`
+
+| Feature | Implementation |
+|---|---|
+| Stats bar | Draft / Dispatched / Completed / Cancelled counts |
+| Search & Filter | Real-time filter on source/destination + Status dropdown |
+| Trip table | Populated vehicle and driver names, cargo/distance, timestamps |
+| Create modal | Select vehicle + driver, enter cargo weight, planned distance, revenue |
+| Dispatch action | Triggers `PUT /api/trips/:id/dispatch` with full business rule enforcement |
+| Complete action | Modal with actualDistance and fuelUsed inputs |
+| Cancel action | Confirmation before cancellation (Draft only) |
+| RBAC UI | Create/Dispatch restricted to `admin`/`dispatcher`; Complete additionally allows `fleet_manager` |
+
+### 11.11 MaintenancePage — Maintenance Logs
+
+**File:** `frontend/src/pages/MaintenancePage.jsx`
+
+| Feature | Implementation |
+|---|---|
+| Split-pane layout | Left pane: LOG SERVICE RECORD form; Right pane: SERVICE LOGS table |
+| Vehicle dropdown | Populated from `/api/vehicles` (non-Retired vehicles) |
+| Form fields | Vehicle, Service Type, Cost, Date, Status (Active / Completed) |
+| Click-to-edit | Clicking a log row loads it into the left form for editing |
+| Status badges | `In Shop` (amber/orange) for `Active`; `Completed` (green) for `Completed` |
+| Delete confirmation | Modal prompt before deleting a log |
+| Business rule display | Automatic vehicle status updates reflected after save/delete |
+| RBAC UI | Write controls restricted to `admin` and `fleet_manager` |
+
 ---
 
 ## 12. Design System
 
-**File:** [`frontend/src/index.css`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/index.css)
+**File:** `frontend/src/index.css`
 
 ### Colour Tokens (CSS Custom Properties)
 
@@ -536,6 +733,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 | `--color-border` | `rgba(255,255,255,0.07)` | Dividers |
 | `--color-border-light` | `rgba(255,255,255,0.12)` | Input borders, card borders |
 | `--color-success` | `#22c55e` | Active status |
+| `--color-warning` | `#f59e0b` | Warning states |
 | `--color-danger` | `#ef4444` | Error states |
 | `--sidebar-width` | `260px` | Sidebar expanded width |
 
@@ -570,31 +768,21 @@ npm run preview # Preview production build
 |---|---|---|
 | `admin@transitops.com` | `Admin@123` | Administrator |
 
-> Additional users can self-register via the public **Create Account** page (`/login`), 
+> Additional users can self-register via the public **Create Account** page (`/login`),
 > which creates their accounts in a "pending approval" state (`isActive: false`).
 > The Admin must activate them via the User Management UI (`/users`).
 
 ---
 
-## 15. Git
-
-- **Branch:** `RBAC`
-- **Commits:**
-  - `d3cea43` — `feat(phase-1): Authentication & RBAC module`
-  - `dca9699` — `feat(users): Admin User Management UI`
-  - `26e3db2` — `feat(auth): implement self-registration workflow with admin approval`
-
----
-
-## 16. Phase Roadmap
+## 15. Phase Roadmap
 
 | Phase | Module | Status |
 |---|---|---|
 | **1** | Authentication & RBAC | ✅ **Complete** |
 | **2** | Vehicle Registry | ✅ **Complete** |
-| 3 | Driver Management | ⏳ Pending |
-| 4 | Trip Engine | ⏳ Pending |
-| 5 | Maintenance | ⏳ Pending |
+| **3** | Driver Management | ✅ **Complete** |
+| **4** | Trip Engine | ✅ **Complete** |
+| **5** | Maintenance | ✅ **Complete** |
 | 6 | Fuel & Expenses | ⏳ Pending |
 | 7 | Dashboard KPIs | ⏳ Pending |
 | 8 | Reports & Bonus Features | ⏳ Pending |
