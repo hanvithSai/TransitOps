@@ -89,16 +89,17 @@ const TripsPage = () => {
       setTrips(data.data.trips);
       
       // Update selected trip data if it exists in the new list
-      if (selectedTrip) {
-        const updated = data.data.trips.find(t => t._id === selectedTrip._id);
-        if (updated) setSelectedTrip(updated);
-      }
+      setSelectedTrip(prev => {
+        if (!prev) return prev;
+        const updated = data.data.trips.find(t => t._id === prev._id);
+        return updated || prev;
+      });
     } catch {
       showToast('Failed to load trips', 'error');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, search, selectedTrip]);
+  }, [activeTab, search]);
 
   useEffect(() => {
     setLoading(true);
@@ -369,7 +370,7 @@ const TripsPage = () => {
                 </div>
                 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   {selectedTrip.status === 'Draft' && (user.role.name === 'admin' || user.role.name === 'driver') && (
                     <>
                       <button onClick={() => setModalType('cancel')} disabled={actionLoading} className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10">Cancel</button>
@@ -379,6 +380,9 @@ const TripsPage = () => {
                   {selectedTrip.status === 'Dispatched' && (user.role.name === 'admin' || user.role.name === 'driver' || user.role.name === 'fleet_manager') && (
                     <button onClick={() => { setCompleteForm({ actualDistance: selectedTrip.plannedDistance, fuelUsed: '' }); setModalType('complete'); }} disabled={actionLoading} className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500">Complete Trip</button>
                   )}
+                  <button onClick={() => setSelectedTrip(null)} className="ml-2 flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border-light)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)]" title="Close Details">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
                 </div>
               </div>
 
