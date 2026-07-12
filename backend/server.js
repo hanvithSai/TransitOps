@@ -8,6 +8,7 @@ const { errorHandler } = require("./utils/errorHandler");
 // Route imports
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const roleRoutes = require("./routes/roleRoutes");
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/", (req, res) => res.json({ message: "TransitOps API is running" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/roles", roleRoutes);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

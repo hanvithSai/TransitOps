@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
 import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import UsersPage from './pages/UsersPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
 function App() {
@@ -38,7 +39,7 @@ function App() {
               path="/users"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <ComingSoon title="User Management" phase={1} note="Admin panel — coming soon" />
+                  <UsersPage />
                 </ProtectedRoute>
               }
             />
