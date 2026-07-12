@@ -4,7 +4,7 @@ const loginValidator = [
     body("email")
         .notEmpty().withMessage("Email is required")
         .isEmail().withMessage("Please provide a valid email")
-        .normalizeEmail(),
+        .normalizeEmail({ gmail_remove_dots: false }),
     body("password")
         .notEmpty().withMessage("Password is required")
         .isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
@@ -18,7 +18,7 @@ const registerValidator = [
     body("email")
         .notEmpty().withMessage("Email is required")
         .isEmail().withMessage("Please provide a valid email")
-        .normalizeEmail(),
+        .normalizeEmail({ gmail_remove_dots: false }),
     body("password")
         .notEmpty().withMessage("Password is required")
         .isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
@@ -35,7 +35,7 @@ const createUserValidator = [
     body("email")
         .notEmpty().withMessage("Email is required")
         .isEmail().withMessage("Please provide a valid email")
-        .normalizeEmail(),
+        .normalizeEmail({ gmail_remove_dots: false }),
     body("password")
         .notEmpty().withMessage("Password is required")
         .isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
@@ -52,7 +52,7 @@ const updateUserValidator = [
     body("email")
         .optional()
         .isEmail().withMessage("Please provide a valid email")
-        .normalizeEmail(),
+        .normalizeEmail({ gmail_remove_dots: false }),
     body("password")
         .optional()
         .isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
@@ -64,4 +64,17 @@ const updateUserValidator = [
         .isBoolean().withMessage("isActive must be a boolean"),
 ];
 
-module.exports = { loginValidator, registerValidator, createUserValidator, updateUserValidator };
+const forgotPasswordValidator = [
+    body("email")
+        .notEmpty().withMessage("Email is required")
+        .isEmail().withMessage("Please provide a valid email")
+        .normalizeEmail({ gmail_remove_dots: false }),
+];
+
+const resetPasswordValidator = [
+    body("password")
+        .notEmpty().withMessage("Password is required")
+        .isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+];
+
+module.exports = { loginValidator, registerValidator, createUserValidator, updateUserValidator, forgotPasswordValidator, resetPasswordValidator };

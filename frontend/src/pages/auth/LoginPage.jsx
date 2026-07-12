@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 /* ── EyeIcon ─────────────────────────────────────────────────── */
@@ -248,9 +248,9 @@ const LoginPage = () => {
                   <input type="checkbox" className="h-4 w-4 rounded border-gray-600 bg-transparent text-orange-600 focus:ring-orange-500 focus:ring-offset-gray-900" />
                   <span className="text-sm text-[var(--color-text-secondary)]">Remember me</span>
                 </label>
-                <a href="#" className="text-sm text-blue-400 hover:text-blue-300">
+                <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
                   Forgot password?
-                </a>
+                </Link>
               </div>
             )}
 
