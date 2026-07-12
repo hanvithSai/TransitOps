@@ -17,8 +17,8 @@ const roles = [
         permissions: ["vehicles:read", "vehicles:write", "maintenance:read", "maintenance:write", "dashboard:read"],
     },
     {
-        name: "dispatcher",
-        displayName: "Dispatcher",
+        name: "driver",
+        displayName: "Driver",
         description: "Create trips, assign drivers and vehicles, dispatch trips.",
         permissions: ["trips:read", "trips:write", "vehicles:read", "drivers:read", "dashboard:read"],
     },

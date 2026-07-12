@@ -154,7 +154,7 @@ NODE_ENV=development                 # Environment flag
 
 | Field | Type | Notes |
 |---|---|---|
-| `name` | String (enum) | `admin` · `fleet_manager` · `dispatcher` · `safety_officer` · `financial_analyst` |
+| `name` | String (enum) | `admin` · `fleet_manager` · `driver` · `safety_officer` · `financial_analyst` |
 | `displayName` | String | Human-readable label |
 | `description` | String | Role description |
 | `permissions` | [String] | Permission keys (e.g. `vehicles:read`) |
@@ -167,7 +167,7 @@ NODE_ENV=development                 # Environment flag
 |---|---|---|
 | `admin` | Administrator | `["*"]` — full access |
 | `fleet_manager` | Fleet Manager | vehicles, maintenance, dashboard |
-| `dispatcher` | Dispatcher | trips, vehicles:read, drivers:read, dashboard |
+| `driver` | Driver | trips, vehicles:read, drivers:read, dashboard |
 | `safety_officer` | Safety Officer | drivers, dashboard |
 | `financial_analyst` | Financial Analyst | fuel, expenses, reports, dashboard |
 
@@ -352,8 +352,8 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 | Method | Endpoint | Auth Roles | Response |
 |---|---|---|---|
-| `GET` | `/api/vehicles?page=1&limit=20&search=&status=` | admin, fleet_manager, dispatcher | Paginated `{ vehicles, total, page, pages }` |
-| `GET` | `/api/vehicles/:id` | admin, fleet_manager, dispatcher | Single `{ vehicle }` |
+| `GET` | `/api/vehicles?page=1&limit=20&search=&status=` | admin, fleet_manager, driver | Paginated `{ vehicles, total, page, pages }` |
+| `GET` | `/api/vehicles/:id` | admin, fleet_manager, driver | Single `{ vehicle }` |
 | `POST` | `/api/vehicles` | admin, fleet_manager | Created `{ vehicle }` |
 | `PUT` | `/api/vehicles/:id` | admin, fleet_manager | Updated `{ vehicle }` |
 | `DELETE` | `/api/vehicles/:id` | admin, fleet_manager | `{ message }` |
@@ -362,8 +362,8 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 | Method | Endpoint | Auth Roles | Response |
 |---|---|---|---|
-| `GET` | `/api/drivers?page=1&limit=20&search=&status=` | admin, dispatcher, safety_officer | Paginated `{ drivers, total, page, pages }` |
-| `GET` | `/api/drivers/:id` | admin, dispatcher, safety_officer | Single `{ driver }` |
+| `GET` | `/api/drivers?page=1&limit=20&search=&status=` | admin, driver, safety_officer | Paginated `{ drivers, total, page, pages }` |
+| `GET` | `/api/drivers/:id` | admin, driver, safety_officer | Single `{ driver }` |
 | `POST` | `/api/drivers` | admin, safety_officer | Created `{ driver }` |
 | `PUT` | `/api/drivers/:id` | admin, safety_officer | Updated `{ driver }` |
 | `DELETE` | `/api/drivers/:id` | admin, safety_officer | `{ message }` |
@@ -372,12 +372,12 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 | Method | Endpoint | Auth Roles | Body | Response |
 |---|---|---|---|---|
-| `GET` | `/api/trips?page=1&limit=20&search=&status=` | admin, fleet_manager, dispatcher, safety_officer | — | Paginated `{ trips, total, page, pages }` |
-| `GET` | `/api/trips/:id` | admin, fleet_manager, dispatcher, safety_officer | — | Single `{ trip }` populated |
-| `POST` | `/api/trips` | admin, dispatcher | `{ source, destination, vehicle, driver, cargoWeight, plannedDistance, revenue?, notes? }` | Created `{ trip }` (status: `Draft`) |
-| `PUT` | `/api/trips/:id/dispatch` | admin, dispatcher | — | Updated `{ trip }` (status: `Dispatched`) |
-| `PUT` | `/api/trips/:id/complete` | admin, dispatcher, fleet_manager | `{ actualDistance, fuelUsed }` | Updated `{ trip }` (status: `Completed`) |
-| `PUT` | `/api/trips/:id/cancel` | admin, dispatcher | — | Updated `{ trip }` (status: `Cancelled`) |
+| `GET` | `/api/trips?page=1&limit=20&search=&status=` | admin, fleet_manager, driver, safety_officer | — | Paginated `{ trips, total, page, pages }` |
+| `GET` | `/api/trips/:id` | admin, fleet_manager, driver, safety_officer | — | Single `{ trip }` populated |
+| `POST` | `/api/trips` | admin, driver | `{ source, destination, vehicle, driver, cargoWeight, plannedDistance, revenue?, notes? }` | Created `{ trip }` (status: `Draft`) |
+| `PUT` | `/api/trips/:id/dispatch` | admin, driver | — | Updated `{ trip }` (status: `Dispatched`) |
+| `PUT` | `/api/trips/:id/complete` | admin, driver, fleet_manager | `{ actualDistance, fuelUsed }` | Updated `{ trip }` (status: `Completed`) |
+| `PUT` | `/api/trips/:id/cancel` | admin, driver | — | Updated `{ trip }` (status: `Cancelled`) |
 
 ### 5.7 Maintenance Routes — `/api/maintenance`
 
@@ -393,8 +393,8 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 | Method | Endpoint | Auth Roles | Response |
 |---|---|---|---|
-| `GET` | `/api/fuel?page=1&limit=20&vehicleId=&tripId=` | admin, fleet_manager, dispatcher | Paginated `{ logs, total, page, pages }` populated |
-| `GET` | `/api/fuel/:id` | admin, fleet_manager, dispatcher | Single `{ log }` populated |
+| `GET` | `/api/fuel?page=1&limit=20&vehicleId=&tripId=` | admin, fleet_manager, driver | Paginated `{ logs, total, page, pages }` populated |
+| `GET` | `/api/fuel/:id` | admin, fleet_manager, driver | Single `{ log }` populated |
 | `POST` | `/api/fuel` | admin, fleet_manager | Created `{ log }` |
 | `PUT` | `/api/fuel/:id` | admin, fleet_manager | Updated `{ log }` |
 | `DELETE` | `/api/fuel/:id` | admin, fleet_manager | `{ message }` |
@@ -403,8 +403,8 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 | Method | Endpoint | Auth Roles | Response |
 |---|---|---|---|
-| `GET` | `/api/expenses?page=1&limit=20&vehicleId=&tripId=&category=` | admin, fleet_manager, dispatcher | Paginated `{ expenses, total, page, pages }` populated |
-| `GET` | `/api/expenses/:id` | admin, fleet_manager, dispatcher | Single `{ expense }` populated |
+| `GET` | `/api/expenses?page=1&limit=20&vehicleId=&tripId=&category=` | admin, fleet_manager, driver | Paginated `{ expenses, total, page, pages }` populated |
+| `GET` | `/api/expenses/:id` | admin, fleet_manager, driver | Single `{ expense }` populated |
 | `POST` | `/api/expenses` | admin, fleet_manager | Created `{ expense }` |
 | `PUT` | `/api/expenses/:id` | admin, fleet_manager | Updated `{ expense }` |
 | `DELETE` | `/api/expenses/:id` | admin, fleet_manager | `{ message }` |
@@ -644,12 +644,12 @@ Stack traces included only in `NODE_ENV=development`.
 
 Protected (ProtectedRoute wrapping AppLayout):
   /dashboard          → DashboardPage (placeholder)
-  /vehicles           → VehiclesPage (admin, fleet_manager, dispatcher)
-  /drivers            → DriversPage (admin, dispatcher, safety_officer)
-  /trips              → TripsPage (admin, fleet_manager, dispatcher, safety_officer)
+  /vehicles           → VehiclesPage (admin, fleet_manager, driver)
+  /drivers            → DriversPage (admin, driver, safety_officer)
+  /trips              → TripsPage (admin, fleet_manager, driver, safety_officer)
   /maintenance        → MaintenancePage (admin, fleet_manager)
-  /fuel               → FinancePage (admin, fleet_manager, dispatcher)
-  /expenses           → FinancePage (admin, fleet_manager, dispatcher)
+  /fuel               → FinancePage (admin, fleet_manager, driver)
+  /expenses           → FinancePage (admin, fleet_manager, driver)
   /reports            → ComingSoon (Phase 8)
   /users              → UsersPage (admin only)
 
@@ -752,7 +752,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Vehicle table | Formatted details, capacity/odometer, status badges |
 | Create/Edit modal | Form with numeric constraints for capacity/odometer/cost |
 | Delete modal | Confirmation dialog before hard delete |
-| RBAC UI | Create/Edit/Delete actions hidden from `dispatcher` |
+| RBAC UI | Create/Edit/Delete actions hidden from `driver` |
 
 ### 11.9 DriversPage — Driver Registry
 
@@ -782,7 +782,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Dispatch action | Triggers `PUT /api/trips/:id/dispatch` with full business rule enforcement |
 | Complete action | Modal with actualDistance and fuelUsed inputs |
 | Cancel action | Confirmation before cancellation (Draft only) |
-| RBAC UI | Create/Dispatch restricted to `admin`/`dispatcher`; Complete additionally allows `fleet_manager` |
+| RBAC UI | Create/Dispatch restricted to `admin`/`driver`; Complete additionally allows `fleet_manager` |
 
 ### 11.11 MaintenancePage — Maintenance Logs
 
@@ -810,7 +810,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Shared Action Modal | Modal form swaps inputs based on active tab; fetches active Vehicles and Trips for dropdowns |
 | Relational Validation | UI alerts user if the selected trip doesn't belong to the selected vehicle |
 | Category Badges | Unique color styling for Expense categories (`Toll`, `Repair`, `Parking`, etc.) |
-| RBAC UI | Creation restricted to `admin` and `fleet_manager`; `dispatcher` has read-only access |
+| RBAC UI | Creation restricted to `admin` and `fleet_manager`; `driver` has read-only access |
 
 ---
 

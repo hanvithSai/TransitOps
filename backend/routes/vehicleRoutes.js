@@ -8,11 +8,11 @@ const { createVehicleValidator, updateVehicleValidator } = require('../validator
 // Apply authentication to all vehicle routes
 router.use(authenticate);
 
-// GET /api/vehicles (Accessible by admin, fleet_manager, dispatcher)
-router.get('/', authorize('admin', 'fleet_manager', 'dispatcher'), vehicleController.getAllVehicles);
+// GET /api/vehicles (Accessible by admin, fleet_manager, driver)
+router.get('/', authorize('admin', 'fleet_manager', 'driver'), vehicleController.getAllVehicles);
 
-// GET /api/vehicles/:id (Accessible by admin, fleet_manager, dispatcher)
-router.get('/:id', authorize('admin', 'fleet_manager', 'dispatcher'), vehicleController.getVehicleById);
+// GET /api/vehicles/:id (Accessible by admin, fleet_manager, driver)
+router.get('/:id', authorize('admin', 'fleet_manager', 'driver'), vehicleController.getVehicleById);
 
 // POST /api/vehicles (Accessible by admin, fleet_manager)
 router.post(

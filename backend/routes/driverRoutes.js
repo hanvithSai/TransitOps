@@ -8,11 +8,11 @@ const { createDriverValidator, updateDriverValidator } = require('../validators/
 // Apply authentication to all driver routes
 router.use(authenticate);
 
-// GET /api/drivers (Accessible by admin, dispatcher, safety_officer)
-router.get('/', authorize('admin', 'dispatcher', 'safety_officer'), driverController.getAllDrivers);
+// GET /api/drivers (Accessible by admin, driver, safety_officer)
+router.get('/', authorize('admin', 'driver', 'safety_officer'), driverController.getAllDrivers);
 
-// GET /api/drivers/:id (Accessible by admin, dispatcher, safety_officer)
-router.get('/:id', authorize('admin', 'dispatcher', 'safety_officer'), driverController.getDriverById);
+// GET /api/drivers/:id (Accessible by admin, driver, safety_officer)
+router.get('/:id', authorize('admin', 'driver', 'safety_officer'), driverController.getDriverById);
 
 // POST /api/drivers (Accessible by admin, safety_officer)
 router.post(

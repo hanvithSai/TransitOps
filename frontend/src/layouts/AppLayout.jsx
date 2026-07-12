@@ -15,7 +15,7 @@ const NAV_ITEMS = [
         <rect x="14" y="14" width="7" height="7" rx="1.5" />
       </svg>
     ),
-    roles: ['admin', 'fleet_manager', 'dispatcher', 'safety_officer', 'financial_analyst'],
+    roles: ['admin', 'fleet_manager', 'driver', 'safety_officer', 'financial_analyst'],
   },
   {
     label: 'Vehicles',
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
         <circle cx="17" cy="18.5" r="1.5" />
       </svg>
     ),
-    roles: ['admin', 'fleet_manager', 'dispatcher'],
+    roles: ['admin', 'fleet_manager', 'driver'],
   },
   {
     label: 'Drivers',
@@ -38,7 +38,7 @@ const NAV_ITEMS = [
         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
       </svg>
     ),
-    roles: ['admin', 'dispatcher', 'safety_officer'],
+    roles: ['admin', 'driver', 'safety_officer'],
   },
   {
     label: 'Trips',
@@ -48,7 +48,7 @@ const NAV_ITEMS = [
         <path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3" />
       </svg>
     ),
-    roles: ['admin', 'dispatcher', 'fleet_manager'],
+    roles: ['admin', 'driver', 'fleet_manager'],
   },
   {
     label: 'Maintenance',
@@ -69,7 +69,7 @@ const NAV_ITEMS = [
         <path d="M7 8v3h4V8" />
       </svg>
     ),
-    roles: ['admin', 'financial_analyst'],
+    roles: ['admin', 'fleet_manager', 'driver', 'financial_analyst'],
   },
   {
     label: 'Expenses',
@@ -79,7 +79,7 @@ const NAV_ITEMS = [
         <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
     ),
-    roles: ['admin', 'financial_analyst'],
+    roles: ['admin', 'fleet_manager', 'driver', 'financial_analyst'],
   },
   {
     label: 'Reports',
@@ -113,7 +113,7 @@ const NAV_ITEMS = [
 const ROLE_COLORS = {
   admin:             'bg-purple-500/20 text-purple-300',
   fleet_manager:     'bg-blue-500/20 text-blue-300',
-  dispatcher:        'bg-emerald-500/20 text-emerald-300',
+  driver:        'bg-emerald-500/20 text-emerald-300',
   safety_officer:    'bg-amber-500/20 text-amber-300',
   financial_analyst: 'bg-rose-500/20 text-rose-300',
 };

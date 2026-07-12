@@ -10,7 +10,7 @@ const roleSchema = new mongoose.Schema(
             enum: [
                 "admin",
                 "fleet_manager",
-                "dispatcher",
+                "driver",
                 "safety_officer",
                 "financial_analyst",
             ],

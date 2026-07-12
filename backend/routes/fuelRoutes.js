@@ -11,21 +11,21 @@ router.use(authenticate);
 // GET /api/fuel
 router.get(
     '/',
-    authorize('admin', 'fleet_manager', 'dispatcher'),
+    authorize('admin', 'fleet_manager', 'driver', 'financial_analyst'),
     fuelController.getAllFuelLogs
 );
 
 // GET /api/fuel/:id
 router.get(
     '/:id',
-    authorize('admin', 'fleet_manager', 'dispatcher'),
+    authorize('admin', 'fleet_manager', 'driver', 'financial_analyst'),
     fuelController.getFuelLogById
 );
 
 // POST /api/fuel
 router.post(
     '/',
-    authorize('admin', 'fleet_manager'),
+    authorize('admin', 'fleet_manager', 'financial_analyst'),
     createFuelValidator,
     fuelController.createFuelLog
 );
@@ -33,7 +33,7 @@ router.post(
 // PUT /api/fuel/:id
 router.put(
     '/:id',
-    authorize('admin', 'fleet_manager'),
+    authorize('admin', 'fleet_manager', 'financial_analyst'),
     updateFuelValidator,
     fuelController.updateFuelLog
 );
@@ -41,7 +41,7 @@ router.put(
 // DELETE /api/fuel/:id
 router.delete(
     '/:id',
-    authorize('admin', 'fleet_manager'),
+    authorize('admin', 'fleet_manager', 'financial_analyst'),
     fuelController.deleteFuelLog
 );
 
