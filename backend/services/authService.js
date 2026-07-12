@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
 const RefreshToken = require("../models/RefreshToken");
+const Role = require("../models/Role");
 const { AppError } = require("../utils/errorHandler");
 
 /**
@@ -38,7 +39,7 @@ const login = async (email, password) => {
     }
 
     if (!user.isActive) {
-        throw new AppError("Your account has been deactivated. Contact an admin.", 401);
+        throw new AppError("Your account is pending admin approval or has been deactivated.", 401);
     }
 
     const isMatch = await user.comparePassword(password);
@@ -58,6 +59,42 @@ const login = async (email, password) => {
     delete userObj.password;
 
     return { user: userObj, accessToken, refreshToken };
+};
+
+/**
+ * Register: self-register a new user pending approval
+ */
+const register = async (name, email, password, roleName) => {
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        throw new AppError("Email is already in use.", 400);
+    }
+
+    // Map UI role names to DB role names if needed
+    const roleMap = {
+        "Fleet Manager": "fleet_manager",
+        "Dispatcher": "dispatcher",
+        "Safety Officer": "safety_officer",
+        "Financial Analyst": "financial_analyst"
+    };
+    const dbRoleName = roleMap[roleName] || roleName;
+
+    const role = await Role.findOne({ name: dbRoleName });
+    if (!role) {
+        throw new AppError("Invalid role selected.", 400);
+    }
+
+    // Create user as inactive
+    const user = await User.create({
+        name,
+        email,
+        password,
+        role: role._id,
+        isActive: false
+    });
+
+    return { user };
 };
 
 /**
@@ -111,4 +148,4 @@ const getUserById = async (id) => {
     return user;
 };
 
-module.exports = { login, refreshAccessToken, logout, getUserById };
+module.exports = { login, refreshAccessToken, logout, getUserById, register };

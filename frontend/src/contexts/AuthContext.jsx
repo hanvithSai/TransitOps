@@ -46,6 +46,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // ── Register ──────────────────────────────────────────────────
+  const register = useCallback(async (name, email, password, roleName) => {
+    setError(null);
+    try {
+      const { data } = await api.post('/auth/register', { name, email, password, roleName });
+      return { success: true, message: data.message };
+    } catch (err) {
+      const message = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(message);
+      return { success: false, message };
+    }
+  }, []);
+
   // ── Logout ────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     try {
@@ -67,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     error,
     isAuthenticated: !!user,
     login,
+    register,
     logout,
     clearError,
   };

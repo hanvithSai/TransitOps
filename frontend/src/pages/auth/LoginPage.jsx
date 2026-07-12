@@ -2,26 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-/* ── Animated background particles ─────────────────────────── */
-const ParticleField = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(20)].map((_, i) => (
-      <div
-        key={i}
-        className="absolute rounded-full bg-blue-500/10 animate-pulse"
-        style={{
-          width:  `${Math.random() * 4 + 1}px`,
-          height: `${Math.random() * 4 + 1}px`,
-          left:   `${Math.random() * 100}%`,
-          top:    `${Math.random() * 100}%`,
-          animationDelay:    `${Math.random() * 4}s`,
-          animationDuration: `${Math.random() * 4 + 2}s`,
-        }}
-      />
-    ))}
-  </div>
-);
-
 /* ── EyeIcon ─────────────────────────────────────────────────── */
 const EyeIcon = ({ open }) =>
   open ? (
@@ -39,15 +19,17 @@ const EyeIcon = ({ open }) =>
 
 /* ── LoginPage ───────────────────────────────────────────────── */
 const LoginPage = () => {
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, register, isAuthenticated, loading: authLoading } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const from      = location.state?.from?.pathname || '/dashboard';
 
-  const [form, setForm]         = useState({ email: '', password: '' });
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [form, setForm]         = useState({ name: '', email: '', password: '', role: 'Dispatcher' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [shake, setShake]       = useState(false);
 
   // Redirect if already authenticated
@@ -58,77 +40,97 @@ const LoginPage = () => {
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
+    if (successMsg) setSuccessMsg('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.email || !form.password) {
-      setError('Please enter both email and password.');
-      return;
-    }
-    setLoading(true);
     setError('');
-    const result = await login(form.email, form.password);
-    setLoading(false);
+    setSuccessMsg('');
 
-    if (result.success) {
-      navigate(from, { replace: true });
+    if (isSignUp) {
+      if (!form.name || !form.email || !form.password || !form.role) {
+        setError('Please fill in all fields.');
+        return;
+      }
+      setLoading(true);
+      const result = await register(form.name, form.email, form.password, form.role);
+      setLoading(false);
+      
+      if (result.success) {
+        setSuccessMsg(result.message);
+        // Reset form for sign in but keep email
+        setIsSignUp(false);
+        setForm(prev => ({ ...prev, password: '', name: '' }));
+      } else {
+        setError(result.message);
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+      }
     } else {
-      setError(result.message);
-      setShake(true);
-      setTimeout(() => setShake(false), 600);
+      if (!form.email || !form.password) {
+        setError('Please enter both email and password.');
+        return;
+      }
+      setLoading(true);
+      const result = await login(form.email, form.password);
+      setLoading(false);
+
+      if (result.success) {
+        navigate(from, { replace: true });
+      } else {
+        setError(result.message);
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+      }
     }
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--color-surface-950)]">
+    <div className="flex min-h-screen bg-[var(--color-surface-950)] text-white">
+      {/* Left Pane - Branding & Roles */}
+      <div className="hidden w-1/3 bg-[#DCE0E5] p-12 text-gray-900 lg:flex lg:flex-col lg:justify-center relative">
+        <div className="mb-12">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-500 shadow-lg mb-4">
+            <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M1 17h22M5 17V9l3-5h8l3 5v8" />
+              <circle cx="7" cy="18.5" r="1.5" />
+              <circle cx="17" cy="18.5" r="1.5" />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-bold tracking-tight">TransitOps</h1>
+          <p className="mt-2 text-lg text-gray-600">Smart Transport Operations Platform</p>
+        </div>
+        
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">One login, four roles:</h2>
+          <ul className="space-y-3">
+            {['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'].map(role => (
+              <li key={role} className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-orange-600"></span>
+                <span className="text-gray-700 font-medium">{role}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
-      {/* Background gradients */}
-      <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-      <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-purple-600/10 blur-3xl" />
-      <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-800/5 blur-3xl" />
-      <ParticleField />
-
-      {/* Grid overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: 'linear-gradient(var(--color-brand-400) 1px, transparent 1px), linear-gradient(90deg, var(--color-brand-400) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-
-      {/* Card */}
-      <div
-        className={`relative z-10 w-full max-w-md px-4 transition-all ${shake ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
-      >
-        <div className="overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-surface-900)]/80 shadow-2xl shadow-black/50 backdrop-blur-xl">
-
-          {/* Card header */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-[var(--color-brand-600)] to-[var(--color-brand-800)] px-8 py-8">
-            <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/5" />
-            <div className="absolute -left-4 -bottom-8 h-24 w-24 rounded-full bg-white/5" />
-            <div className="relative flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm shadow-lg">
-                <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M1 17h22M5 17V9l3-5h8l3 5v8" />
-                  <circle cx="7" cy="18.5" r="1.5" />
-                  <circle cx="17" cy="18.5" r="1.5" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">TransitOps</h1>
-                <p className="text-sm text-blue-200">Fleet Operations Platform</p>
-              </div>
-            </div>
-            <p className="relative mt-5 text-2xl font-bold text-white">Welcome back</p>
-            <p className="relative mt-1 text-sm text-blue-200">Sign in to your account to continue</p>
+      {/* Right Pane - Form */}
+      <div className="flex w-full flex-col justify-center px-8 sm:px-16 lg:w-2/3 xl:px-32 relative">
+        <div className={`w-full max-w-md ${shake ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+          
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold font-sans tracking-tight">
+              {isSignUp ? 'Create your account' : 'Sign in to your account'}
+            </h2>
+            <p className="mt-2 text-[var(--color-text-muted)]">
+              {isSignUp ? 'Fill in the details to register' : 'Enter your credentials to continue'}
+            </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5 px-8 py-8" noValidate>
-
-            {/* Error alert */}
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            
+            {/* Error & Success Alerts */}
             {error && (
               <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -136,61 +138,74 @@ const LoginPage = () => {
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                {error}
+                <div dangerouslySetInnerHTML={{ __html: error.replace('\n', '<br/>') }} />
+              </div>
+            )}
+            
+            {successMsg && (
+              <div className="flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {successMsg}
               </div>
             )}
 
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-sm font-medium text-[var(--color-text-secondary)]">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--color-text-muted)]">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
-                </div>
+            {/* Name Field (Sign Up Only) */}
+            {isSignUp && (
+              <div className="space-y-1.5">
+                <label htmlFor="name" className="block text-xs font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+                  Full Name
+                </label>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={form.email}
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={form.name}
                   onChange={handleChange}
-                  placeholder="you@company.com"
-                  className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-800)] py-3 pl-10 pr-4 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none ring-0 transition-all focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20"
+                  placeholder="John Doe"
+                  className="w-full rounded border border-[var(--color-border-light)] bg-transparent py-2.5 px-3 text-sm text-white placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
                 />
               </div>
+            )}
+
+            {/* Email Field */}
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-xs font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="raven.k@transitops.in"
+                className="w-full rounded border border-[var(--color-border-light)] bg-transparent py-2.5 px-3 text-sm text-white placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
+              />
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label htmlFor="password" className="block text-xs font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
                 Password
               </label>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--color-text-muted)]">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                </div>
                 <input
                   id="password"
                   name="password"
                   type={showPass ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   value={form.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-800)] py-3 pl-10 pr-11 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none ring-0 transition-all focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20"
+                  className="w-full rounded border border-[var(--color-border-light)] bg-transparent py-2.5 px-3 pr-10 text-sm text-white placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute inset-y-0 right-3 flex items-center text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-secondary)]"
+                  className="absolute inset-y-0 right-3 flex items-center text-[var(--color-text-muted)] transition-colors hover:text-white"
                   aria-label={showPass ? 'Hide password' : 'Show password'}
                 >
                   <EyeIcon open={showPass} />
@@ -198,46 +213,87 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Role Field (Sign Up Only) */}
+            {isSignUp && (
+              <div className="space-y-1.5">
+                <label htmlFor="role" className="block text-xs font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+                  Role (RBAC)
+                </label>
+                <div className="relative">
+                  <select
+                    id="role"
+                    name="role"
+                    value={form.role}
+                    onChange={handleChange}
+                    className="w-full appearance-none rounded border border-[var(--color-border-light)] bg-transparent py-2.5 px-3 pr-8 text-sm text-white outline-none transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 [&>option]:bg-[#1e1e1e]"
+                  >
+                    <option value="Fleet Manager">Fleet Manager</option>
+                    <option value="Dispatcher">Dispatcher</option>
+                    <option value="Safety Officer">Safety Officer</option>
+                    <option value="Financial Analyst">Financial Analyst</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--color-text-muted)]">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Remember me & Forgot pass (Sign In Only) */}
+            {!isSignUp && (
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="h-4 w-4 rounded border-gray-600 bg-transparent text-orange-600 focus:ring-orange-500 focus:ring-offset-gray-900" />
+                  <span className="text-sm text-[var(--color-text-secondary)]">Remember me</span>
+                </label>
+                <a href="#" className="text-sm text-blue-400 hover:text-blue-300">
+                  Forgot password?
+                </a>
+              </div>
+            )}
+
+            {/* Submit Button */}
             <button
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="relative w-full overflow-hidden rounded-lg bg-gradient-to-r from-[var(--color-brand-600)] to-[var(--color-brand-700)] py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-all duration-200 hover:from-[var(--color-brand-500)] hover:to-[var(--color-brand-600)] hover:shadow-blue-700/40 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-4 w-full rounded bg-[#b45309] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#92400e] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                    <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                    <path d="M12 2a10 10 0 0 1 10 10" />
-                  </svg>
-                  Signing in…
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  Sign in
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </span>
-              )}
+              {loading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
             </button>
-
-            {/* Demo credentials */}
-            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-800)]/60 px-4 py-3 text-xs text-[var(--color-text-muted)]">
-              <p className="mb-1 font-semibold text-[var(--color-text-secondary)]">Demo credentials</p>
-              <p>Email: <span className="font-mono text-[var(--color-brand-400)]">admin@transitops.com</span></p>
-              <p>Password: <span className="font-mono text-[var(--color-brand-400)]">Admin@123</span></p>
+            
+            {/* Toggle */}
+            <div className="mt-4 text-center text-sm">
+              <span className="text-[var(--color-text-muted)]">
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+              </span>{' '}
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccessMsg(''); }}
+                className="font-medium text-orange-500 hover:text-orange-400"
+              >
+                {isSignUp ? 'Sign in' : 'Create one'}
+              </button>
             </div>
+            
           </form>
+
+          {/* Access Scopes Information */}
+          <div className="mt-12 space-y-1 text-sm text-[var(--color-text-muted)]">
+            <p className="mb-2">Access is scoped by role after login:</p>
+            <ul className="space-y-1">
+              <li>• Fleet Manager → Fleet, Maintenance</li>
+              <li>• Dispatcher → Dashboard, Trips</li>
+              <li>• Safety Officer → Drivers, Compliance</li>
+              <li>• Financial Analyst → Fuel & Expenses, Analytics</li>
+            </ul>
+          </div>
+          
         </div>
-
-        <p className="mt-6 text-center text-xs text-[var(--color-text-muted)]">
-          © 2026 TransitOps · Smart Fleet Operations
-        </p>
       </div>
-
-      {/* Shake keyframe */}
+      
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

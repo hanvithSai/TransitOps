@@ -3,6 +3,33 @@ const authService = require("../services/authService");
 const { AppError } = require("../utils/errorHandler");
 
 /**
+ * POST /api/auth/register
+ */
+const registerUser = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed",
+                errors: errors.array(),
+            });
+        }
+
+        const { name, email, password, roleName } = req.body;
+        const { user } = await authService.register(name, email, password, roleName);
+
+        res.status(201).json({
+            success: true,
+            message: "Account created successfully. Pending admin approval.",
+            data: { user },
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
  * POST /api/auth/login
  */
 const loginUser = async (req, res, next) => {
@@ -87,4 +114,4 @@ const getMe = async (req, res, next) => {
     }
 };
 
-module.exports = { loginUser, refreshToken, logoutUser, getMe };
+module.exports = { registerUser, loginUser, refreshToken, logoutUser, getMe };
