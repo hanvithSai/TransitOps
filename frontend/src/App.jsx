@@ -112,20 +112,6 @@ function App() {
   );
 }
 
-/* ── Coming Soon placeholder ──────────────────────────────────── */
-const ComingSoon = ({ title, phase, note }) => (
-  <div className="flex flex-col items-center justify-center py-20 text-center">
-    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-surface-700)] ring-1 ring-[var(--color-border-light)]">
-      <svg className="h-8 w-8 text-[var(--color-brand-400)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-    </div>
-    <h2 className="text-xl font-bold text-[var(--color-text-primary)]">{title}</h2>
-    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-      {note || `Scheduled for Phase ${phase} of the development roadmap.`}
-    </p>
-  </div>
-);
+/* ── Coming Soon placeholder removed ── */
 
 export default App;

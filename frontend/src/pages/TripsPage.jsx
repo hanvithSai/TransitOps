@@ -10,12 +10,7 @@ const STATUS_BADGE = {
   Cancelled:  'bg-red-500/15      text-red-400      border-red-500/30',
 };
 
-const STATUS_TEXT_COLOR = {
-  Draft:      'text-gray-400',
-  Dispatched: 'text-emerald-400',
-  Completed:  'text-blue-400',
-  Cancelled:  'text-red-400',
-};
+/* STATUS_TEXT_COLOR removed */
 
 /* ─── Modal ────────────────────────────────────────────────── */
 const Modal = ({ title, onClose, children }) => (

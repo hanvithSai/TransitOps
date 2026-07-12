@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+// useAuth removed
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_BADGE = {
@@ -113,7 +113,7 @@ const Toast = ({ message, type, onDismiss }) => {
 
 /* ─── MaintenancePage ────────────────────────────────────────────── */
 const MaintenancePage = () => {
-  const { user } = useAuth();
+  // user not needed here
   
   // Data States
   const [logs, setLogs] = useState([]);
@@ -146,7 +146,7 @@ const MaintenancePage = () => {
   const showToast = (message, type = 'success') => setToast({ message, type });
 
   // Fetch Vehicles & Maintenance Logs
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       const { data } = await api.get('/vehicles?limit=200');
       // We want to list all non-retired vehicles for scheduling
@@ -154,7 +154,7 @@ const MaintenancePage = () => {
     } catch {
       showToast('Failed to load vehicle list', 'error');
     }
-  };
+  }, []);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -171,7 +171,7 @@ const MaintenancePage = () => {
   useEffect(() => {
     fetchVehicles();
     fetchLogs();
-  }, [fetchLogs]);
+  }, [fetchVehicles, fetchLogs]);
 
   // Form Field Binder
   const set = (k) => (e) => {
@@ -187,12 +187,12 @@ const MaintenancePage = () => {
     try {
       if (editingLog) {
         // Edit flow
-        const { data } = await api.put(`/maintenance/${editingLog._id}`, form);
+        await api.put(`/maintenance/${editingLog._id}`, form);
         showToast('Service record updated successfully');
         resetForm();
       } else {
         // Create flow
-        const { data } = await api.post('/maintenance', form);
+        await api.post('/maintenance', form);
         showToast('Service record created successfully');
         resetForm();
       }
