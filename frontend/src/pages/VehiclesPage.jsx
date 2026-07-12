@@ -113,12 +113,31 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
           <input id="acquisitionCost" type="number" min="0" className={inputCls} placeholder="1500000" value={form.acquisitionCost} onChange={set('acquisitionCost')} />
         </FormField>
         <FormField label="Status" id="status">
-          <select id="status" className={inputCls} value={form.status} onChange={set('status')} required>
+          <select 
+            id="status" 
+            className={`${inputCls} ${(isEdit && (initial.status === 'In Shop' || initial.status === 'On Trip')) ? 'opacity-60 cursor-not-allowed' : ''}`} 
+            value={form.status} 
+            onChange={set('status')} 
+            required
+            disabled={isEdit && (initial.status === 'In Shop' || initial.status === 'On Trip')}
+          >
             <option value="Available">Available</option>
             <option value="On Trip">On Trip</option>
             <option value="In Shop">In Shop</option>
             <option value="Retired">Retired</option>
           </select>
+          {isEdit && initial.status === 'In Shop' && (
+            <div className="mt-2 flex items-start gap-1.5 text-xs text-amber-400">
+              <svg className="h-3.5 w-3.5 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+              <p>Vehicle is in maintenance. Close the maintenance log to make it available.</p>
+            </div>
+          )}
+          {isEdit && initial.status === 'On Trip' && (
+            <div className="mt-2 flex items-start gap-1.5 text-xs text-blue-400">
+              <svg className="h-3.5 w-3.5 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+              <p>Vehicle is on a dispatched trip. Complete the trip to make it available.</p>
+            </div>
+          )}
         </FormField>
       </div>
 
