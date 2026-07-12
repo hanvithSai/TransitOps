@@ -1,4 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { 
+  Wrench, 
+  Search, 
+  Plus, 
+  Calendar, 
+  DollarSign, 
+  Trash2, 
+  AlertTriangle, 
+  CheckCircle2, 
+  CarFront,
+  AlertCircle
+} from 'lucide-react';
 import api from '../services/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -38,9 +50,7 @@ const ConfirmDeleteModal = ({ log, onConfirm, onCancel, loading }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-        <svg className="h-5 w-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-        </svg>
+        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
       </div>
       <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">Delete this record?</p>
@@ -52,9 +62,9 @@ const ConfirmDeleteModal = ({ log, onConfirm, onCancel, loading }) => (
     <p className="text-sm text-[var(--text-secondary)]">
       This will delete the maintenance log permanently. If the status is currently <span className="font-semibold text-amber-600 dark:text-amber-500">Active</span>, the vehicle status may automatically return to <span className="font-semibold text-emerald-600 dark:text-emerald-500">Available</span> if no other active logs exist.
     </p>
-    <div className="flex justify-end gap-3 pt-2">
+    <div className="flex justify-end gap-3 pt-4">
       <Button variant="outline" onClick={onCancel}>Cancel</Button>
-      <Button variant="danger" onClick={onConfirm} loading={loading}>Delete</Button>
+      <Button variant="danger" onClick={onConfirm} loading={loading}>Delete Record</Button>
     </div>
   </div>
 );
@@ -62,8 +72,6 @@ const ConfirmDeleteModal = ({ log, onConfirm, onCancel, loading }) => (
 
 /* ─── MaintenancePage ────────────────────────────────────────────── */
 const MaintenancePage = () => {
-  // user not needed here
-  
   // Data States
   const [logs, setLogs] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -199,12 +207,15 @@ const MaintenancePage = () => {
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-10 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Maintenance Logs</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
+          <Wrench className="h-6 w-6 text-[var(--color-brand-600)]" />
+          Maintenance Logs
+        </h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Manage repairs, maintenance records, and costs
+          Manage repairs, maintenance records, and costs to keep your fleet running
         </p>
       </div>
 
@@ -212,34 +223,46 @@ const MaintenancePage = () => {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         
         {/* Left Pane: LOG SERVICE RECORD Form */}
-        <div className="lg:col-span-4">
-          <Card className="p-6">
-            <h2 className="text-md font-bold text-[var(--text-primary)] border-b border-[var(--border-base)] pb-4 mb-5">
-              {editingLog ? 'Edit Service Record' : 'Log Service Record'}
-            </h2>
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          <Card className="p-5 flex flex-col h-full border-[var(--border-base)] shadow-sm">
+            <div className="flex items-center gap-2 border-b border-[var(--border-base)] pb-4 mb-5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand-50)] text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/20 dark:text-[var(--color-brand-400)]">
+                {editingLog ? <Wrench className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </div>
+              <h2 className="text-base font-bold text-[var(--text-primary)]">
+                {editingLog ? 'Edit Service Record' : 'Log Service Record'}
+              </h2>
+            </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-4 flex-1 flex flex-col">
               {formError && (
-                <div className="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  {formError}
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{formError}</span>
                 </div>
               )}
 
               {/* VEHICLE dropdown */}
               <div className="space-y-1.5">
-                <label htmlFor="vehicle" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Vehicle</label>
+                <label htmlFor="vehicle" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                  <CarFront className="h-3.5 w-3.5" /> Vehicle
+                </label>
                 <div className="relative">
-                  <select id="vehicle" className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] disabled:opacity-60 disabled:cursor-not-allowed" value={form.vehicle} onChange={set('vehicle')} required disabled={!!editingLog}>
-                    <option value="">Select Vehicle</option>
+                  <select 
+                    id="vehicle" 
+                    className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] disabled:opacity-60 disabled:cursor-not-allowed hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
+                    value={form.vehicle} 
+                    onChange={set('vehicle')} 
+                    required 
+                    disabled={!!editingLog}
+                  >
+                    <option value="" disabled>Select Vehicle...</option>
                     {vehicles.map((v) => (
                       <option key={v._id} value={v._id}>
                         {v.registrationNumber} ({v.vehicleName}) - {v.status}
                       </option>
                     ))}
-                    {editingLog && editingLog.vehicle && (
+                    {editingLog && editingLog.vehicle && !vehicles.find(v => v._id === editingLog.vehicle._id) && (
                       <option value={editingLog.vehicle._id}>
                         {editingLog.vehicle.registrationNumber} ({editingLog.vehicle.vehicleName})
                       </option>
@@ -253,28 +276,71 @@ const MaintenancePage = () => {
 
               {/* SERVICE TYPE */}
               <div className="space-y-1.5">
-                <label htmlFor="serviceType" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Service Type</label>
-                <Input id="serviceType" placeholder="Oil Change, Engine Repair, etc." value={form.serviceType} onChange={set('serviceType')} required />
+                <label htmlFor="serviceType" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" /> Service Type
+                </label>
+                <Input 
+                  id="serviceType" 
+                  placeholder="e.g., Oil Change, Tire Rotation" 
+                  value={form.serviceType} 
+                  onChange={set('serviceType')} 
+                  required 
+                />
               </div>
 
-              {/* COST */}
-              <div className="space-y-1.5">
-                <label htmlFor="cost" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Cost</label>
-                <Input id="cost" type="number" min="0" placeholder="Cost" value={form.cost} onChange={set('cost')} required />
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {/* COST */}
+                <div className="space-y-1.5">
+                  <label htmlFor="cost" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5" /> Cost
+                  </label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <span className="text-[var(--text-muted)] sm:text-sm">$</span>
+                    </div>
+                    <Input 
+                      id="cost" 
+                      type="number" 
+                      min="0" 
+                      step="0.01"
+                      className="pl-7"
+                      placeholder="0.00" 
+                      value={form.cost} 
+                      onChange={set('cost')} 
+                      required 
+                    />
+                  </div>
+                </div>
 
-              {/* DATE */}
-              <div className="space-y-1.5">
-                <label htmlFor="date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Date</label>
-                <Input id="date" type="date" value={form.date} onChange={set('date')} required />
+                {/* DATE */}
+                <div className="space-y-1.5">
+                  <label htmlFor="date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" /> Date
+                  </label>
+                  <Input 
+                    id="date" 
+                    type="date" 
+                    value={form.date} 
+                    onChange={set('date')} 
+                    required 
+                  />
+                </div>
               </div>
 
               {/* STATUS */}
               <div className="space-y-1.5">
-                <label htmlFor="status" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Status</label>
+                <label htmlFor="status" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Status
+                </label>
                 <div className="relative">
-                  <select id="status" className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={form.status} onChange={set('status')} required>
-                    <option value="Active">Active</option>
+                  <select 
+                    id="status" 
+                    className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
+                    value={form.status} 
+                    onChange={set('status')} 
+                    required
+                  >
+                    <option value="Active">Active (In Shop)</option>
                     <option value="Completed">Completed</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
@@ -284,13 +350,13 @@ const MaintenancePage = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-3 pt-4">
+              <div className="flex flex-col gap-3 pt-6 mt-auto">
                 <Button type="submit" loading={formLoading} className="w-full">
-                  Save
+                  {editingLog ? 'Update Record' : 'Save Record'}
                 </Button>
                 {editingLog && (
                   <Button variant="outline" type="button" onClick={resetForm} className="w-full">
-                    Cancel Edit
+                    Cancel
                   </Button>
                 )}
               </div>
@@ -299,114 +365,129 @@ const MaintenancePage = () => {
         </div>
 
         {/* Right Pane: SERVICE LOGS Table */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 flex flex-col gap-4">
           
-          {/* Search bar at the top */}
+          {/* Search bar */}
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+              <Search className="h-4 w-4" />
             </div>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search by vehicle, service type..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
+              className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--border-hover)]"
             />
           </div>
 
           {/* Logs Table Container */}
-          <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)]">
-            <h3 className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-base)] px-5 py-4 border-b border-[var(--border-base)]">
-              Service Logs
-            </h3>
+          <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm flex-1 flex flex-col">
+            <div className="flex items-center justify-between bg-[var(--bg-base)] px-5 py-4 border-b border-[var(--border-base)]">
+              <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-2">
+                <Wrench className="h-3.5 w-3.5" /> Service History
+              </h3>
+              <Badge variant="outline" className="text-xs font-medium">
+                {logs.length} {logs.length === 1 ? 'Record' : 'Records'}
+              </Badge>
+            </div>
+            
             {loading ? (
               <div className="flex h-64 items-center justify-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
               </div>
             ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)]">
-                  <svg className="h-6 w-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                  </svg>
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
+                  <Wrench className="h-7 w-7 text-[var(--text-muted)]" />
                 </div>
-                <p className="text-sm font-medium text-[var(--text-secondary)]">No service logs found</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Try adjusting your search criteria</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">No service logs found</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[250px]">
+                  {search ? 'Try adjusting your search criteria.' : 'Service records will appear here when you log maintenance.'}
+                </p>
               </div>
             ) : (
-              <Table>
-                <TableHead>
-                  <TableHeader>Vehicle</TableHeader>
-                  <TableHeader>Service</TableHeader>
-                  <TableHeader>Cost</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader className="text-right"></TableHeader>
-                </TableHead>
-                <tbody className="divide-y divide-[var(--border-base)]">
-                  {logs.map((log) => {
-                    const isSelected = editingLog && editingLog._id === log._id;
-                    return (
-                      <TableRow
-                        key={log._id}
-                        onClick={() => handleRowClick(log)}
-                        className={`cursor-pointer ${
-                          isSelected ? 'bg-[var(--bg-surface-hover)]' : ''
-                        }`}
-                      >
-                        {/* VEHICLE */}
-                        <TableCell>
-                          <p className="font-semibold text-[var(--text-primary)]">
-                            {log.vehicle?.registrationNumber || 'Unknown Vehicle'}
-                          </p>
-                          <p className="text-xs text-[var(--text-muted)]">
-                            {log.vehicle?.vehicleName}
-                          </p>
-                        </TableCell>
-                        
-                        {/* SERVICE */}
-                        <TableCell>
-                          <p className="font-medium text-[var(--text-primary)]">
-                            {log.serviceType}
-                          </p>
-                          <p className="text-xs text-[var(--text-muted)]">
-                            Logged on {formatDate(log.date)}
-                          </p>
-                        </TableCell>
+              <div className="overflow-x-auto flex-1">
+                <Table>
+                  <TableHead>
+                    <TableHeader>Vehicle</TableHeader>
+                    <TableHeader>Service Details</TableHeader>
+                    <TableHeader>Cost</TableHeader>
+                    <TableHeader>Status</TableHeader>
+                    <TableHeader className="text-right w-12"></TableHeader>
+                  </TableHead>
+                  <tbody className="divide-y divide-[var(--border-base)]">
+                    {logs.map((log) => {
+                      const isSelected = editingLog && editingLog._id === log._id;
+                      return (
+                        <TableRow
+                          key={log._id}
+                          onClick={() => handleRowClick(log)}
+                          className={`cursor-pointer transition-colors group ${
+                            isSelected ? 'bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)]/10' : 'hover:bg-[var(--bg-surface-hover)]'
+                          }`}
+                        >
+                          {/* VEHICLE */}
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-base)] border border-[var(--border-base)] group-hover:border-[var(--color-brand-200)] dark:group-hover:border-[var(--color-brand-800)] transition-colors">
+                                <CarFront className={`h-4 w-4 ${isSelected ? 'text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]' : 'text-[var(--text-muted)]'}`} />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-[var(--text-primary)]">
+                                  {log.vehicle?.registrationNumber || 'Unknown'}
+                                </p>
+                                <p className="text-xs text-[var(--text-muted)] truncate max-w-[120px]">
+                                  {log.vehicle?.vehicleName || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          
+                          {/* SERVICE */}
+                          <TableCell>
+                            <p className="font-medium text-[var(--text-primary)] line-clamp-1">
+                              {log.serviceType}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-[var(--text-muted)]">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(log.date)}
+                            </div>
+                          </TableCell>
 
-                        {/* COST */}
-                        <TableCell className="font-semibold text-[var(--text-secondary)]">
-                          {formatCost(log.cost)}
-                        </TableCell>
+                          {/* COST */}
+                          <TableCell>
+                            <span className="font-medium text-[var(--text-secondary)]">
+                              {formatCost(log.cost)}
+                            </span>
+                          </TableCell>
 
-                        {/* STATUS */}
-                        <TableCell>
-                          <Badge variant={STATUS_VARIANT[log.status] || 'default'}>{getStatusLabel(log.status)}</Badge>
-                        </TableCell>
+                          {/* STATUS */}
+                          <TableCell>
+                            <Badge variant={STATUS_VARIANT[log.status] || 'default'}>
+                              {getStatusLabel(log.status)}
+                            </Badge>
+                          </TableCell>
 
-                        {/* ACTIONS */}
-                        <TableCell className="text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingLog(log);
-                            }}
-                            className="p-1.5 text-[var(--text-muted)] hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete log record"
-                          >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2" />
-                            </svg>
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </tbody>
-              </Table>
+                          {/* ACTIONS */}
+                          <TableCell className="text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingLog(log);
+                              }}
+                              className="p-2 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete log record"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </tbody>
+                </Table>
+              </div>
             )}
           </div>
         </div>

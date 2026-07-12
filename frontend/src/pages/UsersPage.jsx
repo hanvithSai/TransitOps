@@ -1,4 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
+import { 
+  Users, 
+  Search, 
+  Plus, 
+  Shield, 
+  Trash2, 
+  Edit2, 
+  CheckCircle2, 
+  XCircle, 
+  UserPlus, 
+  Eye, 
+  EyeOff,
+  AlertTriangle,
+  UserCheck,
+  UserX,
+  ShieldCheck,
+  Clock,
+  KeyRound,
+  AlertCircle
+} from 'lucide-react';
 import api from '../services/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -12,7 +32,7 @@ import { Toast } from '../components/ui/Toast';
 const ROLE_BADGE = {
   admin:             'danger',
   fleet_manager:     'info',
-  driver:        'success',
+  driver:            'success',
   safety_officer:    'warning',
   financial_analyst: 'default',
 };
@@ -41,29 +61,29 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
-          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          {error}
+        <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input id="name" label="Full Name" placeholder="Jane Smith" value={form.name} onChange={set('name')} required />
         <Input id="email" type="email" label="Email Address" placeholder="jane@company.com" value={form.email} onChange={set('email')} required />
       </div>
 
       {!isEdit ? (
         <div className="space-y-1.5">
-          <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Password</label>
+          <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <KeyRound className="h-3.5 w-3.5" /> Password
+          </label>
           <div className="relative">
             <input
               id="password"
               type={showPass ? 'text' : 'password'}
-              className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
+              className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]"
               placeholder="Min 6 characters"
               value={form.password}
               onChange={set('password')}
@@ -73,34 +93,44 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
             <button
               type="button"
               onClick={() => setShowPass(!showPass)}
-              className="absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              className="absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
             >
-              {showPass
-                ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22" /></svg>
-                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-              }
+              {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Reset Password</label>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" type="button" onClick={() => setForm((p) => ({ ...p, password: 'TransitOps2026!' }))}>
-              Set to Default (TransitOps2026!)
+        <div className="space-y-2 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <KeyRound className="h-3.5 w-3.5" /> Password Reset
+          </label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <Button variant="outline" type="button" onClick={() => setForm((p) => ({ ...p, password: 'TransitOps2026!' }))} className="text-xs shrink-0">
+              Set to Default Password
             </Button>
             {form.password === 'TransitOps2026!' && (
-              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ Password will be reset on save</span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Will be reset on save
+              </span>
             )}
           </div>
         </div>
       )}
 
       <div className="space-y-1.5">
-        <label htmlFor="roleId" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Role</label>
+        <label htmlFor="roleId" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+          <Shield className="h-3.5 w-3.5" /> Role
+        </label>
         <div className="relative">
-          <select id="roleId" className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={form.roleId} onChange={set('roleId')} required>
-            <option value="">— Select a role —</option>
+          <select 
+            id="roleId" 
+            className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
+            value={form.roleId} 
+            onChange={set('roleId')} 
+            required
+          >
+            <option value="" disabled>— Select a role —</option>
             {roles.map((r) => (
               <option key={r._id} value={r._id}>{r.displayName}</option>
             ))}
@@ -112,17 +142,22 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
       </div>
 
       {isEdit && (
-        <label className="flex cursor-pointer items-center gap-3">
-          <div className="relative">
-            <input type="checkbox" className="peer sr-only" checked={form.isActive} onChange={set('isActive')} />
-            <div className="h-5 w-9 rounded-full bg-[var(--border-base)] transition-colors peer-checked:bg-[var(--color-brand-500)]" />
-            <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
+        <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-[var(--text-primary)]">Account Status</p>
+            <p className="text-xs text-[var(--text-muted)]">Determines if the user can log in.</p>
           </div>
-          <span className="text-sm font-medium text-[var(--text-secondary)]">Account active</span>
-        </label>
+          <label className="flex cursor-pointer items-center gap-3">
+            <div className="relative">
+              <input type="checkbox" className="peer sr-only" checked={form.isActive} onChange={set('isActive')} />
+              <div className="h-6 w-11 rounded-full bg-[var(--border-base)] transition-colors peer-checked:bg-[var(--color-brand-500)]" />
+              <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+            </div>
+          </label>
+        </div>
       )}
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)]">
+      <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-[var(--border-base)]">
         <Button type="submit" loading={loading} className="w-full sm:w-auto">
           {isEdit ? 'Save Changes' : 'Create User'}
         </Button>
@@ -136,10 +171,7 @@ const ConfirmModal = ({ user, onConfirm, onCancel, loading }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-        <svg className="h-5 w-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-        </svg>
+        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
       </div>
       <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">Delete {user.name}?</p>
@@ -147,9 +179,9 @@ const ConfirmModal = ({ user, onConfirm, onCancel, loading }) => (
       </div>
     </div>
     <p className="text-sm text-[var(--text-secondary)]">
-      This action <span className="font-semibold text-red-600 dark:text-red-400">cannot be undone</span>. The user will lose all access immediately.
+      This action <span className="font-semibold text-red-600 dark:text-red-400">cannot be undone</span>. The user will lose all access to the system immediately.
     </p>
-    <div className="flex justify-end gap-3 pt-2">
+    <div className="flex justify-end gap-3 pt-4">
       <Button variant="outline" onClick={onCancel}>Cancel</Button>
       <Button variant="danger" onClick={onConfirm} loading={loading}>Delete User</Button>
     </div>
@@ -285,60 +317,90 @@ const UsersPage = () => {
 
   /* ── render ── */
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-10 max-w-7xl mx-auto">
 
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">User Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
+            <Users className="h-6 w-6 text-[var(--color-brand-600)]" />
+            User Management
+          </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Manage system accounts and role assignments
+            Manage system accounts, roles, and access permissions
           </p>
         </div>
         <Button onClick={() => { setFormError(''); setModal('create'); }}>
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <UserPlus className="mr-2 h-4 w-4" />
           Add User
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: 'Total Users',  value: users.length,                          color: 'text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]' },
-          { label: 'Active',       value: users.filter((u) => u.isActive).length, color: 'text-emerald-600 dark:text-emerald-400' },
-          { label: 'Inactive',     value: users.filter((u) => !u.isActive).length, color: 'text-red-600 dark:text-red-400' },
-          { label: 'Roles',        value: roles.length,                           color: 'text-purple-600 dark:text-purple-400' },
-        ].map(({ label, value, color }) => (
-          <Card key={label} className="p-4 flex flex-col justify-center">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
-            <p className={`mt-2 text-2xl font-bold tracking-tight ${color}`}>{value}</p>
-          </Card>
-        ))}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card className="p-5 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-brand-50)] text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/20 dark:text-[var(--color-brand-400)]">
+            <Users className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total Users</p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{users.length}</p>
+          </div>
+        </Card>
+        
+        <Card className="p-5 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
+            <UserCheck className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Active</p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{users.filter(u => u.isActive).length}</p>
+          </div>
+        </Card>
+        
+        <Card className="p-5 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <UserX className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Inactive</p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{users.filter(u => !u.isActive).length}</p>
+          </div>
+        </Card>
+        
+        <Card className="p-5 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Roles</p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{roles.length}</p>
+          </div>
+        </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Search className="h-4 w-4" />
           </div>
           <input
             type="text"
-            placeholder="Search by name or email…"
+            placeholder="Search users by name or email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
+            className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--border-hover)]"
           />
         </div>
-        <div className="relative w-full sm:w-48">
+        <div className="relative w-full sm:w-64">
+          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
+            <Shield className="h-4 w-4" />
+          </div>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] px-3 py-2.5 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
+            className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--border-hover)]"
           >
             <option value="">All Roles</option>
             {roles.map((r) => (
@@ -351,22 +413,21 @@ const UsersPage = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)]">
+      {/* Table Container */}
+      <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)]">
-              <svg className="h-6 w-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
+              <Users className="h-7 w-7 text-[var(--text-muted)]" />
             </div>
-            <p className="text-sm font-medium text-[var(--text-secondary)]">No users found</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Try adjusting your search or filters</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">No users found</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[250px]">
+              {search || roleFilter ? 'Try adjusting your search or role filters.' : 'Add a user to get started.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -375,19 +436,18 @@ const UsersPage = () => {
                 <TableHeader>User</TableHeader>
                 <TableHeader>Role</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>Last Login</TableHeader>
-                <TableHeader>Pwd Updated</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
+                <TableHeader>Security & Access</TableHeader>
+                <TableHeader className="text-right w-24"></TableHeader>
               </TableHead>
               <tbody className="divide-y divide-[var(--border-base)]">
                 {filtered.map((user) => {
                   const initials = user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
                   return (
-                    <TableRow key={user._id}>
+                    <TableRow key={user._id} className="group hover:bg-[var(--bg-surface-hover)] transition-colors">
                       {/* User */}
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-brand-500)] to-[var(--color-brand-700)] text-xs font-bold text-white shadow-sm shadow-[var(--color-brand-500)]/20">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-brand-500)] to-[var(--color-brand-700)] text-sm font-bold text-white shadow-sm shadow-[var(--color-brand-500)]/20">
                             {initials}
                           </div>
                           <div>
@@ -396,48 +456,55 @@ const UsersPage = () => {
                           </div>
                         </div>
                       </TableCell>
+                      
                       {/* Role */}
                       <TableCell>
                         <Badge variant={ROLE_BADGE[user.role?.name] || 'default'}>{user.role?.displayName || '—'}</Badge>
                       </TableCell>
+                      
                       {/* Status */}
                       <TableCell>
-                        <Badge variant={STATUS_BADGE[user.isActive]}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
+                        {user.isActive ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <XCircle className="h-3.5 w-3.5" /> Inactive
+                          </span>
+                        )}
                       </TableCell>
-                      {/* Last Login */}
-                      <TableCell className="text-xs text-[var(--text-muted)]">
-                        {user.lastLogin
-                          ? new Date(user.lastLogin).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                          : 'Never'}
+                      
+                      {/* Security & Access */}
+                      <TableCell>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                            <Clock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                            {user.lastLogin ? `Last login: ${new Date(user.lastLogin).toLocaleDateString()}` : 'Never logged in'}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                            <KeyRound className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                            {user.passwordUpdatedAt ? `Pwd updated: ${new Date(user.passwordUpdatedAt).toLocaleDateString()}` : 'Pwd never updated'}
+                          </div>
+                        </div>
                       </TableCell>
-                      {/* Password Updated */}
-                      <TableCell className="text-xs text-[var(--text-muted)]">
-                        {user.passwordUpdatedAt
-                          ? new Date(user.passwordUpdatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                          : 'Never'}
-                      </TableCell>
+
                       {/* Actions */}
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <button
                             onClick={() => openEdit(user)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]"
+                            className="p-2 text-[var(--text-muted)] hover:text-[var(--color-brand-600)] hover:bg-[var(--color-brand-50)] dark:hover:bg-[var(--color-brand-900)]/20 rounded-lg transition-colors"
                             title="Edit user"
                           >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
+                            <Edit2 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => openDelete(user)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
+                            className="p-2 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                             title="Delete user"
                           >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2" />
-                            </svg>
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </TableCell>
