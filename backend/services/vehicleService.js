@@ -53,6 +53,24 @@ exports.createVehicle = async (vehicleData) => {
 };
 
 exports.updateVehicle = async (id, updateData) => {
+  const vehicleToUpdate = await Vehicle.findById(id);
+  if (!vehicleToUpdate) {
+    throw new AppError('Vehicle not found', 404);
+  }
+
+  // Enforce Status Rules (cannot manually override In Shop or On Trip)
+  if (updateData.status && updateData.status !== vehicleToUpdate.status) {
+    if (vehicleToUpdate.status === 'In Shop') {
+      throw new AppError('This vehicle is under maintenance. Close the maintenance log to change its status.', 400);
+    }
+    if (vehicleToUpdate.status === 'On Trip') {
+      throw new AppError('This vehicle is currently on a trip. Complete the trip to change its status.', 400);
+    }
+    if (updateData.status === 'In Shop' || updateData.status === 'On Trip') {
+      throw new AppError(`Status cannot be manually set to '${updateData.status}'. It is managed automatically.`, 400);
+    }
+  }
+
   if (updateData.registrationNumber) {
     const existingVehicle = await Vehicle.findOne({ 
       registrationNumber: updateData.registrationNumber,
@@ -67,10 +85,6 @@ exports.updateVehicle = async (id, updateData) => {
     new: true,
     runValidators: true
   });
-
-  if (!vehicle) {
-    throw new AppError('Vehicle not found', 404);
-  }
 
   return vehicle;
 };
