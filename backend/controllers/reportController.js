@@ -3,10 +3,14 @@ const { AppError } = require('../utils/errorHandler');
 
 exports.getROIReport = async (req, res, next) => {
     try {
-        const data = await reportService.getVehicleROI();
+        const [data, metrics] = await Promise.all([
+            reportService.getVehicleROI(),
+            reportService.getOverallMetrics()
+        ]);
         res.status(200).json({
             success: true,
-            data
+            data,
+            metrics
         });
     } catch (error) {
         next(new AppError('Failed to generate ROI report', 500));

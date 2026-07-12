@@ -13,6 +13,7 @@ import DriversPage from './pages/DriversPage';
 import TripsPage from './pages/TripsPage';
 import MaintenancePage from './pages/MaintenancePage';
 import FinancePage from './pages/FinancePage';
+import ReportsPage from './pages/ReportsPage';
 
 function App() {
   return (
@@ -85,7 +86,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/reports"     element={<ComingSoon title="Reports & Analytics" phase={8} />} />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'financial_analyst', 'fleet_manager']}>
+                  <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/users"
               element={

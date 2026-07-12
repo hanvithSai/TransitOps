@@ -46,6 +46,32 @@ exports.getVehicleROI = async () => {
     return roiData;
 };
 
+exports.getOverallMetrics = async () => {
+    const [totalVehicles, onTripVehicles, fuelResult, maintResult, tripResult] = await Promise.all([
+        Vehicle.countDocuments(),
+        Vehicle.countDocuments({ status: 'On Trip' }),
+        FuelLog.aggregate([{ $group: { _id: null, totalCost: { $sum: '$cost' }, totalLiters: { $sum: '$liters' } } }]),
+        Expense.aggregate([{ $group: { _id: null, totalCost: { $sum: '$amount' } } }]), // All expenses including maintenance
+        Trip.aggregate([{ $match: { status: 'Completed' } }, { $group: { _id: null, totalDistance: { $sum: '$actualDistance' } } }])
+    ]);
+
+    const utilization = totalVehicles > 0 ? ((onTripVehicles / totalVehicles) * 100).toFixed(2) : 0;
+    
+    const totalFuelLiters = fuelResult[0] ? fuelResult[0].totalLiters : 0;
+    const totalDistance = tripResult[0] ? tripResult[0].totalDistance : 0;
+    const fuelEfficiency = totalFuelLiters > 0 ? (totalDistance / totalFuelLiters).toFixed(2) : 0;
+    
+    const fuelCost = fuelResult[0] ? fuelResult[0].totalCost : 0;
+    const expensesCost = maintResult[0] ? maintResult[0].totalCost : 0;
+    const operationalCost = fuelCost + expensesCost;
+
+    return {
+        fleetUtilization: parseFloat(utilization),
+        fuelEfficiency: parseFloat(fuelEfficiency),
+        operationalCost
+    };
+};
+
 exports.generateCSV = (data) => {
     if (!data || !data.length) return '';
     const headers = Object.keys(data[0]).join(',');
