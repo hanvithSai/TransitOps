@@ -180,6 +180,7 @@ NODE_ENV=development                 # Environment flag
 
 | Method | Endpoint | Auth | Body | Response |
 |---|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | `{ name, email, password, roleName }` | `{ user }` (created with `isActive: false`) |
 | `POST` | `/api/auth/login` | Public | `{ email, password }` | `{ user, accessToken }` + sets `refreshToken` cookie |
 | `POST` | `/api/auth/refresh` | Cookie | — | `{ accessToken, user }` |
 | `POST` | `/api/auth/logout` | Cookie | — | Clears cookie, revokes token |
@@ -461,17 +462,14 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 **File:** [`frontend/src/pages/auth/LoginPage.jsx`](file:///c:/Users/vamsh/OneDrive/Desktop/TransitOps/frontend/src/pages/auth/LoginPage.jsx)
 
-- Animated particle field background (20 random floating dots)
-- Gradient mesh background (blue + purple blobs)
-- Grid overlay texture
-- Glassmorphism card with gradient header
-- Email + Password fields with icon prefix
-- Password show/hide toggle
-- Error alert box with icon
+- Split-screen aesthetic with light branding/roles pane and dark form pane
+- Toggle between "Sign In" and "Create Account"
+- Self-registration form captures Name, Email, Password, and Role (RBAC) dropdown
+- Password show/hide toggle for both sign in and sign up
+- Error and Success alert boxes with icons
 - Submit button with spinner during loading
-- Card shake animation on failed login (CSS `@keyframes shake`)
-- Demo credentials box
-- Preserves `from` location — redirects back after login
+- Card shake animation on failed login/register (CSS `@keyframes shake`)
+- Preserves `from` location — redirects back after successful login
 
 ---
 
@@ -525,8 +523,9 @@ npm run preview # Preview production build
 |---|---|---|
 | `admin@transitops.com` | `Admin@123` | Administrator |
 
-> Additional users are created via the Admin → User Management UI (`/users`)
-> or by adding entries to `seeders/seed.js` and running `npm run seed`.
+> Additional users can self-register via the public **Create Account** page (`/login`), 
+> which creates their accounts in a "pending approval" state (`isActive: false`).
+> The Admin must activate them via the User Management UI (`/users`).
 
 ---
 
@@ -536,6 +535,7 @@ npm run preview # Preview production build
 - **Commits:**
   - `d3cea43` — `feat(phase-1): Authentication & RBAC module`
   - `dca9699` — `feat(users): Admin User Management UI`
+  - `26e3db2` — `feat(auth): implement self-registration workflow with admin approval`
 
 ---
 
