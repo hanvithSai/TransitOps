@@ -2,44 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
+import { Modal } from '../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
+import { Toast } from '../components/ui/Toast';
 
-/* ─── Modals and Toasts ───────────────────────────────────── */
-const Modal = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-    <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-surface-800)] shadow-2xl shadow-black/60">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
-        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h2>
-        <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
-      </div>
-      <div className="px-6 py-5 max-h-[75vh] overflow-y-auto">{children}</div>
-    </div>
-  </div>
-);
-
-const Toast = ({ message, type, onDismiss }) => {
-  useEffect(() => {
-    const t = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(t);
-  }, [onDismiss]);
-
-  return (
-    <div className={`fixed bottom-6 right-6 z-[120] flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-xl backdrop-blur-sm transition-all ${
-      type === 'success' ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300' : 'border-red-500/30 bg-red-500/15 text-red-300'
-    }`}>
-      {message}
-    </div>
-  );
-};
-
+/* ─── helpers ──────────────────────────────────────────────── */
 const CATEGORY_COLORS = {
-  Toll: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  Repair: 'bg-red-500/15 text-red-400 border-red-500/30',
-  Parking: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  Insurance: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  Miscellaneous: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+  Toll: 'info',
+  Repair: 'danger',
+  Parking: 'warning',
+  Insurance: 'success',
+  Miscellaneous: 'default',
 };
 
 /* ─── FinancePage Component ───────────────────────────────── */
@@ -166,38 +142,35 @@ const FinancePage = () => {
       {/* ─── Header ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Finance Management</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Track fleet operational costs and fuel logs</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Finance Management</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">Track fleet operational costs and fuel logs</p>
         </div>
-        {(user.role.name === 'admin' || user.role.name === 'fleet_manager') && (
-          <button
-            onClick={handleOpenModal}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--color-brand-600)] to-[var(--color-brand-700)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition-all hover:from-[var(--color-brand-500)] hover:to-[var(--color-brand-600)]"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        {(user?.role?.name === 'admin' || user?.role?.name === 'fleet_manager') && (
+          <Button onClick={handleOpenModal}>
+            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             Log {isFuelTab ? 'Fuel' : 'Expense'}
-          </button>
+          </Button>
         )}
       </div>
 
       {/* ─── Tabs ───────────────────────────────────────────── */}
-      <div className="flex gap-2 border-b border-[var(--color-border)] pb-4">
+      <div className="flex gap-2 border-b border-[var(--border-base)] pb-4">
         <button
           onClick={() => navigate('/fuel')}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+          className={`rounded-[10px] px-4 py-2 text-sm font-semibold transition-colors ${
             isFuelTab 
-              ? 'bg-[var(--color-brand-500)]/15 text-[var(--color-brand-400)]' 
-              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)]'
+              ? 'bg-[var(--color-brand-500)] text-white' 
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
           }`}
         >
           Fuel Logs
         </button>
         <button
           onClick={() => navigate('/expenses')}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+          className={`rounded-[10px] px-4 py-2 text-sm font-semibold transition-colors ${
             !isFuelTab 
-              ? 'bg-[var(--color-brand-500)]/15 text-[var(--color-brand-400)]' 
-              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)]'
+              ? 'bg-[var(--color-brand-500)] text-white' 
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
           }`}
         >
           Expenses
@@ -205,75 +178,78 @@ const FinancePage = () => {
       </div>
 
       {/* ─── Data Table ─────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)]">
+      <div className="flex-1 overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)]">
         <div className="h-full overflow-x-auto overflow-y-auto">
           {loading ? (
             <div className="flex h-32 items-center justify-center">
-              <svg className="h-6 w-6 animate-spin text-[var(--color-brand-500)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="12" cy="12" r="10" strokeOpacity="0.2" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
             </div>
           ) : dataList.length === 0 ? (
-            <div className="p-8 text-center text-sm text-[var(--color-text-muted)]">No {isFuelTab ? 'fuel logs' : 'expenses'} recorded yet.</div>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)]">
+                <svg className="h-6 w-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-[var(--text-secondary)]">No {isFuelTab ? 'fuel logs' : 'expenses'} recorded yet.</p>
+            </div>
           ) : (
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface-900)] text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-                <tr>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Vehicle</th>
-                  <th className="px-6 py-4">Trip</th>
-                  {isFuelTab ? (
-                    <>
-                      <th className="px-6 py-4">Liters</th>
-                      <th className="px-6 py-4">Total Cost</th>
-                      <th className="px-6 py-4">Odometer</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="px-6 py-4">Category</th>
-                      <th className="px-6 py-4">Amount</th>
-                      <th className="px-6 py-4">Notes</th>
-                    </>
-                  )}
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border)] text-[var(--color-text-primary)]">
+            <Table>
+              <TableHead>
+                <TableHeader>Date</TableHeader>
+                <TableHeader>Vehicle</TableHeader>
+                <TableHeader>Trip</TableHeader>
+                {isFuelTab ? (
+                  <>
+                    <TableHeader>Liters</TableHeader>
+                    <TableHeader>Total Cost</TableHeader>
+                    <TableHeader>Odometer</TableHeader>
+                  </>
+                ) : (
+                  <>
+                    <TableHeader>Category</TableHeader>
+                    <TableHeader>Amount</TableHeader>
+                    <TableHeader>Notes</TableHeader>
+                  </>
+                )}
+                <TableHeader className="text-right">Actions</TableHeader>
+              </TableHead>
+              <tbody className="divide-y divide-[var(--border-base)]">
                 {dataList.map((item) => (
-                  <tr key={item._id} className="transition-colors hover:bg-[var(--color-surface-700)]">
-                    <td className="px-6 py-4">{new Date(item.date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-medium">{item.vehicle?.registrationNumber || 'Unknown'}</td>
-                    <td className="px-6 py-4 text-[var(--color-text-muted)] text-xs">
+                  <TableRow key={item._id}>
+                    <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                    <TableCell className="font-medium">{item.vehicle?.registrationNumber || 'Unknown'}</TableCell>
+                    <TableCell className="text-[var(--text-muted)] text-xs">
                       {item.trip ? `${item.trip.source} → ${item.trip.destination}` : '—'}
-                    </td>
+                    </TableCell>
                     
                     {isFuelTab ? (
                       <>
-                        <td className="px-6 py-4">{item.liters} L</td>
-                        <td className="px-6 py-4 font-semibold text-[var(--color-brand-400)]">₹{item.cost}</td>
-                        <td className="px-6 py-4 text-xs text-[var(--color-text-secondary)]">{item.odometer} km</td>
+                        <TableCell>{item.liters} L</TableCell>
+                        <TableCell className="font-semibold text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">${item.cost}</TableCell>
+                        <TableCell className="text-xs text-[var(--text-secondary)]">{item.odometer} km</TableCell>
                       </>
                     ) : (
                       <>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${CATEGORY_COLORS[item.category] || CATEGORY_COLORS.Miscellaneous}`}>
-                            {item.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-[var(--color-brand-400)]">₹{item.amount}</td>
-                        <td className="px-6 py-4 text-xs text-[var(--color-text-muted)] truncate max-w-[200px]">{item.notes || '—'}</td>
+                        <TableCell>
+                          <Badge variant={CATEGORY_COLORS[item.category] || CATEGORY_COLORS.Miscellaneous}>{item.category}</Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">${item.amount}</TableCell>
+                        <TableCell className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">{item.notes || '—'}</TableCell>
                       </>
                     )}
 
-                    <td className="px-6 py-4 text-right">
-                      {(user.role.name === 'admin' || user.role.name === 'fleet_manager') && (
-                        <button onClick={() => handleDelete(item._id)} className="text-[var(--color-text-muted)] transition-colors hover:text-red-400">
+                    <TableCell className="text-right">
+                      {(user?.role?.name === 'admin' || user?.role?.name === 'fleet_manager') && (
+                        <button onClick={() => handleDelete(item._id)} className="p-1.5 text-[var(--text-muted)] transition-colors hover:text-red-600">
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </tbody>
-            </table>
+            </Table>
           )}
         </div>
       </div>
@@ -282,79 +258,72 @@ const FinancePage = () => {
       {showModal && (
         <Modal title={`Log ${isFuelTab ? 'Fuel Entry' : 'Expense'}`} onClose={() => setShowModal(false)}>
           <form onSubmit={handleFormSubmit} className="space-y-4">
-            {errorMsg && <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{errorMsg}</div>}
+            {errorMsg && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">{errorMsg}</div>}
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-[var(--color-text-secondary)]">Vehicle <span className="text-red-400">*</span></label>
-                <select required className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.vehicle} onChange={e => setFormData({...formData, vehicle: e.target.value, trip: ''})}>
-                  <option value="">— Select Vehicle —</option>
-                  {vehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
-                </select>
+                <label className="text-sm font-medium text-[var(--text-secondary)]">Vehicle <span className="text-red-600">*</span></label>
+                <div className="relative">
+                  <select required className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={formData.vehicle} onChange={e => setFormData({...formData, vehicle: e.target.value, trip: ''})}>
+                    <option value="">— Select Vehicle —</option>
+                    {vehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </div>
+                </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-[var(--color-text-secondary)]">Trip (Optional)</label>
-                <select className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.trip} onChange={e => setFormData({...formData, trip: e.target.value})}>
-                  <option value="">— Select Associated Trip —</option>
-                  {filteredTrips.map(t => <option key={t._id} value={t._id}>{t.source} → {t.destination}</option>)}
-                </select>
+                <label className="text-sm font-medium text-[var(--text-secondary)]">Trip (Optional)</label>
+                <div className="relative">
+                  <select className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={formData.trip} onChange={e => setFormData({...formData, trip: e.target.value})}>
+                    <option value="">— Select Associated Trip —</option>
+                    {filteredTrips.map(t => <option key={t._id} value={t._id}>{t.source} → {t.destination}</option>)}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </div>
+                </div>
               </div>
             </div>
 
             {isFuelTab ? (
               <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Liters <span className="text-red-400">*</span></label>
-                  <input required type="number" step="0.1" min="0" className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.liters} onChange={e => setFormData({...formData, liters: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Total Cost <span className="text-red-400">*</span></label>
-                  <input required type="number" min="0" className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.cost} onChange={e => setFormData({...formData, cost: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Odometer <span className="text-red-400">*</span></label>
-                  <input required type="number" min="0" className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.odometer} onChange={e => setFormData({...formData, odometer: e.target.value})} />
-                </div>
+                <Input required label="Liters" type="number" step="0.1" min="0" value={formData.liters} onChange={e => setFormData({...formData, liters: e.target.value})} />
+                <Input required label="Total Cost" type="number" min="0" value={formData.cost} onChange={e => setFormData({...formData, cost: e.target.value})} />
+                <Input required label="Odometer" type="number" min="0" value={formData.odometer} onChange={e => setFormData({...formData, odometer: e.target.value})} />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Category <span className="text-red-400">*</span></label>
-                  <select required className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                    <option value="Toll">Toll</option>
-                    <option value="Repair">Repair</option>
-                    <option value="Parking">Parking</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Miscellaneous">Miscellaneous</option>
-                  </select>
+                  <label className="text-sm font-medium text-[var(--text-secondary)]">Category <span className="text-red-600">*</span></label>
+                  <div className="relative">
+                    <select required className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                      <option value="Toll">Toll</option>
+                      <option value="Repair">Repair</option>
+                      <option value="Parking">Parking</option>
+                      <option value="Insurance">Insurance</option>
+                      <option value="Miscellaneous">Miscellaneous</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Amount (₹) <span className="text-red-400">*</span></label>
-                  <input required type="number" min="0" className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
-                </div>
+                <Input required label="Amount ($)" type="number" min="0" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-[var(--color-text-secondary)]">Date <span className="text-red-400">*</span></label>
-                <input required type="date" className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
+              <Input required label="Date" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
               {!isFuelTab && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Notes</label>
-                  <input type="text" placeholder="Optional details..." className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
-                </div>
+                <Input label="Notes" placeholder="Optional details..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
               )}
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
-              <button type="button" onClick={() => setShowModal(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)] transition-colors">
-                Cancel
-              </button>
-              <button type="submit" disabled={modalLoading} className="rounded-lg bg-[var(--color-brand-600)] px-6 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--color-brand-500)] disabled:opacity-50">
-                {modalLoading ? 'Saving...' : 'Save Entry'}
-              </button>
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)]">
+              <Button variant="outline" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button type="submit" loading={modalLoading}>Save Entry</Button>
             </div>
           </form>
         </Modal>

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
 
 const ReportsPage = () => {
   const [data, setData] = useState([]);
@@ -52,9 +55,9 @@ const ReportsPage = () => {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center text-red-500">
+      <div className="rounded-[10px] border border-red-500/20 bg-red-50 p-6 text-center text-red-600 dark:bg-red-900/10 dark:text-red-400">
         <p>{error}</p>
-        <button onClick={fetchReportData} className="mt-4 rounded bg-red-500/20 px-4 py-2 hover:bg-red-500/30">
+        <button onClick={fetchReportData} className="mt-4 rounded-[10px] bg-red-100 px-4 py-2 text-sm font-medium hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50">
           Try Again
         </button>
       </div>
@@ -62,78 +65,77 @@ const ReportsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Reports & Analytics</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Reports & Analytics</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Vehicle ROI, operational costs, and fleet utilization
           </p>
         </div>
-        <button
-          onClick={handleDownloadCSV}
-          className="flex items-center justify-center gap-2 rounded-lg bg-[var(--color-brand-600)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-brand-500)]"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <Button onClick={handleDownloadCSV}>
+          <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {metrics && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)] p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">Fleet Utilization</p>
-            <p className="mt-3 text-3xl font-bold text-[var(--color-text-primary)]">{metrics.fleetUtilization}%</p>
-          </div>
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)] p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">Fuel Efficiency</p>
-            <p className="mt-3 text-3xl font-bold text-[var(--color-text-primary)]">{metrics.fuelEfficiency} km/L</p>
-          </div>
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)] p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">Operational Cost</p>
-            <p className="mt-3 text-3xl font-bold text-[var(--color-text-primary)]">₹{metrics.operationalCost.toLocaleString()}</p>
-          </div>
+          <Card className="p-5 flex flex-col justify-center">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Fleet Utilization</p>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">{metrics.fleetUtilization}%</p>
+          </Card>
+          <Card className="p-5 flex flex-col justify-center">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Fuel Efficiency</p>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{metrics.fuelEfficiency} km/L</p>
+          </Card>
+          <Card className="p-5 flex flex-col justify-center">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Operational Cost</p>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">${metrics.operationalCost.toLocaleString()}</p>
+          </Card>
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)]">
+      <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)]">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-[var(--color-text-secondary)]">
-            <thead className="bg-[var(--color-surface-900)] text-xs uppercase text-[var(--color-text-muted)]">
-              <tr>
-                <th className="px-6 py-4 font-medium">Vehicle</th>
-                <th className="px-6 py-4 font-medium">Revenue</th>
-                <th className="px-6 py-4 font-medium">Fuel Cost</th>
-                <th className="px-6 py-4 font-medium">Maintenance & Ops</th>
-                <th className="px-6 py-4 font-medium text-right">Net ROI</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {data.map((row) => (
-                <tr key={row.vehicleId} className="transition-colors hover:bg-[var(--color-surface-700)]">
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="font-medium text-[var(--color-text-primary)]">{row.vehicleName}</div>
-                    <div className="text-xs">{row.registrationNumber}</div>
-                  </td>
-                  <td className="px-6 py-4">₹{row.revenue.toLocaleString()}</td>
-                  <td className="px-6 py-4">₹{row.fuel.toLocaleString()}</td>
-                  <td className="px-6 py-4">₹{row.expenses.toLocaleString()}</td>
-                  <td className={`px-6 py-4 text-right font-medium ${row.roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    ₹{row.roi.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {data.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-[var(--color-text-muted)]">
-                    No reports data available.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {data.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-16 text-center">
+               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)]">
+                 <svg className="h-6 w-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                 </svg>
+               </div>
+               <p className="text-sm font-medium text-[var(--text-secondary)]">No report data available</p>
+             </div>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableHeader>Vehicle</TableHeader>
+                <TableHeader>Revenue</TableHeader>
+                <TableHeader>Fuel Cost</TableHeader>
+                <TableHeader>Maintenance & Ops</TableHeader>
+                <TableHeader className="text-right">Net ROI</TableHeader>
+              </TableHead>
+              <tbody className="divide-y divide-[var(--border-base)]">
+                {data.map((row) => (
+                  <TableRow key={row.vehicleId}>
+                    <TableCell>
+                      <div className="font-medium text-[var(--text-primary)]">{row.vehicleName}</div>
+                      <div className="text-xs text-[var(--text-muted)]">{row.registrationNumber}</div>
+                    </TableCell>
+                    <TableCell className="font-medium text-[var(--text-secondary)]">${row.revenue.toLocaleString()}</TableCell>
+                    <TableCell className="font-medium text-[var(--text-secondary)]">${row.fuel.toLocaleString()}</TableCell>
+                    <TableCell className="font-medium text-[var(--text-secondary)]">${row.expenses.toLocaleString()}</TableCell>
+                    <TableCell className={`text-right font-bold ${row.roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                      ${row.roi.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </Table>
+          )}
         </div>
       </div>
     </div>

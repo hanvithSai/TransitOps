@@ -5,7 +5,6 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 
-
 const EyeIcon = ({ open }) =>
   open ? (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -20,14 +19,15 @@ const EyeIcon = ({ open }) =>
     </svg>
   );
 
-const LoginPage = () => {
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+const RegisterPage = () => {
+  const { register, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Fleet Manager' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [shake, setShake] = useState(false);
 
   useEffect(() => {
@@ -37,25 +37,28 @@ const LoginPage = () => {
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
+    if (successMsg) setSuccessMsg('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
 
-    if (!form.email || !form.password) {
-      setError('Please enter both email and password.');
+    if (!form.name || !form.email || !form.password || !form.role) {
+      setError('Please fill in all fields.');
       setShake(true);
       setTimeout(() => setShake(false), 600);
       return;
     }
     
     setLoading(true);
-    const result = await login(form.email, form.password);
+    const result = await register(form.name, form.email, form.password, form.role);
     setLoading(false);
 
     if (result.success) {
-      navigate('/dashboard', { replace: true });
+      setSuccessMsg('Account created successfully! Please log in.');
+      setTimeout(() => navigate('/login'), 2000);
     } else {
       setError(result.message);
       setShake(true);
@@ -80,8 +83,8 @@ const LoginPage = () => {
       {/* Auth Card */}
       <Card className={`w-full max-w-md ${shake ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Log in to your account</h1>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">Enter your credentials to access your dashboard</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Create an account</h1>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">Join TransitOps to manage your fleet</p>
         </div>
 
         {error && (
@@ -89,8 +92,25 @@ const LoginPage = () => {
             {error}
           </div>
         )}
+        
+        {successMsg && (
+          <div className="mb-6 rounded-md bg-green-50 p-4 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            {successMsg}
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <Input
+            label="Full Name"
+            id="name"
+            name="name"
+            type="text"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="John Doe"
+            required
+          />
+
           <Input
             label="Email"
             id="email"
@@ -122,25 +142,40 @@ const LoginPage = () => {
             </button>
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="h-4 w-4 rounded border-[var(--border-base)] text-[var(--color-brand-600)] focus:ring-[var(--color-brand-500)]" />
-              <span className="text-sm text-[var(--text-secondary)]">Remember me</span>
+          <div className="space-y-1.5">
+            <label htmlFor="role" className="block text-sm font-medium text-[var(--text-secondary)]">
+              Role
             </label>
-            <Link to="/forgot-password" className="text-sm font-medium text-[var(--color-brand-600)] hover:text-[var(--color-brand-500)]">
-              Forgot password?
-            </Link>
+            <div className="relative">
+              <select
+                id="role"
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] py-2 px-3 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]"
+              >
+                <option value="Fleet Manager">Fleet Manager</option>
+                <option value="Driver">Driver</option>
+                <option value="Safety Officer">Safety Officer</option>
+                <option value="Financial Analyst">Financial Analyst</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           <Button type="submit" loading={loading} fullWidth className="mt-2">
-            Log In
+            Create Account
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm">
-          <span className="text-[var(--text-secondary)]">Don't have an account?</span>{' '}
-          <Link to="/register" className="font-semibold text-[var(--color-brand-600)] hover:text-[var(--color-brand-500)]">
-            Create one
+          <span className="text-[var(--text-secondary)]">Already have an account?</span>{' '}
+          <Link to="/login" className="font-semibold text-[var(--color-brand-600)] hover:text-[var(--color-brand-500)]">
+            Log in
           </Link>
         </div>
       </Card>
@@ -160,4 +195,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

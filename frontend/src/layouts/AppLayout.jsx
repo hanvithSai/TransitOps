@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ── Navigation config ──────────────────────────────────────── */
@@ -109,24 +109,25 @@ const NAV_ITEMS = [
   },
 ];
 
-/* ── Role badge colors ───────────────────────────────────────── */
-const ROLE_COLORS = {
-  admin:             'bg-purple-500/20 text-purple-300',
-  fleet_manager:     'bg-blue-500/20 text-blue-300',
-  driver:        'bg-emerald-500/20 text-emerald-300',
-  safety_officer:    'bg-amber-500/20 text-amber-300',
-  financial_analyst: 'bg-rose-500/20 text-rose-300',
-};
-
 /* ── AppLayout ───────────────────────────────────────────────── */
 const AppLayout = () => {
   const { user, logout } = useAuth();
-  const navigate         = useNavigate();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const userRole      = user?.role?.name || '';
+  // Sync theme
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const userRole = user?.role?.name || '';
   const userRoleLabel = user?.role?.displayName || '';
-  const initials      = user?.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+  const initials = user?.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
   const visibleNav = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
 
@@ -136,33 +137,34 @@ const AppLayout = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-surface-950)]">
-
+    <div className="flex h-screen overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
       {/* ── Sidebar ─────────────────────────────────────────────── */}
       <aside
-        style={{ width: collapsed ? '72px' : 'var(--sidebar-width)' }}
-        className="relative flex flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-900)] transition-all duration-300 shrink-0"
+        style={{ width: collapsed ? '72px' : '260px' }}
+        className="relative flex flex-col border-r border-[var(--border-base)] bg-[var(--bg-surface)] transition-all duration-300 shrink-0"
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 px-4 border-b border-[var(--color-border)]">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-brand-500)] to-[var(--color-brand-700)] shadow-lg shadow-blue-900/30">
-            <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <path d="M1 17h22M5 17V9l3-5h8l3 5v8" />
-              <circle cx="7" cy="18.5" r="1.5" />
-              <circle cx="17" cy="18.5" r="1.5" />
-            </svg>
-          </div>
-          {!collapsed && (
-            <span className="text-[15px] font-bold tracking-wide text-[var(--color-text-primary)]">
-              Transit<span className="text-[var(--color-brand-400)]">Ops</span>
-            </span>
-          )}
+        <div className="flex h-16 items-center gap-3 px-4 border-b border-[var(--border-base)]">
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-900)] shadow-sm">
+              <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M1 17h22M5 17V9l3-5h8l3 5v8" />
+                <circle cx="7" cy="18.5" r="1.5" />
+                <circle cx="17" cy="18.5" r="1.5" />
+              </svg>
+            </div>
+            {!collapsed && (
+              <span className="text-[15px] font-bold tracking-wide text-[var(--text-primary)]">
+                Transit<span className="text-[var(--color-brand-600)]">Ops</span>
+              </span>
+            )}
+          </Link>
         </div>
 
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-border-light)] bg-[var(--color-surface-800)] text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-brand-400)]"
+          className="absolute -right-3 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-base)] bg-[var(--bg-surface)] text-[var(--text-secondary)] shadow-sm transition-colors hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-400)]"
           aria-label="Toggle sidebar"
         >
           <svg className={`h-3 w-3 transition-transform ${collapsed ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -171,10 +173,10 @@ const AppLayout = () => {
         </button>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2">
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
           {!collapsed && (
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
-              Navigation
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              Menu
             </p>
           )}
           <ul className="space-y-1">
@@ -183,10 +185,10 @@ const AppLayout = () => {
                 <NavLink
                   to={item.path}
                   className={({ isActive }) =>
-                    `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                    `group flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-all duration-150 ${
                       isActive
-                        ? 'bg-[var(--color-brand-600)] text-white shadow-md shadow-blue-900/30'
-                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-700)] hover:text-[var(--color-text-primary)]'
+                        ? 'bg-[var(--color-brand-50)] text-[var(--color-brand-700)] dark:bg-[var(--color-brand-900)]/30 dark:text-[var(--color-brand-300)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
                     }`
                   }
                   title={collapsed ? item.label : undefined}
@@ -200,53 +202,72 @@ const AppLayout = () => {
         </nav>
 
         {/* User section */}
-        <div className="border-t border-[var(--color-border)] p-3">
+        <div className="border-t border-[var(--border-base)] p-4">
           <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-brand-500)] to-purple-600 text-xs font-bold text-white shadow-md">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-100)] text-[var(--color-brand-700)] dark:bg-[var(--color-brand-800)] dark:text-[var(--color-brand-100)] text-xs font-bold border border-[var(--border-base)]">
               {initials}
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-surface-900)] bg-[var(--color-success)]" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-surface)] bg-[var(--color-success)]" />
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{user?.name}</p>
-                <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${ROLE_COLORS[userRole] || 'bg-gray-500/20 text-gray-300'}`}>
+                <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{user?.name}</p>
+                <p className="truncate text-[11px] font-medium text-[var(--text-muted)]">
                   {userRoleLabel}
-                </span>
+                </p>
               </div>
-            )}
-            {!collapsed && (
-              <button
-                onClick={handleLogout}
-                className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
-                title="Logout"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                </svg>
-              </button>
             )}
           </div>
         </div>
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden relative">
         {/* Top bar */}
-        <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-900)]/60 px-6 backdrop-blur-sm">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--border-base)] bg-[var(--bg-surface)] px-6">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--color-text-muted)]">Welcome back,</span>
-            <span className="text-sm font-semibold text-[var(--color-text-primary)]">{user?.name}</span>
+            <span className="text-sm text-[var(--text-secondary)]">Overview</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ROLE_COLORS[userRole] || ''}`}>
-              {userRoleLabel}
-            </span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-base)] bg-[var(--bg-base)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              aria-label="Toggle Theme"
+            >
+              {isDarkMode ? (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="4.22" x2="19.78" y2="5.64" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+              title="Logout"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+              </svg>
+            </button>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          <div className="mx-auto max-w-7xl">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

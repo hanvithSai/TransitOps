@@ -1,50 +1,61 @@
-/* ─── Google Fonts ─────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-
-/* ─── Design Tokens ─────────────────────────────────────────── */
-:root {
-  /* Brand */
-  --color-brand-50:  #eff6ff;
+@theme {
+  --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
   --color-brand-400: #60a5fa;
   --color-brand-500: #3b82f6;
   --color-brand-600: #2563eb;
   --color-brand-700: #1d4ed8;
   --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  --color-brand-900: #1e3a8a; /* Deep Blue */
+  --color-brand-950: #172554;
 
-  /* Surface (dark) */
-  --color-surface-950: #05070f;
-  --color-surface-900: #0a0f1e;
-  --color-surface-800: #0f1729;
-  --color-surface-700: #1a2540;
-  --color-surface-600: #253059;
-  --color-surface-500: #2e3b6e;
+  --color-slate-500: #64748b; /* Slate Gray */
 
-  /* Text */
-  --color-text-primary:   #f0f4ff;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted:     #64748b;
-
-  /* Status */
   --color-success: #22c55e;
   --color-warning: #f59e0b;
-  --color-danger:  #ef4444;
-  --color-info:    #3b82f6;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
 
-  /* Sidebar */
-  --sidebar-width: 260px;
-
-  /* Border */
-  --color-border: rgba(255,255,255,0.07);
-  --color-border-light: rgba(255,255,255,0.12);
+  /* We define custom colors that map to CSS variables for light/dark mode */
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-hover: var(--bg-surface-hover);
+  --color-border-base: var(--border-base);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
 }
 
-/* ─── Reset & Base ─────────────────────────────────────────── */
+@layer base {
+  :root {
+    --bg-base: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-surface-hover: #f1f5f9;
+    --border-base: #e2e8f0;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+  }
+
+  .dark {
+    --bg-base: #12151c; /* Charcoal background */
+    --bg-surface: #1e222b; /* Charcoal surface */
+    --bg-surface-hover: #262b36;
+    --border-base: #333947;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -57,30 +68,30 @@ html {
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--color-surface-950);
-  color: var(--color-text-primary);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Scrollbar ─────────────────────────────────────────────── */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-surface-900);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-600);
+  background: var(--border-base);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-brand-600);
+  background: var(--text-muted);
 }
 
-/* ─── Selection ─────────────────────────────────────────────── */
 ::selection {
   background: var(--color-brand-600);
-  color: #fff;
+  color: #ffffff;
 }
