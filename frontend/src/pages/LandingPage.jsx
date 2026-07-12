@@ -155,8 +155,8 @@ const LandingPage = () => {
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-all duration-300',
           scrolled
-            ? 'bg-[var(--bg-surface)]/80 backdrop-blur-xl border-b border-[var(--border-base)] shadow-sm'
-            : 'bg-transparent',
+            ? 'bg-[var(--bg-surface)]/95 backdrop-blur-xl border-b border-[var(--border-base)] shadow-sm'
+            : 'bg-[var(--bg-base)]/80 backdrop-blur-md border-b border-[var(--border-base)]/50',
         )}
       >
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
@@ -241,13 +241,19 @@ const LandingPage = () => {
       {/* ════════════════════════════════════════════════════════════
           2. HERO
       ════════════════════════════════════════════════════════════ */}
+      {/* Spacer so page content starts below the fixed navbar */}
+      <div className="h-16" aria-hidden />
+
       <section
         id="home"
-        className="relative pt-36 pb-28 lg:pt-44 lg:pb-36 overflow-hidden"
+        className="relative pt-20 pb-28 lg:pt-28 lg:pb-36"
+        style={{ isolation: 'isolate' }}
       >
-        {/* Background orbs */}
-        <Orb className="h-[600px] w-[600px] bg-[var(--color-brand-400)] -top-32 -right-32" />
-        <Orb className="h-[480px] w-[480px] bg-[var(--color-accent-400)] bottom-0 -left-24" />
+        {/* Background orbs — clipped inside a dedicated layer */}
+        <div className="absolute inset-0 overflow-hidden -z-10" aria-hidden>
+          <Orb className="h-[600px] w-[600px] bg-[var(--color-brand-400)] -top-32 -right-32" />
+          <Orb className="h-[480px] w-[480px] bg-[var(--color-accent-400)] bottom-0 -left-24" />
+        </div>
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-8 grid lg:grid-cols-2 gap-16 items-center">
 
@@ -309,9 +315,10 @@ const LandingPage = () => {
           </div>
 
           {/* Right column – UI mockup */}
-          <div className="relative hidden lg:block">
+          {/* pt-8/pb-8 creates inner breathing room so floating badges don't escape vertically */}
+          <div className="relative hidden lg:block pt-8 pb-8">
             {/* Glow behind the card */}
-            <div className="absolute inset-8 rounded-3xl bg-gradient-to-br from-[var(--color-brand-400)] to-[var(--color-accent-400)] opacity-20 blur-2xl" />
+            <div className="absolute inset-8 rounded-3xl bg-gradient-to-br from-[var(--color-brand-400)] to-[var(--color-accent-400)] opacity-20 blur-2xl pointer-events-none" />
 
             {/* App shell mockup */}
             <div className="relative rounded-2xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-2xl overflow-hidden">
@@ -324,7 +331,7 @@ const LandingPage = () => {
               </div>
 
               {/* App interior */}
-              <div className="flex h-[380px]">
+              <div className="flex h-[340px]">
                 {/* Sidebar */}
                 <div className="w-14 shrink-0 border-r border-[var(--border-base)] bg-[var(--bg-base)] flex flex-col items-center pt-5 gap-4">
                   <div className="h-8 w-8 rounded-lg bg-[var(--color-brand-600)]" />
@@ -373,8 +380,8 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Floating badge – trips completed */}
-            <div className="absolute -bottom-4 -left-6 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-lg px-4 py-3 flex items-center gap-3">
+            {/* Floating badge – trips completed — uses bottom/left within padded wrapper */}
+            <div className="absolute bottom-0 left-0 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-lg px-4 py-3 flex items-center gap-3">
               <div className="h-9 w-9 rounded-lg bg-[var(--color-success-bg)] flex items-center justify-center shrink-0">
                 <CheckCircle2 className="h-5 w-5 text-[var(--color-success)]" />
               </div>
@@ -384,8 +391,8 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Floating badge – live vehicles */}
-            <div className="absolute -top-4 -right-6 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-lg px-4 py-3 flex items-center gap-3">
+            {/* Floating badge – live vehicles — uses top/right within padded wrapper */}
+            <div className="absolute top-0 right-0 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-lg px-4 py-3 flex items-center gap-3">
               <div className="h-9 w-9 rounded-lg bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)] flex items-center justify-center shrink-0">
                 <Activity className="h-5 w-5 text-[var(--color-brand-600)]" />
               </div>
