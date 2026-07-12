@@ -4,6 +4,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const { errorHandler } = require("./utils/errorHandler");
+const auditLogger = require("./middlewares/auditMiddleware");
 
 // Route imports
 const authRoutes = require("./routes/authRoutes");
@@ -27,6 +28,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(auditLogger);
 
 // ── Database ──────────────────────────────────────────────────────────────────
 connectDB();
