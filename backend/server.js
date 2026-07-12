@@ -29,6 +29,9 @@ app.use(cookieParser());
 // ── Database ──────────────────────────────────────────────────────────────────
 connectDB();
 
+// ── Cron Jobs ─────────────────────────────────────────────────────────────────
+require('./utils/cronJobs');
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.get("/", (req, res) => res.json({ message: "TransitOps API is running" }));
 
