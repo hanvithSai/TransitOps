@@ -6,6 +6,7 @@ import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import VehiclesPage from './pages/VehiclesPage';
 
 function App() {
   return (
@@ -27,8 +28,15 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
 
-            {/* Phase 2+ routes — placeholder redirects for now */}
-            <Route path="/vehicles"    element={<ComingSoon title="Vehicle Registry"   phase={2} />} />
+            {/* Phase 2+ routes */}
+            <Route
+              path="/vehicles"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'dispatcher']}>
+                  <VehiclesPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/drivers"     element={<ComingSoon title="Driver Management"  phase={3} />} />
             <Route path="/trips"       element={<ComingSoon title="Trip Management"    phase={4} />} />
             <Route path="/maintenance" element={<ComingSoon title="Maintenance"        phase={5} />} />
