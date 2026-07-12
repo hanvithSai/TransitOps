@@ -55,7 +55,7 @@ const FinancePage = () => {
       const endpoint = isFuelTab ? '/fuel' : '/expenses';
       const { data } = await api.get(endpoint);
       setDataList(isFuelTab ? data.data.logs : data.data.expenses);
-    } catch (err) {
+    } catch {
       showToast(`Failed to load ${isFuelTab ? 'fuel logs' : 'expenses'}`, 'error');
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ const FinancePage = () => {
       setVehicles(vehRes.data.data.vehicles);
       setTrips(tripRes.data.data.trips);
       setShowModal(true);
-    } catch (err) {
+    } catch {
       showToast('Failed to load selection data', 'error');
     }
   };
@@ -128,7 +128,7 @@ const FinancePage = () => {
       await api.delete(`${endpoint}/${id}`);
       showToast('Entry deleted successfully');
       fetchData();
-    } catch (err) {
+    } catch {
       showToast('Failed to delete entry', 'error');
     }
   };

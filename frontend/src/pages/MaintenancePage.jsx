@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -63,7 +62,7 @@ const ConfirmDeleteModal = ({ log, onConfirm, onCancel, loading }) => (
 
 /* ─── MaintenancePage ────────────────────────────────────────────── */
 const MaintenancePage = () => {
-  const { user } = useAuth();
+  // user not needed here
   
   // Data States
   const [logs, setLogs] = useState([]);
@@ -96,14 +95,14 @@ const MaintenancePage = () => {
   const showToast = (message, type = 'success') => setToast({ message, type });
 
   // Fetch Vehicles & Maintenance Logs
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       const { data } = await api.get('/vehicles?limit=200');
       setVehicles(data.data.vehicles.filter(v => v.status !== 'Retired'));
     } catch {
       showToast('Failed to load vehicle list', 'error');
     }
-  };
+  }, []);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -120,7 +119,7 @@ const MaintenancePage = () => {
   useEffect(() => {
     fetchVehicles();
     fetchLogs();
-  }, [fetchLogs]);
+  }, [fetchVehicles, fetchLogs]);
 
   // Form Field Binder
   const set = (k) => (e) => {
@@ -135,10 +134,12 @@ const MaintenancePage = () => {
 
     try {
       if (editingLog) {
+        // Edit flow
         await api.put(`/maintenance/${editingLog._id}`, form);
         showToast('Service record updated successfully');
         resetForm();
       } else {
+        // Create flow
         await api.post('/maintenance', form);
         showToast('Service record created successfully');
         resetForm();
