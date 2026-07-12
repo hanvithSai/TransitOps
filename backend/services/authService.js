@@ -1,0 +1,114 @@
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const User = require("../models/User");
+const RefreshToken = require("../models/RefreshToken");
+const { AppError } = require("../utils/errorHandler");
+
+/**
+ * Generate access token (1 day)
+ */
+const generateAccessToken = (userId) => {
+    return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+        expiresIn: "1d",
+    });
+};
+
+/**
+ * Generate refresh token (7 days) and persist to DB
+ */
+const generateRefreshToken = async (userId) => {
+    const token = crypto.randomBytes(64).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    await RefreshToken.create({ token, user: userId, expiresAt });
+    return token;
+};
+
+/**
+ * Login: validate credentials, return tokens
+ */
+const login = async (email, password) => {
+    // Include password field (excluded by default via select: false)
+    const user = await User.findOne({ email })
+        .select("+password")
+        .populate("role", "name displayName permissions");
+
+    if (!user) {
+        throw new AppError("Invalid email or password.", 401);
+    }
+
+    if (!user.isActive) {
+        throw new AppError("Your account has been deactivated. Contact an admin.", 401);
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        throw new AppError("Invalid email or password.", 401);
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = await generateRefreshToken(user._id);
+
+    // Return user without password
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return { user: userObj, accessToken, refreshToken };
+};
+
+/**
+ * Refresh: validate refresh token, issue new access token
+ */
+const refreshAccessToken = async (token) => {
+    if (!token) throw new AppError("Refresh token required.", 401);
+
+    const storedToken = await RefreshToken.findOne({
+        token,
+        isRevoked: false,
+    }).populate({
+        path: "user",
+        populate: { path: "role", select: "name displayName permissions" },
+    });
+
+    if (!storedToken) throw new AppError("Invalid or expired refresh token.", 401);
+
+    if (storedToken.expiresAt < new Date()) {
+        await RefreshToken.deleteOne({ _id: storedToken._id });
+        throw new AppError("Refresh token expired. Please log in again.", 401);
+    }
+
+    const user = storedToken.user;
+    if (!user || !user.isActive) {
+        throw new AppError("User account is inactive.", 401);
+    }
+
+    const accessToken = generateAccessToken(user._id);
+    return { accessToken, user };
+};
+
+/**
+ * Logout: revoke refresh token
+ */
+const logout = async (token) => {
+    if (token) {
+        await RefreshToken.findOneAndUpdate({ token }, { isRevoked: true });
+    }
+};
+
+/**
+ * Get current user by ID
+ */
+const getUserById = async (id) => {
+    const user = await User.findById(id)
+        .select("-password")
+        .populate("role", "name displayName permissions");
+
+    if (!user) throw new AppError("User not found.", 404);
+    return user;
+};
+
+module.exports = { login, refreshAccessToken, logout, getUserById };
