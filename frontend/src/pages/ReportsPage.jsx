@@ -93,7 +93,7 @@ const ReportsPage = () => {
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-800)] p-5">
             <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">Operational Cost</p>
-            <p className="mt-3 text-3xl font-bold text-[var(--color-text-primary)]">${metrics.operationalCost.toLocaleString()}</p>
+            <p className="mt-3 text-3xl font-bold text-[var(--color-text-primary)]">₹{metrics.operationalCost.toLocaleString()}</p>
           </div>
         </div>
       )}
@@ -117,11 +117,11 @@ const ReportsPage = () => {
                     <div className="font-medium text-[var(--color-text-primary)]">{row.vehicleName}</div>
                     <div className="text-xs">{row.registrationNumber}</div>
                   </td>
-                  <td className="px-6 py-4">${row.revenue.toLocaleString()}</td>
-                  <td className="px-6 py-4">${row.fuel.toLocaleString()}</td>
-                  <td className="px-6 py-4">${row.expenses.toLocaleString()}</td>
+                  <td className="px-6 py-4">₹{row.revenue.toLocaleString()}</td>
+                  <td className="px-6 py-4">₹{row.fuel.toLocaleString()}</td>
+                  <td className="px-6 py-4">₹{row.expenses.toLocaleString()}</td>
                   <td className={`px-6 py-4 text-right font-medium ${row.roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    ${row.roi.toLocaleString()}
+                    ₹{row.roi.toLocaleString()}
                   </td>
                 </tr>
               ))}

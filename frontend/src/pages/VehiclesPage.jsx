@@ -100,7 +100,7 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Capacity (Tons)" id="capacity">
+        <FormField label="Capacity (kg)" id="capacity">
           <input id="capacity" type="number" step="0.1" min="0.1" className={inputCls} placeholder="10.5" value={form.capacity} onChange={set('capacity')} required />
         </FormField>
         <FormField label="Odometer (km)" id="odometer">
@@ -410,7 +410,7 @@ const VehiclesPage = () => {
                       <p className="text-xs text-[var(--color-text-muted)]">{vehicle.model} • {vehicle.type}</p>
                     </td>
                     <td className="px-5 py-4 text-xs text-[var(--color-text-secondary)]">
-                      <p>{vehicle.capacity} Tons</p>
+                      <p>{vehicle.capacity} kg</p>
                       <p className="text-[var(--color-text-muted)]">{vehicle.odometer} km</p>
                     </td>
                     <td className="px-5 py-4">

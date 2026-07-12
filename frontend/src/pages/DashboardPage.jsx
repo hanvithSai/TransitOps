@@ -59,8 +59,8 @@ const DashboardPage = () => {
     { label: 'Pending Trips', value: kpis.trips.pending },
     { label: 'Drivers On Duty', value: kpis.drivers.onDuty },
     { label: 'Fleet Utilization', value: `${kpis.vehicles.utilization}%` },
-    { label: 'Total Fuel Cost', value: `$${kpis.costs.totalFuelCost.toLocaleString()}` },
-    { label: 'Maintenance Cost', value: `$${kpis.costs.totalMaintenanceCost.toLocaleString()}` },
+    { label: 'Total Fuel Cost', value: `₹${kpis.costs.totalFuelCost.toLocaleString()}` },
+    { label: 'Maintenance Cost', value: `₹${kpis.costs.totalMaintenanceCost.toLocaleString()}` },
   ];
 
   return (
@@ -148,7 +148,7 @@ const DashboardPage = () => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
                   itemStyle={{ color: '#ec4899' }}
-                  formatter={(value) => [`$${value}`, 'Cost']}
+                  formatter={(value) => [`₹${value}`, 'Cost']}
                 />
                 <Line type="monotone" dataKey="cost" stroke="#ec4899" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Fuel Cost" />
               </LineChart>
@@ -168,7 +168,7 @@ const DashboardPage = () => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
                   itemStyle={{ color: '#eab308' }}
-                  formatter={(value) => [`$${value}`, 'Cost']}
+                  formatter={(value) => [`₹${value}`, 'Cost']}
                 />
                 <Line type="monotone" dataKey="cost" stroke="#eab308" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Maintenance Cost" />
               </LineChart>

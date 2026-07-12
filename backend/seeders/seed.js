@@ -1,7 +1,7 @@
 require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const { faker } = require("@faker-js/faker");
+const { faker, fakerEN_IN } = require("@faker-js/faker");
 
 const Role = require("../models/Role");
 const User = require("../models/User");
@@ -45,12 +45,14 @@ const roles = [
     },
 ];
 
+const indianCities = ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Ahmedabad", "Chennai", "Kolkata", "Surat", "Pune", "Jaipur"];
+const vehicleBrands = ["Tata Prima", "Ashok Leyland Ecomet", "Mahindra Blazo", "Eicher Pro", "BharatBenz", "Tata Signa"];
+
 const seed = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
         console.log("📦 MongoDB connected for seeding...");
 
-        // Clear existing data
         await Promise.all([
             User.deleteMany({}),
             Role.deleteMany({}),
@@ -63,19 +65,17 @@ const seed = async () => {
         ]);
         console.log("🗑️ Cleared existing data.");
 
-        // Insert roles
         const createdRoles = await Role.insertMany(roles);
         const roleMap = {};
         createdRoles.forEach(r => roleMap[r.name] = r._id);
         console.log("✅ Roles seeded.");
 
-        // Create Users
         const usersToCreate = [
-            { name: "Admin User", email: "admin@transitops.com", password: "Password@123", roleName: "admin" },
-            { name: "Manager John", email: "manager@transitops.com", password: "Password@123", roleName: "fleet_manager" },
-            { name: "Driver Bob", email: "driver@transitops.com", password: "Password@123", roleName: "driver" },
-            { name: "Safety Sarah", email: "safety@transitops.com", password: "Password@123", roleName: "safety_officer" },
-            { name: "Finance Alice", email: "finance@transitops.com", password: "Password@123", roleName: "financial_analyst" },
+            { name: "Rahul Sharma", email: "admin@transitops.com", password: "Password@123", roleName: "admin" },
+            { name: "Vikram Singh", email: "manager@transitops.com", password: "Password@123", roleName: "fleet_manager" },
+            { name: "Arjun Reddy", email: "driver@transitops.com", password: "Password@123", roleName: "driver" },
+            { name: "Priya Patel", email: "safety@transitops.com", password: "Password@123", roleName: "safety_officer" },
+            { name: "Ananya Iyer", email: "finance@transitops.com", password: "Password@123", roleName: "financial_analyst" },
         ];
         
         const createdUsers = [];
@@ -83,7 +83,7 @@ const seed = async () => {
             const user = await User.create({
                 name: u.name,
                 email: u.email,
-                password: u.password, // Schema hook hashes this
+                password: u.password,
                 role: roleMap[u.roleName],
                 isActive: true
             });
@@ -93,45 +93,43 @@ const seed = async () => {
 
         const adminId = createdUsers[0]._id;
 
-        // Create Vehicles
         const vehicles = [];
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 20; i++) {
+            const brand = faker.helpers.arrayElement(vehicleBrands);
             vehicles.push({
-                registrationNumber: faker.vehicle.vrm().toUpperCase(),
-                vehicleName: `Truck ${i+1}`,
-                model: faker.vehicle.model(),
-                type: faker.helpers.arrayElement(['Truck', 'Van', 'Car', 'Bus']),
-                capacity: faker.number.int({ min: 1000, max: 20000 }),
-                odometer: faker.number.int({ min: 10000, max: 200000 }),
-                acquisitionCost: faker.number.int({ min: 20000, max: 150000 }),
-                status: faker.helpers.arrayElement(['Available', 'Available', 'Available', 'On Trip', 'In Shop'])
+                registrationNumber: `MH${faker.number.int({min: 10, max: 49})}AB${faker.number.int({min: 1000, max: 9999})}`,
+                vehicleName: `${brand} - Unit ${i+1}`,
+                model: brand,
+                type: faker.helpers.arrayElement(['Heavy Truck', 'Medium Commercial', 'Light Commercial']),
+                capacity: faker.number.int({ min: 3000, max: 40000 }), // capacity in kg
+                odometer: faker.number.int({ min: 15000, max: 350000 }),
+                acquisitionCost: faker.number.int({ min: 1500000, max: 5000000 }), // INR
+                status: faker.helpers.arrayElement(['Available', 'Available', 'On Trip', 'In Shop'])
             });
         }
         const createdVehicles = await Vehicle.insertMany(vehicles);
         console.log("✅ Vehicles seeded.");
 
-        // Create Drivers
         const drivers = [];
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 25; i++) {
             drivers.push({
-                name: faker.person.fullName(),
-                licenseNumber: faker.string.alphanumeric({ length: 8, casing: 'upper' }),
-                licenseCategory: faker.helpers.arrayElement(['CDL-A', 'CDL-B', 'Class C']),
-                expiryDate: faker.date.future({ years: 3 }),
-                contact: faker.phone.number(),
-                safetyScore: faker.number.int({ min: 60, max: 100 }),
+                name: fakerEN_IN.person.fullName(),
+                licenseNumber: `DL${faker.number.int({min: 10, max: 99})}20${faker.number.int({min: 10, max: 24})}${faker.number.int({min: 1000000, max: 9999999})}`,
+                licenseCategory: faker.helpers.arrayElement(['HMV', 'LMV', 'MCWG']),
+                expiryDate: faker.date.future({ years: 5 }),
+                contact: `+91 ${faker.string.numeric(10)}`,
+                safetyScore: faker.number.int({ min: 75, max: 100 }),
                 status: faker.helpers.arrayElement(['Available', 'Available', 'On Trip', 'Off Duty'])
             });
         }
         const createdDrivers = await Driver.insertMany(drivers);
         console.log("✅ Drivers seeded.");
 
-        // Create Trips
         const trips = [];
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 60; i++) {
             const v = faker.helpers.arrayElement(createdVehicles);
             const d = faker.helpers.arrayElement(createdDrivers);
-            const status = faker.helpers.arrayElement(['Draft', 'Dispatched', 'Completed', 'Cancelled']);
+            const status = faker.helpers.arrayElement(['Draft', 'Dispatched', 'Completed', 'Completed', 'Cancelled']);
             
             let dispatchedAt = null, completedAt = null, cancelledAt = null;
             let actualDistance = null, fuelUsed = null, revenue = null;
@@ -139,22 +137,28 @@ const seed = async () => {
             if (status === 'Dispatched') {
                 dispatchedAt = faker.date.recent();
             } else if (status === 'Completed') {
-                dispatchedAt = faker.date.past();
+                dispatchedAt = faker.date.past({ years: 0.5 });
                 completedAt = faker.date.recent();
-                actualDistance = faker.number.int({ min: 100, max: 1500 });
-                fuelUsed = actualDistance / faker.number.float({ min: 5, max: 15 });
-                revenue = actualDistance * faker.number.float({ min: 2, max: 5 });
+                actualDistance = faker.number.int({ min: 300, max: 2500 }); // km
+                fuelUsed = actualDistance / faker.number.float({ min: 3, max: 8 }); // avg 3-8 kmpl for trucks
+                revenue = actualDistance * faker.number.int({ min: 50, max: 150 }); // approx Rs 100 per km
             } else if (status === 'Cancelled') {
                 cancelledAt = faker.date.recent();
             }
 
+            let source = faker.helpers.arrayElement(indianCities);
+            let dest = faker.helpers.arrayElement(indianCities);
+            while(source === dest) {
+                dest = faker.helpers.arrayElement(indianCities);
+            }
+
             trips.push({
-                source: faker.location.city(),
-                destination: faker.location.city(),
+                source: source,
+                destination: dest,
                 vehicle: v._id,
                 driver: d._id,
-                cargoWeight: faker.number.int({ min: 100, max: v.capacity }),
-                plannedDistance: faker.number.int({ min: 100, max: 1500 }),
+                cargoWeight: faker.number.int({ min: 1000, max: v.capacity }), // kg
+                plannedDistance: faker.number.int({ min: 300, max: 2500 }), // km
                 revenue: revenue,
                 actualDistance: actualDistance,
                 fuelUsed: fuelUsed,
@@ -162,61 +166,67 @@ const seed = async () => {
                 dispatchedAt: dispatchedAt,
                 completedAt: completedAt,
                 cancelledAt: cancelledAt,
-                notes: faker.lorem.sentence(),
+                notes: faker.helpers.arrayElement(["Fragile goods", "Priority delivery", "Standard routing", ""]),
                 createdBy: adminId
             });
         }
         const createdTrips = await Trip.insertMany(trips);
         console.log("✅ Trips seeded.");
 
-        // Create Expenses
         const expenses = [];
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 100; i++) {
             expenses.push({
                 vehicle: faker.helpers.arrayElement(createdVehicles)._id,
                 trip: faker.helpers.maybe(() => faker.helpers.arrayElement(createdTrips)._id, { probability: 0.5 }),
-                amount: faker.number.float({ min: 10, max: 500, fractionDigits: 2 }),
+                amount: faker.number.int({ min: 500, max: 15000 }), // INR
                 category: faker.helpers.arrayElement(['Toll', 'Repair', 'Parking', 'Insurance', 'Miscellaneous']),
-                notes: faker.lorem.words(3),
-                date: faker.date.recent({ days: 30 }),
+                notes: faker.helpers.arrayElement(['NHAI Toll plaza', 'Routine repair', 'Overnight parking', 'Annual insurance premium']),
+                date: faker.date.recent({ days: 90 }),
                 createdBy: adminId
             });
         }
         await Expense.insertMany(expenses);
         console.log("✅ Expenses seeded.");
 
-        // Create FuelLogs
         const fuelLogs = [];
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 80; i++) {
             const v = faker.helpers.arrayElement(createdVehicles);
+            const liters = faker.number.int({ min: 50, max: 300 });
             fuelLogs.push({
                 vehicle: v._id,
-                trip: faker.helpers.maybe(() => faker.helpers.arrayElement(createdTrips)._id, { probability: 0.5 }),
-                liters: faker.number.float({ min: 20, max: 150, fractionDigits: 2 }),
-                cost: faker.number.float({ min: 50, max: 300, fractionDigits: 2 }),
-                odometer: v.odometer - faker.number.int({ min: 0, max: 5000 }),
-                date: faker.date.recent({ days: 30 }),
+                trip: faker.helpers.maybe(() => faker.helpers.arrayElement(createdTrips)._id, { probability: 0.7 }),
+                liters: liters,
+                cost: liters * faker.number.float({ min: 88, max: 96, fractionDigits: 2 }), // current approx diesel price
+                odometer: v.odometer - faker.number.int({ min: 100, max: 10000 }),
+                date: faker.date.recent({ days: 90 }),
                 createdBy: adminId
             });
         }
         await FuelLog.insertMany(fuelLogs);
         console.log("✅ FuelLogs seeded.");
 
-        // Create MaintenanceLogs
         const maintenanceLogs = [];
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 30; i++) {
+            const service = faker.helpers.arrayElement(['Oil Change', 'Tire Replacement', 'Engine Overhaul', 'Brake Inspection']);
+            let cost = 0;
+            if(service === 'Engine Overhaul') cost = faker.number.int({min: 25000, max: 80000});
+            else if(service === 'Tire Replacement') cost = faker.number.int({min: 15000, max: 40000});
+            else cost = faker.number.int({min: 2000, max: 10000});
+
             maintenanceLogs.push({
                 vehicle: faker.helpers.arrayElement(createdVehicles)._id,
-                serviceType: faker.helpers.arrayElement(['Oil Change', 'Tire Replacement', 'Engine Tune-up', 'Brake Inspection']),
-                cost: faker.number.float({ min: 100, max: 2000, fractionDigits: 2 }),
-                date: faker.date.recent({ days: 60 }),
+                serviceType: service,
+                description: `Regular scheduled ${service.toLowerCase()} performed at authorized service center.`,
+                cost: cost,
+                date: faker.date.recent({ days: 120 }),
+                closeDate: faker.helpers.maybe(() => faker.date.recent({ days: 30 }), { probability: 0.8 }),
                 status: faker.helpers.arrayElement(['Active', 'Completed'])
             });
         }
         await MaintenanceLog.insertMany(maintenanceLogs);
         console.log("✅ MaintenanceLogs seeded.");
 
-        console.log("\n🎉 Database successfully populated with mock data!");
+        console.log("\n🎉 Database successfully populated with realistic Indian mock data!");
         process.exit(0);
     } catch (err) {
         console.error("❌ Seeding failed:", err);

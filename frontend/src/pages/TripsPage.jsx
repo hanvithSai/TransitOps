@@ -328,7 +328,7 @@ const TripsPage = () => {
 
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-[var(--color-text-secondary)]">Cargo (tons)</label>
+                      <label className="text-sm font-medium text-[var(--color-text-secondary)]">Cargo (kg)</label>
                       <input required type="number" min="0" step="0.1" className="w-full rounded-lg border border-[var(--color-border-light)] bg-[var(--color-surface-900)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none" value={createForm.cargoWeight} onChange={e => setCreateForm({...createForm, cargoWeight: e.target.value})} />
                     </div>
                     <div className="space-y-1.5">
