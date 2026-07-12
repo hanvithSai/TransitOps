@@ -12,6 +12,7 @@ const roleRoutes = require("./routes/roleRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const driverRoutes = require("./routes/driverRoutes");
 const tripRoutes = require("./routes/tripRoutes");
+const maintenanceRoutes = require("./routes/maintenanceRoutes");
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use("/api/roles", roleRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use("/api/trips", tripRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
