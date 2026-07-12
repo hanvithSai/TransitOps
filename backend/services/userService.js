@@ -47,6 +47,17 @@ const updateUser = async (id, updates) => {
         user.email = updates.email;
     }
 
+    // If user is currently an admin, prevent removing the last admin
+    if (user.role && ((updates.roleId && updates.roleId !== user.role.toString()) || updates.isActive === false)) {
+        const adminRole = await Role.findOne({ name: "admin" });
+        if (adminRole && user.role.toString() === adminRole._id.toString()) {
+            const adminCount = await User.countDocuments({ role: adminRole._id, isActive: true });
+            if (adminCount <= 1) {
+                throw new AppError("Cannot modify the last active system admin.", 400);
+            }
+        }
+    }
+
     if (updates.name) user.name = updates.name;
     if (updates.password) user.password = updates.password; // pre-save hook will hash
     if (updates.roleId) {
@@ -68,8 +79,18 @@ const deleteUser = async (id, requestingUserId) => {
         throw new AppError("You cannot delete your own account.", 400);
     }
 
-    const user = await User.findByIdAndDelete(id);
+    const user = await User.findById(id);
     if (!user) throw new AppError("User not found.", 404);
+
+    const adminRole = await Role.findOne({ name: "admin" });
+    if (adminRole && user.role.toString() === adminRole._id.toString()) {
+        const adminCount = await User.countDocuments({ role: adminRole._id, isActive: true });
+        if (adminCount <= 1) {
+            throw new AppError("Cannot delete the last system admin.", 400);
+        }
+    }
+
+    await User.findByIdAndDelete(id);
     return user;
 };
 
