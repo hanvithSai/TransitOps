@@ -1,4 +1,8 @@
 const Vehicle = require('../models/Vehicle');
+const Trip = require('../models/Trip');
+const MaintenanceLog = require('../models/MaintenanceLog');
+const FuelLog = require('../models/FuelLog');
+const Expense = require('../models/Expense');
 const { AppError } = require('../utils/errorHandler');
 
 exports.getAllVehicles = async (page = 1, limit = 20, search = '', status = '') => {
@@ -77,8 +81,16 @@ exports.deleteVehicle = async (id) => {
     throw new AppError('Vehicle not found', 404);
   }
 
-  // Business Rule: Can we delete if they have trips?
-  // Since we don't have trips yet, we allow deletion. Later we might want to prevent deletion or just retire.
-  
+  const [tripsCount, maintenanceCount, fuelCount, expenseCount] = await Promise.all([
+    Trip.countDocuments({ vehicle: id }),
+    MaintenanceLog.countDocuments({ vehicle: id }),
+    FuelLog.countDocuments({ vehicle: id }),
+    Expense.countDocuments({ vehicle: id })
+  ]);
+
+  if (tripsCount > 0 || maintenanceCount > 0 || fuelCount > 0 || expenseCount > 0) {
+    throw new AppError('Cannot delete vehicle with associated records. Please retire it instead.', 409);
+  }
+
   await Vehicle.findByIdAndDelete(id);
 };
