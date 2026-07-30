@@ -265,6 +265,40 @@ describe('RBAC Middleware Tests', () => {
         });
     });
 
+    describe('Trip Module', () => {
+        it('allows read for admin, fleet_manager, driver, safety_officer', async () => {
+            for (const role of ['admin', 'fleet_manager', 'driver', 'safety_officer']) {
+                await testAccess('get', '/api/trips', role, 200);
+            }
+        });
+
+        it('denies read for financial_analyst', async () => {
+            await testAccess('get', '/api/trips', 'financial_analyst', 403);
+        });
+
+        it('allows create/dispatch/cancel for admin and driver', async () => {
+            for (const role of ['admin', 'driver']) {
+                await testAccess('post', '/api/trips', role, 201);
+                await testAccess('put', '/api/trips/1/dispatch', role, 200);
+                await testAccess('put', '/api/trips/1/cancel', role, 200);
+            }
+        });
+
+        it('allows complete for admin, driver, fleet_manager', async () => {
+            for (const role of ['admin', 'driver', 'fleet_manager']) {
+                await testAccess('put', '/api/trips/1/complete', role, 200);
+            }
+        });
+
+        it('denies write for safety_officer and financial_analyst', async () => {
+            for (const role of ['safety_officer', 'financial_analyst']) {
+                await testAccess('post', '/api/trips', role, 403);
+                await testAccess('put', '/api/trips/1/dispatch', role, 403);
+                await testAccess('put', '/api/trips/1/complete', role, 403);
+            }
+        });
+    });
+
     describe('Dashboard Module', () => {
         const allowedRoles = ['admin', 'fleet_manager', 'driver', 'safety_officer', 'financial_analyst'];
 

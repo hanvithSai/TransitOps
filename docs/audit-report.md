@@ -323,8 +323,9 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 ### Testing Gaps
 
 - **Single test file** — `tests/rbac.test.js` only; mocks auth/controllers/models
-- **Not tested:** auth flows, trip business rules, maintenance sync, ROI math, pagination, validation, DB integration, dashboard, reports, cron
-- **Trip RBAC tests absent** — trips route mounted but never tested in test file
+- **Not tested:** auth flows (partial — `authRegister.test.js`, `authForgotPassword.test.js`), trip business rules, maintenance sync, ROI math, pagination, validation, DB integration, dashboard, reports, cron
+- ~~**Trip RBAC tests absent**~~ **FIXED** — trip role matrix covered in `rbac.test.js`
+- **Dashboard/reports RBAC** — covered in `rbac.test.js`
 - **Tests may fail locally** due to Watchman issue (may pass in CI on Ubuntu)
 
 ---
@@ -395,7 +396,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 16. Implement refresh token rotation
 17. Invalidate sessions on password reset
 18. Add audit log read API for admins
-19. Expand test coverage (trip rules, ROI math, auth flows)
+19. Expand test coverage (trip rules, ROI math, auth flows) — **partial** (RBAC + auth register/forgot + escapeRegex)
 20. ~~Remove `/dev/components` route~~ **Done** (dev-only)
 21. Adopt `EmptyState`, fix Badge variants, add modal focus trap
 22. Add search debouncing
