@@ -3,10 +3,11 @@ const router = require('express').Router();
 const driverController = require('../controllers/driverController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
+const requirePasswordUpdated = require('../middlewares/requirePasswordUpdated');
 const { createDriverValidator, updateDriverValidator } = require('../validators/driverValidator');
 
 // Apply authentication to all driver routes
-router.use(authenticate);
+router.use(authenticate, requirePasswordUpdated);
 
 // GET /api/drivers (Accessible by admin, driver, safety_officer)
 router.get('/', authorize('admin', 'driver', 'safety_officer'), driverController.getAllDrivers);

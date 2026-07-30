@@ -46,7 +46,7 @@ const loginUser = async (req, res, next) => {
 
         let { email, password } = req.body;
         email = email.trim();
-        const { user, accessToken, refreshToken } = await authService.login(email, password);
+        const { user, accessToken, refreshToken, requiresPasswordChange } = await authService.login(email, password);
 
         // Set refresh token as httpOnly cookie
         res.cookie("refreshToken", refreshToken, {
@@ -58,8 +58,10 @@ const loginUser = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            message: "Login successful",
-            data: { user, accessToken },
+            message: requiresPasswordChange
+                ? "Login successful. Please update your password to continue."
+                : "Login successful",
+            data: { user, accessToken, requiresPasswordChange: !!requiresPasswordChange },
         });
     } catch (err) {
         next(err);
@@ -131,19 +133,23 @@ const forgotPassword = async (req, res, next) => {
         }
 
         let { email } = req.body;
-        console.log("RECEIVED EMAIL:", JSON.stringify(email));
         email = email.trim();
-        console.log("TRIMMED EMAIL:", JSON.stringify(email));
-        // Determine frontend origin for the reset link
-        // Use the origin header if it exists, otherwise use a default (from env or hardcoded fallback)
-        const originUrl = req.headers.origin || process.env.FRONTEND_URL || "http://localhost:5173";
+        const originUrl = req.headers.origin || process.env.CLIENT_URL || "http://localhost:5173";
 
-        await authService.forgotPassword(email, originUrl);
+        const emailResult = await authService.forgotPassword(email, originUrl);
 
-        res.status(200).json({
+        const response = {
             success: true,
-            message: "Email sent with password reset instructions",
-        });
+            message: emailResult.isDevFallback
+                ? "Development mode: use the preview link below to open the reset email."
+                : "If an account exists for that email, reset instructions have been sent.",
+        };
+
+        if (emailResult.isDevFallback && emailResult.previewUrl) {
+            response.data = { previewUrl: emailResult.previewUrl };
+        }
+
+        res.status(200).json(response);
     } catch (err) {
         next(err);
     }
@@ -177,4 +183,47 @@ const resetPassword = async (req, res, next) => {
     }
 };
 
-module.exports = { registerUser, loginUser, refreshToken, logoutUser, getMe, forgotPassword, resetPassword };
+/**
+ * POST /api/auth/change-password
+ */
+const changePassword = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed",
+                errors: errors.array(),
+            });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+        const currentRefreshToken = req.cookies?.refreshToken;
+
+        const user = await authService.changePassword(
+            req.user._id,
+            currentPassword,
+            newPassword,
+            currentRefreshToken
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Password updated successfully.",
+            data: { user },
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = {
+    registerUser,
+    loginUser,
+    refreshToken,
+    logoutUser,
+    getMe,
+    forgotPassword,
+    resetPassword,
+    changePassword,
+};

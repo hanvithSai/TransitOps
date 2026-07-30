@@ -3,10 +3,11 @@ const router = express.Router();
 const fuelController = require('../controllers/fuelController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
+const requirePasswordUpdated = require('../middlewares/requirePasswordUpdated');
 const { createFuelValidator, updateFuelValidator } = require('../validators/financeValidator');
 
 // Protect all routes
-router.use(authenticate);
+router.use(authenticate, requirePasswordUpdated);
 
 // GET /api/fuel
 router.get(

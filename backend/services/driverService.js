@@ -1,15 +1,17 @@
 const Driver = require('../models/Driver');
 const Trip = require('../models/Trip');
 const { AppError } = require('../utils/errorHandler');
+const escapeRegex = require('../utils/escapeRegex');
 
 exports.getAllDrivers = async (page = 1, limit = 20, search = '', status = '') => {
   const query = {};
   
-  if (search) {
+  const safeSearch = escapeRegex(search.trim());
+  if (safeSearch) {
     query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { licenseNumber: { $regex: search, $options: 'i' } },
-      { licenseCategory: { $regex: search, $options: 'i' } }
+      { name: { $regex: safeSearch, $options: 'i' } },
+      { licenseNumber: { $regex: safeSearch, $options: 'i' } },
+      { licenseCategory: { $regex: safeSearch, $options: 'i' } }
     ];
   }
   

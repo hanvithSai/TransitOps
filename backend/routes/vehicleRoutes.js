@@ -3,10 +3,11 @@ const router = require('express').Router();
 const vehicleController = require('../controllers/vehicleController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
+const requirePasswordUpdated = require('../middlewares/requirePasswordUpdated');
 const { createVehicleValidator, updateVehicleValidator } = require('../validators/vehicleValidator');
 
 // Apply authentication to all vehicle routes
-router.use(authenticate);
+router.use(authenticate, requirePasswordUpdated);
 
 // GET /api/vehicles (Accessible by admin, fleet_manager, driver)
 router.get('/', authorize('admin', 'fleet_manager', 'driver'), vehicleController.getAllVehicles);

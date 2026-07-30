@@ -129,7 +129,7 @@ TransitOps/
 |---------|--------|-----|
 | RBAC permissions array | Stored in DB | Never enforced — only role names checked |
 | Demo/mock mode | Frontend fallback | Schema mismatches break several pages |
-| Password reset emails | Backend works | `FRONTEND_URL` not in `.env.example`; debug logs in controller |
+| Password reset emails | Backend works | Uses `CLIENT_URL` for reset links |
 | Dark mode | Landing + app shell | Inconsistent across all pages |
 | Audit logs | Written on mutations | No admin UI or API to query them |
 | License expiry cron | Suspends drivers | No email notifications; can suspend mid-trip |
@@ -168,28 +168,26 @@ TransitOps/
 
 ### P0 — Broken Flows
 
-#### 1. Password reset uses wrong HTTP method
+#### 1. Password reset HTTP method mismatch — **FIXED**
 
-Frontend sends `PUT`, backend expects `POST`:
+Frontend now sends `POST` to match the backend route.
 
-- **Frontend:** `frontend/src/pages/auth/ResetPasswordPage.jsx` — `api.put('/auth/reset-password/:token', ...)`
+- **Frontend:** `frontend/src/pages/auth/ResetPasswordPage.jsx` — `api.post('/auth/reset-password/:token', ...)`
 - **Backend:** `backend/routes/authRoutes.js` — `router.post('/reset-password/:token', ...)`
 
-**Impact:** Password reset is completely broken against a live backend.
+#### 2. Mock login bypasses credential validation — **FIXED**
 
-#### 2. Mock login bypasses credential validation
+Failed login responses (401 wrong password, inactive user) now propagate to the UI instead of falling back to a mock admin session.
 
-Any failed login (wrong password, backend down) falls back to mock admin in `frontend/src/services/api.js`:
+#### 3. Auth mutations fake success in demo mode — **FIXED**
 
-```javascript
-if (originalRequest.url?.includes('/auth/login')) {
-  return resolveWithMock(originalRequest);
-}
-```
+Register, login, forgot-password, reset-password, and other `/auth/*` requests no longer receive mock `{ success: true }` responses when the backend is unreachable or returns 5xx. Auth errors surface to the UI instead.
 
-**Impact:** Misleading in dev/demo; masks real auth failures.
+#### 4. Forgot-password silent failure without SMTP — **FIXED**
 
-#### 3. Mock data schema mismatches break demo mode
+Production now requires SMTP configuration and throws a clear error if missing. In development without SMTP, Ethereal test mail is used and the API returns a `previewUrl` link shown on the forgot-password page.
+
+#### 5. Mock data schema mismatches break demo mode
 
 | Mock field | App expects | Affected page |
 |------------|-------------|---------------|
@@ -201,7 +199,7 @@ if (originalRequest.url?.includes('/auth/login')) {
 | `trip: "t1"` (string) | populated object | Finance — crash on `.source` access |
 | Nested `{ data: { data, metrics } }` | flat `response.data.data` | Reports — wrong table data |
 
-#### 4. Race condition on trip dispatch
+#### 6. Race condition on trip dispatch
 
 Vehicle/driver availability checks and status updates are **not wrapped in a MongoDB transaction**. Two concurrent dispatches can double-book the same vehicle or driver.
 
@@ -211,13 +209,13 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 | Issue | Severity | Details |
 |-------|----------|---------|
-| **Admin role on public registration** | High | `/api/auth/register` accepts `"admin"` — attacker can queue admin accounts for approval |
-| **Dashboard/reports lack RBAC** | High | Any authenticated user (including drivers) can access financial ROI data |
-| **User enumeration on forgot-password** | Medium | Returns 404 when email not found vs 200 when found |
-| **No rate limiting** | Medium | Login, register, forgot-password, reset-password unprotected |
-| **No security headers** | Medium | No `helmet` middleware |
+| **Admin role on public registration** | High | ~~`/api/auth/register` accepts `"admin"`~~ **FIXED** — admin role rejected with 403 |
+| **Dashboard/reports lack RBAC** | High | ~~Any authenticated user can access financial ROI data~~ **FIXED** — `authorize()` on dashboard + reports routes |
+| **User enumeration on forgot-password** | Medium | ~~Returns 404 when email not found~~ **FIXED** — always 200 with generic message |
+| **No rate limiting** | Medium | ~~Login, register, forgot-password unprotected~~ **FIXED** — `authLimiter` on `/api/auth/*` |
+| **No security headers** | Medium | ~~No `helmet` middleware~~ **FIXED** — `helmet()` in `server.js` |
 | **Debug logging in production code** | Medium | `authController.forgotPassword` logs raw email addresses |
-| **ReDoS via unescaped `$regex`** | Medium | Search filters pass raw user input into regex (vehicles, drivers, trips, maintenance) |
+| **ReDoS via unescaped `$regex`** | Medium | ~~Search filters pass raw user input into regex~~ **FIXED** — `escapeRegex()` on vehicle, driver, trip, maintenance search |
 | **Refresh tokens never rotate** | Low | Same token reused; no per-user token limit |
 | **Password reset doesn't invalidate sessions** | Low | `passwordUpdatedAt` exists but isn't checked during auth |
 
@@ -248,7 +246,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 | Path | Component | Status |
 |------|-----------|--------|
 | `/` | LandingPage | Implemented |
-| `/login`, `/register`, `/forgot-password`, `/reset-password/:token` | Auth pages | Implemented (reset broken — see P0) |
+| `/login`, `/register`, `/forgot-password`, `/reset-password/:token` | Auth pages | Implemented |
 | `/dashboard` | DashboardPage | Implemented |
 | `/vehicles` | VehiclesPage | Implemented |
 | `/drivers` | DriversPage | Implemented |
@@ -258,13 +256,28 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 | `/reports` | ReportsPage | Implemented |
 | `/users` | UsersPage | Implemented |
 | `/dev/components` | DevComponentsPage | Public — remove before production |
-| `*` (404) | Redirect to `/dashboard` | Loses URL context |
+| `*` (404) | NotFoundPage | **FIXED** — no longer redirects to dashboard |
 
 ### Routing & Auth Issues
 
-- **404 catch-all** redirects to `/dashboard` — loses URL context
-- **No post-login redirect** — `ProtectedRoute` saves `state.from` but `LoginPage` always goes to `/dashboard`
-- **Register success** doesn't mention "Pending admin approval" from backend
+- **404 catch-all** redirects to `/dashboard` — loses URL context → **FIXED** — dedicated `NotFoundPage`
+- **No post-login redirect** — **FIXED** — `LoginPage` uses `location.state.from` via `getPostLoginPath()`
+- **Register success omits pending-approval message** — **FIXED** (`RegisterPage` shows backend message)
+- **Auth validation errors show generic "Validation failed"** — **FIXED** (`getApiErrorMessage` surfaces field errors; register validates min 6 chars client-side)
+- **CORS blocks frontend when Vite uses non-5173 port** — **FIXED** (dev allows any localhost port)
+- **`/dev/components` route is public** — **FIXED** — only registered when `import.meta.env.DEV`
+- **UsersPage hardcodes default password** — **FIXED** — `generateSecurePassword()` helper
+
+### Auth Logic & Data Consistency — **FIXED**
+
+| Issue | Fix |
+|-------|-----|
+| Stale role in AuthContext after admin changes | User synced on token refresh + window focus via `/auth/me` |
+| Admin create had no `isActive` control | UsersPage create form includes active toggle; backend accepts `isActive` |
+| Register returned unpopulated role | `authService.register` returns populated role object |
+| User delete left orphaned refresh tokens | `RefreshToken.deleteMany` on delete; revoke on deactivate |
+| `CLIENT_URL` vs `FRONTEND_URL` mismatch | Unified on `CLIENT_URL`; removed unused `JWT_REFRESH_SECRET` from `.env.example` |
+| Password length inconsistent across forms | Aligned to min 6 chars on backend validators and frontend auth/admin forms |
 - **`/dev/components` route is public** — should be removed before production
 
 ### UX / Accessibility
@@ -301,17 +314,18 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 | Route | Current | Expected |
 |-------|---------|----------|
-| `GET /api/dashboard/stats` | Any authenticated user | Should restrict by role |
-| `GET /api/reports/roi` | Any authenticated user | Should be admin + financial_analyst |
-| `GET /api/reports/roi/download` | Any authenticated user | Should be admin + financial_analyst |
+| `GET /api/dashboard/stats` | ~~Any authenticated user~~ **FIXED** — all app roles via `authorize()` | Matches frontend nav |
+| `GET /api/reports/roi` | ~~Any authenticated user~~ **FIXED** | admin + financial_analyst + fleet_manager |
+| `GET /api/reports/roi/download` | ~~Any authenticated user~~ **FIXED** | admin + financial_analyst + fleet_manager |
 
 **Permissions array never enforced:** `Role.permissions` is populated and returned to clients but `authorize` middleware ignores it entirely.
 
 ### Testing Gaps
 
 - **Single test file** — `tests/rbac.test.js` only; mocks auth/controllers/models
-- **Not tested:** auth flows, trip business rules, maintenance sync, ROI math, pagination, validation, DB integration, dashboard, reports, cron
-- **Trip RBAC tests absent** — trips route mounted but never tested in test file
+- **Not tested:** auth flows (partial — `authRegister.test.js`, `authForgotPassword.test.js`), trip business rules, maintenance sync, ROI math, pagination, validation, DB integration, dashboard, reports, cron
+- ~~**Trip RBAC tests absent**~~ **FIXED** — trip role matrix covered in `rbac.test.js`
+- **Dashboard/reports RBAC** — covered in `rbac.test.js`
 - **Tests may fail locally** due to Watchman issue (may pass in CI on Ubuntu)
 
 ---
@@ -358,13 +372,13 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 ### Immediate (before demo/production)
 
-1. Fix reset-password HTTP method (`PUT` → `POST`)
-2. Add RBAC to `/api/dashboard/stats` and `/api/reports/*`
-3. Blocklist `admin` role on public registration
+1. ~~Fix reset-password HTTP method (`PUT` → `POST`)~~ **Done**
+2. ~~Add RBAC to `/api/dashboard/stats` and `/api/reports/*`~~ **Done**
+3. ~~Blocklist `admin` role on public registration~~ **Done**
 4. Align mock data schemas with real API responses
 5. Restrict login mock fallback to network errors only (not 401)
 6. Remove debug logs from `authController.forgotPassword`
-7. Add `FRONTEND_URL` to `.env.example` (or unify with `CLIENT_URL`)
+7. ~~Add `FRONTEND_URL` to `.env.example` (or unify with `CLIENT_URL`)~~ **Done**
 
 ### Short-term (data integrity)
 
@@ -373,17 +387,17 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 10. Include maintenance costs in ROI calculation
 11. Set `closeDate` when maintenance log is completed
 12. Check active trips before cron-suspending drivers
-13. Escape user input in `$regex` search queries
+13. ~~Escape user input in `$regex` search queries~~ **Done**
 14. Handle CastError for invalid ObjectIds
 
 ### Medium-term (quality & security)
 
-15. Add rate limiting + helmet
+15. ~~Add rate limiting + helmet~~ **Done** (auth rate limit + helmet; forgot-password enumeration fixed)
 16. Implement refresh token rotation
 17. Invalidate sessions on password reset
 18. Add audit log read API for admins
-19. Expand test coverage (trip rules, ROI math, auth flows)
-20. Remove `/dev/components` route
+19. Expand test coverage (trip rules, ROI math, auth flows) — **partial** (RBAC + auth register/forgot + escapeRegex)
+20. ~~Remove `/dev/components` route~~ **Done** (dev-only)
 21. Adopt `EmptyState`, fix Badge variants, add modal focus trap
 22. Add search debouncing
 23. Update stale documentation

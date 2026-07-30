@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getPostLoginPath } from '../../lib/passwordPolicy';
 import AuthLayout from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { cn } from '../../lib/utils';
 
 const LoginPage = () => {
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, isAuthenticated, loading: authLoading, requiresPasswordChange } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath = location.state?.from?.pathname;
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
@@ -18,8 +21,10 @@ const LoginPage = () => {
   const [shake, setShake] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) navigate('/dashboard', { replace: true });
-  }, [isAuthenticated, authLoading, navigate]);
+    if (!authLoading && isAuthenticated) {
+      navigate(getPostLoginPath(fromPath, requiresPasswordChange), { replace: true });
+    }
+  }, [isAuthenticated, authLoading, requiresPasswordChange, navigate, fromPath]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -42,7 +47,7 @@ const LoginPage = () => {
     setLoading(false);
 
     if (result.success) {
-      navigate('/dashboard', { replace: true });
+      navigate(getPostLoginPath(fromPath, result.requiresPasswordChange), { replace: true });
     } else {
       setError(result.message);
       setShake(true);

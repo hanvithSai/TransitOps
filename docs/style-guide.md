@@ -580,8 +580,9 @@ Component: `components/DemoModeBanner.jsx`. Rendered at the top of `AppLayout` (
 **When it appears:** The axios interceptor in `services/api.js` sets demo mode when:
 
 1. The backend is **unreachable** (network error, connection refused)
-2. The backend returns **5xx**
-3. **`/auth/login`** fails with the above (returns mock admin user)
+2. The backend returns **5xx** on non-auth endpoints
+
+Auth endpoints (`/auth/*`) never use mock fallback. Failed login (401) shows the real error message.
 
 When any API call succeeds against the live backend, demo mode clears and the banner hides on next response.
 

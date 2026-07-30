@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, User, Shield, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthLayout from '../../components/layout/AuthLayout';
+import PasswordChecklist from '../../components/auth/PasswordChecklist';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { validatePasswordStrength } from '../../lib/passwordPolicy';
 
 const ROLES = [
   'Fleet Manager',
@@ -46,12 +48,27 @@ const RegisterPage = () => {
       return;
     }
 
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+      return;
+    }
+
+    const { valid, errors } = validatePasswordStrength(form.password);
+    if (!valid) {
+      setError(errors[0]);
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+      return;
+    }
+
     setLoading(true);
     const result = await register(form.name, form.email, form.password, form.role);
     setLoading(false);
 
     if (result.success) {
-      setSuccessMsg('Account created successfully! Redirecting to login…');
+      setSuccessMsg(result.message || 'Account created successfully! Pending admin approval. Redirecting to login…');
       setTimeout(() => navigate('/login'), 2000);
     } else {
       setError(result.message);
@@ -108,6 +125,7 @@ const RegisterPage = () => {
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordChecklist password={form.password} className="pt-1" />
         </div>
 
         <div className="space-y-2">

@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const { errorHandler } = require("./utils/errorHandler");
@@ -22,9 +23,24 @@ const reportRoutes = require("./routes/reportRoutes");
 const app = express();
 
 // ── Middleware ────────────────────────────────────────────────────────────────
+const isDev = process.env.NODE_ENV !== "production";
+
+app.use(helmet());
 app.use(cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,          // allow cookies (refresh token)
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+
+        const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+        if (origin === allowedOrigin) return callback(null, true);
+
+        // In development, allow any localhost port (Vite may use 5174+ if 5173 is taken)
+        if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());

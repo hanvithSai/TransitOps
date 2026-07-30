@@ -10,7 +10,8 @@ This checklist is structured by priority to ensure complete production readiness
 ### Current Implementation
 - **Complete**: JWT-based login, role-based access control (admin, fleet_manager, driver, safety_officer, financial_analyst), `ProtectedRoute.jsx` for UI.
 - **Partial**: Token refresh mechanism (exists but needs concurrent request handling check).
-- **Missing**: Account lockout on failed attempts, password reset flow.
+- **Missing**: Account lockout on failed attempts.
+- **Done**: Password reset flow (`POST /auth/forgot-password`, `POST /auth/reset-password/:token`). Dev without SMTP returns Ethereal preview URL.
 
 ### Business Logic Validation
 - □ User cannot access endpoints outside their assigned role permissions.

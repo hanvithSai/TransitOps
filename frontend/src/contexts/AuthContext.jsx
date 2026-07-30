@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import api, { setTokenRefreshHandler } from '../services/api';
+import { getApiErrorMessage } from '../lib/apiErrors';
 
 const AuthContext = createContext(null);
 
@@ -30,17 +31,52 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
   }, []);
 
+  // ── Keep user profile in sync after token refresh / window focus ─
+  useEffect(() => {
+    setTokenRefreshHandler(setUser);
+
+    const syncUser = async () => {
+      if (!localStorage.getItem('accessToken')) return;
+      try {
+        const { data } = await api.get('/auth/me');
+        setUser(data.data.user);
+      } catch {
+        // ignore — interceptor handles auth failures
+      }
+    };
+
+    window.addEventListener('focus', syncUser);
+    return () => {
+      setTokenRefreshHandler(null);
+      window.removeEventListener('focus', syncUser);
+    };
+  }, []);
+
   // ── Login ─────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
     setError(null);
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      const { user: loggedInUser, accessToken } = data.data;
+      const { user: loggedInUser, accessToken, requiresPasswordChange } = data.data;
       localStorage.setItem('accessToken', accessToken);
       setUser(loggedInUser);
-      return { success: true };
+      return { success: true, requiresPasswordChange: !!requiresPasswordChange };
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please try again.';
+      const message = getApiErrorMessage(err, 'Login failed. Please try again.');
+      setError(message);
+      return { success: false, message };
+    }
+  }, []);
+
+  // ── Change password (compliance upgrade) ───────────────────────
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    setError(null);
+    try {
+      const { data } = await api.post('/auth/change-password', { currentPassword, newPassword });
+      setUser(data.data.user);
+      return { success: true, message: data.message };
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Failed to update password.');
       setError(message);
       return { success: false, message };
     }
@@ -53,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post('/auth/register', { name, email, password, roleName });
       return { success: true, message: data.message };
     } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed. Please try again.';
+      const message = getApiErrorMessage(err, 'Registration failed. Please try again.');
       setError(message);
       return { success: false, message };
     }
@@ -79,9 +115,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     isAuthenticated: !!user,
+    requiresPasswordChange: !!user?.mustChangePassword,
     login,
     register,
     logout,
+    changePassword,
     clearError,
   };
 

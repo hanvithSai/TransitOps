@@ -3,10 +3,11 @@ const router = require('express').Router();
 const maintenanceController = require('../controllers/maintenanceController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
+const requirePasswordUpdated = require('../middlewares/requirePasswordUpdated');
 const { createMaintenanceValidator, updateMaintenanceValidator } = require('../validators/maintenanceValidator');
 
 // Apply authentication to all maintenance routes
-router.use(authenticate);
+router.use(authenticate, requirePasswordUpdated);
 
 // All maintenance routes are restricted to admin and fleet_manager
 router.use(authorize('admin', 'fleet_manager'));

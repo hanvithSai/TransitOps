@@ -21,6 +21,12 @@ export const subscribeDemoMode = (listener) => {
   return () => demoListeners.delete(listener);
 };
 
+let onTokenRefresh = null;
+
+export const setTokenRefreshHandler = (handler) => {
+  onTokenRefresh = handler;
+};
+
 const setDemoMode = (active) => {
   if (demoModeActive === active) return;
   demoModeActive = active;
@@ -51,9 +57,9 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const isAuthEndpoint = (url = '') => url.includes('/auth/');
+
 const getMockDataForUrl = (url, method) => {
-  if (url.includes('/auth/login')) return mockData.auth.login;
-  if (url.includes('/auth/refresh')) return mockData.auth.refresh;
   if (url.includes('/dashboard/stats')) return mockData.dashboard.stats;
   if (url.includes('/vehicles') && method === 'get') return mockData.vehicles.list;
   if (url.includes('/drivers') && method === 'get') return mockData.drivers.list;
@@ -83,6 +89,9 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (!error.response || error.response.status >= 500) {
+      if (isAuthEndpoint(originalRequest.url)) {
+        return Promise.reject(error);
+      }
       return resolveWithMock(originalRequest);
     }
 
@@ -111,6 +120,9 @@ api.interceptors.response.use(
         const newToken = data.data.accessToken;
         localStorage.setItem('accessToken', newToken);
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        if (data.data.user && onTokenRefresh) {
+          onTokenRefresh(data.data.user);
+        }
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
@@ -124,8 +136,10 @@ api.interceptors.response.use(
       }
     }
 
-    if (originalRequest.url?.includes('/auth/login')) {
-      return resolveWithMock(originalRequest);
+    if (error.response?.status === 403 && error.response?.data?.requiresPasswordChange) {
+      if (!window.location.pathname.startsWith('/update-password')) {
+        window.location.href = '/update-password';
+      }
     }
 
     return Promise.reject(error);
