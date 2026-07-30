@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Status** | Active — mandatory reference for all UI work |
 | **Audience** | Product, design, engineering |
-| **Code source of truth** | `frontend/src/index.css`, `frontend/src/components/ui/` |
-| **Last updated** | July 2026 |
+| **Code source of truth** | `frontend/src/index.css` (tokens + layout utilities), `frontend/src/components/ui/` (React primitives) |
+| **Last updated** | July 2026 — post frontend revamp (`frontend-revamp`) |
 
 ---
 
@@ -15,6 +15,22 @@
 This guide defines the visual language, interaction patterns, and content standards for **TransitOps** — an enterprise B2B fleet operations platform used by dispatchers, fleet managers, safety officers, and finance teams.
 
 Every screen, component, and revision must conform to this document. For implementation history and audit notes, see [`frontend-redesign.md`](./frontend-redesign.md).
+
+### Implementation status (v2.1)
+
+The following are **implemented and in production use**:
+
+| Area | Status |
+|------|--------|
+| Design tokens & typography utilities | `index.css` |
+| Marketing landing page | `LandingPage.jsx` + `.mkt-*` utilities |
+| Auth pages | `AuthLayout` + `.auth-*` utilities |
+| App shell | `AppLayout.jsx` + `.app-*` utilities |
+| UI primitives | `components/ui/*` (Button, Input, Card, Badge, Modal, Table, Toast, PageHeader, EmptyState, Skeleton) |
+| App pages | `pages/app/*` — Dashboard, Vehicles, Drivers, Trips, Maintenance, Finance, Reports, Users |
+| Dev token reference | `/dev/components` — `DevComponentsPage.jsx` + `.ds-*` utilities (remove before production merge) |
+
+**Dual styling pattern:** App and auth pages use **React components** from `components/ui/`. The marketing landing page also exposes matching **CSS classes** (`.btn`, `.badge-*`) for static markup — prefer React components when adding interactive app UI.
 
 ---
 
@@ -307,8 +323,22 @@ Loaded via Google Fonts in `index.css`. Do not add font families without updatin
 |---------|-----------|-------|
 | Marketing page | 1152px | `max-w-6xl` |
 | App content | 1280px | `max-w-7xl` |
-| Auth card | 420px | `max-w-[420px]` |
-| Modal (default) | 448px | `max-w-md` |
+| Auth card | 448px | `.auth-card` (`max-width: 28rem`) |
+| Modal (default) | 512px | `max-w-lg` on `Modal` component |
+| Modal (confirm) | 384px | `max-w-sm` |
+
+### CSS utility layers (`index.css`)
+
+Layout and spacing are centralized in named utility prefixes. **Do not mix ad-hoc Tailwind spacing on marketing/auth pages** — extend the relevant prefix instead.
+
+| Prefix | Scope | Key classes |
+|--------|-------|-------------|
+| `.ds-*` | Design-system doc page (`/dev/components`) | `.ds-page`, `.ds-shell`, `.ds-stack`, `.ds-panel`, `.ds-data-table` |
+| `.mkt-*` | Marketing site (`LandingPage.jsx`) | `.mkt-container`, `.mkt-section`, `.mkt-hero-grid`, `.mkt-feature-card`, `.mkt-nav` |
+| `.auth-*` | Auth pages (`AuthLayout`) | `.auth-page`, `.auth-card`, `.auth-form`, `.auth-alert`, `.auth-shake` |
+| `.app-*` | Authenticated app pages & shell | `.app-shell`, `.app-page-stack`, `.app-page-header`, `.app-table-*`, `.app-modal`, `.app-kpi-grid` |
+
+Shared cross-cutting utilities: `.surface-card`, `.kpi-card`, `.select-field`, `.btn` / `.badge-*` (marketing), `.text-display` … `.text-kpi-value` (typography), `.page-enter`, `.table-row-selected`.
 
 ### App page structure
 
@@ -380,8 +410,8 @@ No `shadow-2xl`, colored glows, or heavy drop shadows. Elevation is subtle and f
 
 | Allowed | Not allowed |
 |---------|-------------|
-| Subtle 64px grid (`opacity 0.15–0.4`) | Large blurred gradient orbs |
-| Contained radial wash inside CTA card | Full-viewport gradient heroes |
+| Subtle grid overlays (`.ds-page-grid`, `.auth-page-grid`, `.mkt` contexts) at low opacity | Large blurred gradient orbs |
+| Contained radial wash inside `.mkt-cta` | Full-viewport gradient heroes |
 | `--bg-base` + `--bg-surface` layering | Stacked glassmorphism |
 
 ---
@@ -424,10 +454,12 @@ Use primitives from `frontend/src/components/ui/`. Do not duplicate styles inlin
 |------|--------|-------------|
 | `sm` | 36px | Toolbar, compact areas |
 | `md` | 40px+ | Standard forms |
-| `lg` | 44px+ | Marketing CTAs |
-| `icon` | 44×44px | Table row actions (touch-friendly) |
+| `lg` | 48px+ | Auth submit, marketing CTAs |
+| `icon` | 44×44px | Table row actions (`size="icon"`) |
 
-**States:** `loading` shows spinner and disables interaction; `disabled` at 50% opacity.
+**Props:** `loading`, `fullWidth`, `icon` + `iconPosition` (`left` | `right`).
+
+**Marketing-only CSS:** Landing page links use `.btn`, `.btn-primary`, `.btn-outline`, `.btn-lg` from `index.css` — same visual spec, no React wrapper.
 
 ### 9.2 Input
 
@@ -439,7 +471,23 @@ Use primitives from `frontend/src/components/ui/`. Do not duplicate styles inlin
 | Error | Border + ring `--color-error`; 13px message below |
 | Label | Always visible; required fields show red asterisk |
 
-Use the shared `Input` component — do not hand-roll form fields (including auth pages).
+Use the shared `Input` component — do not hand-roll form fields. Auth pages use `AuthLayout` + `Input`; password visibility toggles may use a local wrapper around a native `<input>` when an trailing icon button is required.
+
+### 9.2a AuthLayout
+
+All auth routes (`LoginPage`, `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage`) wrap content in `components/layout/AuthLayout.jsx`:
+
+```
+.auth-page          ← full-viewport centered layout + subtle grid
+  .auth-brand       ← wordmark link to /
+  .auth-card         ← surface-card form container
+    .auth-card-header
+    .auth-alert      ← error / success banners
+    .auth-form
+    .auth-footer
+```
+
+Pass `shake={true}` to trigger `.auth-shake` on validation failure (500ms, one-time).
 
 ### 9.3 Select
 
@@ -449,12 +497,12 @@ Use the `.select-field` class from `index.css` — same height, radius, and focu
 
 | Property | Value |
 |----------|-------|
-| Background | `--bg-surface` |
+| Background | `--bg-surface` via `.surface-card` |
 | Border | `1px var(--border-base)` |
 | Padding | `p-5 sm:p-6` (use `noPadding` for embedded tables) |
-| Hover | Optional `shadow-md` + border tint — no translate-y lift |
+| Hover | Optional `hover` prop — `shadow-md` + border tint only |
 
-KPI / stat cards: pass `accent="#hex"` for the left border color via `.kpi-card`.
+KPI / stat cards: use `.kpi-card` with inline `style={{ '--kpi-accent': 'var(--color-brand-500)' }}`. The 3px left accent bar reads from `--kpi-accent`.
 
 ### 9.5 Badge
 
@@ -473,24 +521,34 @@ Do not invent new badge colors. Map domain statuses via aliases in `Badge.jsx`.
 
 ### 9.6 Table
 
-- Sticky header on long lists
-- Header cells: 11px uppercase `--text-muted`
-- Row hover: `--bg-surface-hover`
+Implemented via `Table`, `TableHead`, `TableRow`, `TableHeader`, `TableCell` in `components/ui/Table.jsx`, styled with `.app-table-*` utilities:
+
+- Sticky header (`.app-table-head`)
+- Header cells: 11px uppercase `--text-muted` (`.app-table-th`)
+- Row hover: `--bg-surface-hover` (`.app-table-row`)
 - Selected row: `.table-row-selected`
-- Identifier columns: `mono` prop on `TableCell`
-- Mobile: horizontal scroll (`min-w-[640px]`) — card fallback is a planned enhancement
+- Identifier columns: `mono` prop on `TableCell` → `.text-mono-data`
+- Row actions: `.app-row-actions` — visible on hover (desktop), always visible on mobile
+- Mobile: horizontal scroll via `.app-table-wrap` (`min-width: 640px` on table)
+
+Landing product preview uses `.ds-data-table` (CSS grid rows) — not the React `Table` component.
 
 ### 9.7 Modal
 
-- Focus trap + Escape to close
-- Mobile: bottom-sheet (`items-end sm:items-center`)
-- Header: title + 44px close button
-- Body: scrollable, max 92vh
-- Destructive modals: red accent panel with explicit consequence copy
+Implemented in `components/ui/Modal.jsx`, styled with `.app-modal-overlay` / `.app-modal`:
+
+- Escape to close; body scroll locked while open
+- Mobile: bottom-sheet (`.app-modal-overlay` aligns `flex-end`; rounded top corners)
+- Desktop: centered dialog (`sm:items-center`)
+- Header: `.app-modal-header` — title + 44px close button (`.app-modal-close`)
+- Body: `.app-modal-body` — scrollable, max 92vh
+- Destructive modals: red accent panel with explicit consequence copy (see Vehicles delete confirm)
 
 ### 9.8 Toast
 
-- Position: bottom-right (full width on mobile)
+Implemented in `components/ui/Toast.jsx`, styled with `.app-toast`:
+
+- Position: bottom-right; full width on mobile (`max-width: 24rem` on `sm+`)
 - Auto-dismiss: 4 seconds
 - Types: `success`, `error`, `info` — semantic color tokens
 - Every successful mutation shows a toast
@@ -504,22 +562,32 @@ Standard app page title block — **always use this component**:
                    Subtitle              [ Primary action ]
 ```
 
-Import from `components/ui/PageHeader.jsx`. Do not hand-roll page headers.
+Import from `components/ui/PageHeader.jsx`. Styled with `.app-page-header` utilities. Do not hand-roll page headers.
+
+Wrap page content in `.app-page-stack` for consistent vertical rhythm (`gap: 1.5rem` → `2rem` on desktop).
 
 ### 9.10 EmptyState & Skeleton
 
 | Component | When to use |
 |-----------|-------------|
 | `EmptyState` | Lists return zero rows — icon + title + description + optional CTA |
-| `Skeleton` | Initial page/chart loads — prefer over spinners for tables and dashboard |
+| `Skeleton` / `SkeletonTable` / `SkeletonKpiGrid` | Initial page/chart loads — prefer over spinners |
 
 ### 9.11 DemoModeBanner
 
-Shown when the API falls back to mock data. Amber warning strip at top of app shell:
+Component: `components/DemoModeBanner.jsx`. Rendered at the top of `AppLayout` (above header).
+
+**When it appears:** The axios interceptor in `services/api.js` sets demo mode when:
+
+1. The backend is **unreachable** (network error, connection refused)
+2. The backend returns **5xx**
+3. **`/auth/login`** fails with the above (returns mock admin user)
+
+When any API call succeeds against the live backend, demo mode clears and the banner hides on next response.
 
 > "Demo mode — backend unavailable. Showing mock data; changes are not persisted."
 
-Dismissible but must reappear on next session if demo mode is still active.
+Dismissible per session via the close button; reappears on reload if fallback is still active. **Operational honesty:** never hide demo mode while mock data is being served.
 
 ---
 
@@ -555,8 +623,8 @@ Every entity list page (Vehicles, Drivers, Trips, Users, etc.) follows:
 
 1. `PageHeader` with entity-specific icon and create action
 2. Optional KPI summary row
-3. Toolbar card: search input + status filter (`.select-field`)
-4. Data table in a `Card` with `noPadding`
+3. Toolbar: `.app-toolbar-card` — search input (`.select-field` or native search) + status filter (`.select-field`)
+4. Data table in a `Card` with `noPadding` — wraps `.app-table-wrap`
 5. Create/edit modal with validated form
 6. Toast on success; confirm modal on delete
 
@@ -586,68 +654,86 @@ Every entity list page (Vehicles, Drivers, Trips, Users, etc.) follows:
 
 Rules for `LandingPage.jsx` and future public pages. Marketing must feel like the same product users log into.
 
+**Implementation:** All section spacing, hero layout, nav, and footer rhythm live in `.mkt-*` classes in `index.css` — not ad-hoc Tailwind on the page. Navbar uses `.mkt-nav`; full desktop nav appears at **`lg` (1024px)+**; hamburger + mobile menu below that breakpoint.
+
 ### Hero
 
 | Element | Rule |
 |---------|------|
-| Headline | One phrase in solid `--color-brand-600` — no gradient text |
-| Subhead | One sentence, max ~120 characters, factual product description |
-| CTAs | Two max: primary (Register) + secondary (Login) |
-| Trust bullets | 3 items with check icons — factual capabilities, not hype |
-| Product preview | Must resemble real dashboard: sidebar, KPI cards, registry table, badges |
+| Headline | `.text-display` — one phrase in solid `--color-brand-600` |
+| Subhead | `.text-body-lg` — one sentence, factual product description |
+| Layout | `.mkt-hero-grid` — stacked + centered on mobile; 2-column at `lg+` |
+| CTAs | `.mkt-hero-actions` — full-width buttons on mobile; row at `sm+` |
+| Trust bullets | `.mkt-hero-bullets` — left-aligned list in centered block on mobile |
+| Product preview | `.mkt-preview` — KPI row + `.ds-data-table`; table scrolls horizontally on narrow viewports |
 
 ### Feature cards
 
-- 3×2 grid on desktop; 1 column on mobile
-- Icon in tinted box + category badge + title + 2-line description
-- No "Learn more" links that go nowhere
+- `.mkt-grid-features` — 1 col mobile → 2 col `sm` → 3 col `lg`
+- `.mkt-feature-card` inside `.ds-panel` — icon box + category badge + title + description
 - No hover scale or icon color inversion
+
+### Trust strip
+
+- `.mkt-trust-strip` — 2×2 grid on mobile; flex row at `sm+`
+- Factual capability labels with Lucide icons (JWT, RBAC, audit, workflows)
 
 ### Stats row
 
-- Four metrics with `.kpi-card` accent borders
-- Theme-aware (same component in light and dark)
-- Numeral: 3xl–4xl bold; label: sm secondary text
+- `.mkt-grid-stats` — responsive KPI grid using `.kpi-card` with `--kpi-accent` per metric
+- Numeral: `.text-kpi-value`; label: `.text-label`
+
+### Workflow steps
+
+- `.mkt-grid-steps` — 1 → 2 → 4 columns by breakpoint
+- `.mkt-step-card` — numbered index + icon + title + body
 
 ### CTA section
 
-- Contained `Card` with subtle background wash — not full-width gradient
-- No fake star ratings or social proof
-- Repeat primary + secondary buttons; trial terms in muted caption
+- `.mkt-cta` — contained card with subtle gradient wash (not full-bleed hero gradient)
+- `.mkt-cta-actions` — stacked full-width buttons on mobile
+- Trial terms in `.mkt-cta-note` (`.text-caption`)
 
 ### Footer
 
-- Logo + one-line product description + status indicator
-- Minimal link columns; Privacy and Terms in bottom bar
+- `.mkt-footer` — brand column + link columns; stacks on mobile
+- Logo + product description + operational status dot
+- Privacy / Terms in `.mkt-footer-bar`
 
 ---
 
 ## 12. App shell
 
+Implemented in `frontend/src/layouts/AppLayout.jsx` with `.app-shell` utilities.
+
 ### Sidebar
 
 | Property | Value |
 |----------|-------|
-| Width | 260px expanded / 72px collapsed |
-| Active item | `--nav-active-bg` + `--nav-active-text` + subtle ring |
-| Navigation | Role-filtered via RBAC — nav must match route permissions |
-| User block | Initials avatar + name + role label; teal live dot |
+| Width | 260px expanded (`.app-sidebar`) / 72px collapsed (`.app-sidebar-collapsed`) |
+| Breakpoint | Visible `md+`; mobile drawer below `md` |
+| Active item | `.app-sidebar-link-active` — `--nav-active-bg` + `--nav-active-text` |
+| Navigation | Role-filtered via `NAV_ITEMS` RBAC array — **must match** `ProtectedRoute` permissions |
+| User block | `.app-sidebar-user` — initials avatar (`.app-sidebar-avatar`) + name + role label |
+| Collapse toggle | `.app-sidebar-toggle` — chevron on desktop sidebar edge |
+
+**RBAC nav roles (must stay in sync with routes):** Dashboard (all roles), Vehicles (admin, fleet_manager, driver), Drivers (admin, driver, safety_officer), Trips (admin, fleet_manager, driver, **safety_officer**), Maintenance (admin, fleet_manager), Fuel/Expenses (admin, fleet_manager, driver, financial_analyst), Reports (admin, fleet_manager, financial_analyst), Users (admin only).
 
 ### Header
 
 | Element | Behavior |
 |---------|----------|
-| Breadcrumb | Home → current page |
-| Theme toggle | Persists to `localStorage` key `transitops-theme` |
-| User menu | Dropdown with sign out |
-| Demo banner | Rendered above header when API fallback is active |
+| Breadcrumb | `.app-breadcrumb` — Home → current page label |
+| Mobile menu | Hamburger (`.app-header-icon-btn`) opens sidebar drawer |
+| Theme toggle | `.app-header-icon-btn` — persists to `localStorage` key `transitops-theme` |
+| Sign out | Logout icon button (`.app-header-logout`) — redirects to `/login` |
+| Demo banner | `.demo-banner` rendered **above** header when API fallback is active |
 
-### Logo in sidebar
+### Main content
 
-```
-[ Bus icon — brand-600 square ]  TransitOps
-                                  ────── ───
-```
+- `.app-content` — scrollable region with responsive padding
+- `.app-content-inner` — `max-width: 80rem` centered outlet for page routes
+- Page enter animation: `.page-enter` on `<main>`
 
 ---
 
@@ -661,15 +747,17 @@ Motion indicates **state change**, not decoration.
 | Page enter | 350ms | fade + 6px translateY (`.page-enter`) |
 | Modal open | 200ms | fade + zoom/slide |
 | Sidebar collapse | 300ms | width transition |
-| Form error shake | 500ms | one-time only (`.animate-shake`) |
-| Skeleton shimmer | 1.5s | infinite (loading only) |
+| Form error shake | 500ms | `.auth-shake` on auth card (one-time) |
+| Skeleton shimmer | 1.5s | infinite (`.skeleton` loading only) |
+
+Use `.transition-smooth` (200ms) on interactive elements — defined in `index.css`.
 
 ### Motion restrictions
 
 - No continuous animations (ping, bounce, float)
-- No hover `translate-y` on cards (max `-0.5px` on app KPI optional)
+- No hover `translate-y` on cards or primary buttons
 - No parallax scrolling
-- Button active state: `scale-[0.98]` max — subtle press feedback only
+- KPI stat cards on list pages may use subtle hover shadow only — no lift animation
 
 ---
 
@@ -688,12 +776,23 @@ Motion indicates **state change**, not decoration.
 
 ## 15. Responsive design
 
+### Marketing site breakpoints
+
 | Breakpoint | Width | Layout changes |
 |------------|-------|----------------|
-| Mobile | `< 640px` | Single column; stacked CTAs; hamburger nav; full-width toast |
-| Tablet | `640px–1023px` | 2-col grids; sidebar hidden; table horizontal scroll |
-| Desktop | `1024px+` | Sidebar visible; hero 2-column; 3–4 col grids |
-| Wide | `1280px+` | `max-w-6xl` / `max-w-7xl` centered content |
+| Mobile | `< 640px` | Single column hero; centered copy; full-width CTAs; 2×2 trust grid; hamburger nav |
+| Tablet | `640px–1023px` | 2-col feature/stats grids; side-by-side hero CTAs; hamburger nav |
+| Desktop | `1024px+` | Full nav bar; 2-column hero; 3/4-column grids |
+
+Marketing container: `.mkt-container` with `safe-area-inset` padding for notched devices.
+
+### App breakpoints
+
+| Breakpoint | Width | Layout changes |
+|------------|-------|----------------|
+| Mobile | `< 768px` | Sidebar hidden; mobile drawer; table horizontal scroll; full-width toast |
+| Tablet / desktop | `768px+` | Sidebar visible; collapse toggle; row actions on hover |
+| Wide | `1280px+` | KPI grids up to 5 columns (dashboard) |
 
 **Test every change at:** 375px · 768px · 1024px · 1440px
 
@@ -703,8 +802,9 @@ Motion indicates **state change**, not decoration.
 
 | Property | Value |
 |----------|-------|
-| Toggle | Marketing navbar + app header |
+| Toggle | Marketing navbar (`.mkt-theme-toggle`) + app header (`.app-header-icon-btn`) |
 | Storage | `localStorage.transitops-theme` → `"light"` \| `"dark"` |
+| Default | `prefers-color-scheme` when no saved preference |
 | Implementation | `.dark` class on `<html>` |
 | Rule | Never use Tailwind `dark:` with hardcoded colors that bypass CSS variables |
 | Rule | Always use `var(--token)` for backgrounds, text, borders, semantic colors |
@@ -752,15 +852,16 @@ TransitOps speaks like a **professional operations tool**, not a marketing start
 - [ ] Uses CSS custom properties from `index.css` — no stray hex in components
 - [ ] Works in both light and dark mode
 - [ ] Uses shared UI primitives (`Button`, `Card`, `Badge`, `PageHeader`, etc.)
+- [ ] App pages wrapped in `.app-page-stack`; marketing uses `.mkt-*`; auth uses `AuthLayout`
 - [ ] Page follows app or marketing structure (§6)
-- [ ] Typography matches scale (§5)
+- [ ] Typography uses utility classes (`.text-h1`, `.text-body`, `.text-label`, etc.)
 - [ ] Only one primary button per logical section
 - [ ] Status badges use approved semantic variants (§10)
 - [ ] Icon-only controls have `aria-label`
 - [ ] Touch targets ≥ 44px on mobile
 - [ ] No banned patterns (§4.7, §13)
 - [ ] Tested at 375 / 768 / 1024 / 1440 px
-- [ ] `npm run lint` and `npm run build` pass (Node 20.12+)
+- [ ] `npm run lint` and `npm run build` pass (Node **20.20.2** per `frontend/.nvmrc`)
 
 ### When to update this guide
 
@@ -779,12 +880,34 @@ Update this document when:
 |---------|------|
 | Design tokens & utilities | `frontend/src/index.css` |
 | UI primitives | `frontend/src/components/ui/` |
+| Auth layout shell | `frontend/src/components/layout/AuthLayout.jsx` |
 | App shell | `frontend/src/layouts/AppLayout.jsx` |
-| Marketing page | `frontend/src/pages/LandingPage.jsx` |
 | Demo mode indicator | `frontend/src/components/DemoModeBanner.jsx` |
+| API client + demo fallback | `frontend/src/services/api.js` |
+| Mock data (demo only) | `frontend/src/services/mockData.js` |
+| Marketing page | `frontend/src/pages/LandingPage.jsx` |
+| Auth pages | `frontend/src/pages/auth/` |
+| App pages | `frontend/src/pages/app/` |
+| Unauthorized | `frontend/src/pages/UnauthorizedPage.jsx` |
+| Dev token reference (remove before merge) | `frontend/src/pages/dev/DevComponentsPage.jsx` |
+| Routing | `frontend/src/App.jsx` |
 | Class name helper | `frontend/src/lib/utils.js` (`cn()`) |
 | Redesign notes | `docs/frontend-redesign.md` |
 | **This guide** | `docs/style-guide.md` |
+
+### Page map
+
+| Route | Page component |
+|-------|----------------|
+| `/` | `LandingPage` |
+| `/login`, `/register`, `/forgot-password`, `/reset-password/:token` | Auth pages |
+| `/dashboard` | `DashboardPage` |
+| `/vehicles`, `/drivers`, `/trips`, `/maintenance` | Entity list pages |
+| `/fuel`, `/expenses` | `FinancePage` (tabbed by route) |
+| `/reports` | `ReportsPage` |
+| `/users` | `UsersPage` |
+| `/unauthorized` | `UnauthorizedPage` |
+| `/dev/components` | `DevComponentsPage` (dev only) |
 
 ---
 
@@ -831,4 +954,4 @@ var(--font-mono)            /* JetBrains Mono — IDs */
 
 ---
 
-*TransitOps Design System v2.0 — Enterprise B2B fleet operations platform*
+*TransitOps Design System v2.1 — Enterprise B2B fleet operations platform*
