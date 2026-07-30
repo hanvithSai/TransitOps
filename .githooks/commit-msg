@@ -1,0 +1,12 @@
+#!/bin/sh
+# Strip Cursor attribution from commit messages (TransitOps repo only)
+
+MSG_FILE="$1"
+
+if sed --version >/dev/null 2>&1; then
+  sed -i '/^Co-authored-by: Cursor/d;/^Made-with: Cursor/d;/^Made with Cursor/d' "$MSG_FILE"
+else
+  sed -i '' '/^Co-authored-by: Cursor/d;/^Made-with: Cursor/d;/^Made with Cursor/d' "$MSG_FILE"
+fi
+
+exit 0
