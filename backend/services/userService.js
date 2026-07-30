@@ -1,6 +1,12 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
+const RefreshToken = require("../models/RefreshToken");
 const { AppError } = require("../utils/errorHandler");
+const {
+    validatePasswordStrength,
+    CURRENT_POLICY_VERSION,
+    isPolicyEnforcementEnabled,
+} = require("../utils/passwordPolicy");
 
 /**
  * Get all users (paginated)
@@ -23,14 +29,27 @@ const getAllUsers = async (page = 1, limit = 20) => {
 /**
  * Create a new user
  */
-const createUser = async ({ name, email, password, roleId }) => {
+const createUser = async ({ name, email, password, roleId, isActive = true }) => {
     const role = await Role.findById(roleId);
     if (!role) throw new AppError("Role not found.", 404);
 
     const existingUser = await User.findOne({ email });
     if (existingUser) throw new AppError("Email already in use.", 409);
 
-    const user = await User.create({ name, email, password, role: roleId });
+    if (isPolicyEnforcementEnabled()) {
+        const { valid, errors } = validatePasswordStrength(password);
+        if (!valid) throw new AppError(errors.join(" "), 400);
+    }
+
+    const user = await User.create({
+        name,
+        email,
+        password,
+        role: roleId,
+        isActive: Boolean(isActive),
+        mustChangePassword: false,
+        passwordPolicyVersion: isPolicyEnforcementEnabled() ? CURRENT_POLICY_VERSION : 0,
+    });
     return User.findById(user._id).select("-password").populate("role", "name displayName");
 };
 
@@ -59,13 +78,26 @@ const updateUser = async (id, updates) => {
     }
 
     if (updates.name) user.name = updates.name;
-    if (updates.password) user.password = updates.password; // pre-save hook will hash
+    if (updates.password) {
+        if (isPolicyEnforcementEnabled()) {
+            const { valid, errors } = validatePasswordStrength(updates.password);
+            if (!valid) throw new AppError(errors.join(" "), 400);
+        }
+        user.password = updates.password;
+        user.mustChangePassword = false;
+        user.passwordPolicyVersion = CURRENT_POLICY_VERSION;
+    }
     if (updates.roleId) {
         const role = await Role.findById(updates.roleId);
         if (!role) throw new AppError("Role not found.", 404);
         user.role = updates.roleId;
     }
-    if (typeof updates.isActive === "boolean") user.isActive = updates.isActive;
+    if (typeof updates.isActive === "boolean") {
+        user.isActive = updates.isActive;
+        if (!updates.isActive) {
+            await RefreshToken.updateMany({ user: id }, { isRevoked: true });
+        }
+    }
 
     await user.save();
     return User.findById(id).select("-password").populate("role", "name displayName");
@@ -90,6 +122,7 @@ const deleteUser = async (id, requestingUserId) => {
         }
     }
 
+    await RefreshToken.deleteMany({ user: id });
     await User.findByIdAndDelete(id);
     return user;
 };

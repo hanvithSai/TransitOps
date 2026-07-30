@@ -8,8 +8,8 @@ import { useAuth } from '../contexts/AuthContext';
  *   <ProtectedRoute>                         — auth only
  *   <ProtectedRoute allowedRoles={['admin']} — auth + role
  */
-const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles = [], allowPasswordUpdate = false }) => {
+  const { isAuthenticated, user, loading, requiresPasswordChange } = useAuth();
   const location = useLocation();
 
   // Wait for initial session check
@@ -27,6 +27,16 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   // Not authenticated → redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Compliance: must update weak password before using the app
+  if (requiresPasswordChange && !allowPasswordUpdate) {
+    return <Navigate to="/update-password" replace />;
+  }
+
+  // Already compliant — skip update-password page
+  if (allowPasswordUpdate && !requiresPasswordChange) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Role check

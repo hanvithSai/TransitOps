@@ -7,6 +7,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import UpdatePasswordPage from './pages/auth/UpdatePasswordPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import DashboardPage from './pages/app/DashboardPage';
 import UsersPage from './pages/app/UsersPage';
@@ -33,6 +34,16 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+          {/* Password compliance — auth required, blocks rest of app until updated */}
+          <Route
+            path="/update-password"
+            element={
+              <ProtectedRoute allowPasswordUpdate>
+                <UpdatePasswordPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Protected routes — wrapped in AppLayout */}
           <Route

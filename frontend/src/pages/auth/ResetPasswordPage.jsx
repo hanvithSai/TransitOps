@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Lock, AlertCircle, ArrowLeft, CheckCircle2, KeyRound } from 'lucide-react';
 import api from '../../services/api';
+import { getApiErrorMessage } from '../../lib/apiErrors';
 import AuthLayout from '../../components/layout/AuthLayout';
+import PasswordChecklist from '../../components/auth/PasswordChecklist';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { validatePasswordStrength } from '../../lib/passwordPolicy';
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -28,8 +31,16 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+      return;
+    }
+
+    const { valid, errors } = validatePasswordStrength(password);
+    if (!valid) {
+      setError(errors[0]);
       setShake(true);
       setTimeout(() => setShake(false), 600);
       return;
@@ -41,7 +52,7 @@ const ResetPasswordPage = () => {
       setSuccess('Password has been reset successfully!');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password. The link might have expired.');
+      setError(getApiErrorMessage(err, 'Failed to reset password. The link might have expired.'));
       setShake(true);
       setTimeout(() => setShake(false), 600);
     } finally {
@@ -82,6 +93,7 @@ const ResetPasswordPage = () => {
           required
           autoComplete="new-password"
         />
+        <PasswordChecklist password={password} className="pt-1" />
         <Input
           label="Confirm new password"
           id="confirmPassword"

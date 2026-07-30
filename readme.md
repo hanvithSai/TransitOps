@@ -60,8 +60,9 @@ The project is structured as a monorepo, clearly separating the client applicati
     ```bash
     cd frontend
     ```
-2.  Install dependencies:
+2.  Use Node 20.20.2+ (see `.nvmrc`):
     ```bash
+    nvm use
     npm install
     ```
 3.  Create a `.env` file and set the backend API URL:
@@ -72,6 +73,11 @@ The project is structured as a monorepo, clearly separating the client applicati
     ```bash
     npm run dev
     ```
+    Opens at `http://localhost:5173` by default. If that port is taken, Vite uses the next available port (e.g. 5174). The backend allows any localhost port in development.
+
+### Self-registration
+
+Users can register at `/register`. Password must be **at least 6 characters**. New accounts are created **inactive** until an admin activates them in the Users page. Admins can set **active/inactive** when creating users via the Users page.
 
 ## Documentation
 

@@ -129,7 +129,7 @@ TransitOps/
 |---------|--------|-----|
 | RBAC permissions array | Stored in DB | Never enforced — only role names checked |
 | Demo/mock mode | Frontend fallback | Schema mismatches break several pages |
-| Password reset emails | Backend works | `FRONTEND_URL` not in `.env.example`; debug logs in controller |
+| Password reset emails | Backend works | Uses `CLIENT_URL` for reset links |
 | Dark mode | Landing + app shell | Inconsistent across all pages |
 | Audit logs | Written on mutations | No admin UI or API to query them |
 | License expiry cron | Suspends drivers | No email notifications; can suspend mid-trip |
@@ -262,7 +262,20 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 - **404 catch-all** redirects to `/dashboard` — loses URL context
 - **No post-login redirect** — `ProtectedRoute` saves `state.from` but `LoginPage` always goes to `/dashboard`
-- **Register success** doesn't mention "Pending admin approval" from backend
+- **Register success omits pending-approval message** — **FIXED** (`RegisterPage` shows backend message)
+- **Auth validation errors show generic "Validation failed"** — **FIXED** (`getApiErrorMessage` surfaces field errors; register validates min 6 chars client-side)
+- **CORS blocks frontend when Vite uses non-5173 port** — **FIXED** (dev allows any localhost port)
+
+### Auth Logic & Data Consistency — **FIXED**
+
+| Issue | Fix |
+|-------|-----|
+| Stale role in AuthContext after admin changes | User synced on token refresh + window focus via `/auth/me` |
+| Admin create had no `isActive` control | UsersPage create form includes active toggle; backend accepts `isActive` |
+| Register returned unpopulated role | `authService.register` returns populated role object |
+| User delete left orphaned refresh tokens | `RefreshToken.deleteMany` on delete; revoke on deactivate |
+| `CLIENT_URL` vs `FRONTEND_URL` mismatch | Unified on `CLIENT_URL`; removed unused `JWT_REFRESH_SECRET` from `.env.example` |
+| Password length inconsistent across forms | Aligned to min 6 chars on backend validators and frontend auth/admin forms |
 - **`/dev/components` route is public** — should be removed before production
 
 ### UX / Accessibility
@@ -362,7 +375,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 4. Align mock data schemas with real API responses
 5. Restrict login mock fallback to network errors only (not 401)
 6. Remove debug logs from `authController.forgotPassword`
-7. Add `FRONTEND_URL` to `.env.example` (or unify with `CLIENT_URL`)
+7. ~~Add `FRONTEND_URL` to `.env.example` (or unify with `CLIENT_URL`)~~ **Done**
 
 ### Short-term (data integrity)
 

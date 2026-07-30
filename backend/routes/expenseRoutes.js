@@ -3,10 +3,11 @@ const router = express.Router();
 const expenseController = require('../controllers/expenseController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
+const requirePasswordUpdated = require('../middlewares/requirePasswordUpdated');
 const { createExpenseValidator, updateExpenseValidator } = require('../validators/financeValidator');
 
 // Protect all routes
-router.use(authenticate);
+router.use(authenticate, requirePasswordUpdated);
 
 // GET /api/expenses
 router.get(

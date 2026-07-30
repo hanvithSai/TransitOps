@@ -3,10 +3,11 @@ const router = express.Router();
 const tripController = require('../controllers/tripController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
+const requirePasswordUpdated = require('../middlewares/requirePasswordUpdated');
 const { createTripValidator, completeTripValidator } = require('../validators/tripValidator');
 
 // Protect all routes
-router.use(authenticate);
+router.use(authenticate, requirePasswordUpdated);
 
 // GET /api/trips
 router.get(

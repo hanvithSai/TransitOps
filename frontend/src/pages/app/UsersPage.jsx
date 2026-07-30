@@ -19,6 +19,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 import api from '../../services/api';
+import { getApiErrorMessage } from '../../lib/apiErrors';
+import { validatePasswordStrength } from '../../lib/passwordPolicy';
+import PasswordChecklist from '../../components/auth/PasswordChecklist';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -44,24 +47,41 @@ const EMPTY_FORM = { name: '', email: '', password: '', roleId: '', isActive: tr
 const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
   const [form, setForm] = useState(initial || EMPTY_FORM);
   const [showPass, setShowPass] = useState(false);
+  const [localError, setLocalError] = useState('');
   const isEdit = !!initial;
 
   const set = (k) => (e) => {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm((p) => ({ ...p, [k]: val }));
+    if (localError) setLocalError('');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLocalError('');
+
+    if (form.password) {
+      const { valid, errors } = validatePasswordStrength(form.password);
+      if (!valid) {
+        setLocalError(errors[0]);
+        return;
+      }
+    } else if (!isEdit) {
+      setLocalError('Password is required.');
+      return;
+    }
+
     onSubmit(form);
   };
 
+  const displayError = localError || error;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
+      {displayError && (
         <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
+          <span>{displayError}</span>
         </div>
       )}
 
@@ -80,7 +100,7 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
               id="password"
               type={showPass ? 'text' : 'password'}
               className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]"
-              placeholder="Min 6 characters"
+              placeholder="Min 6 chars, upper, lower, number, special"
               value={form.password}
               onChange={set('password')}
               required
@@ -94,6 +114,7 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordChecklist password={form.password} className="pt-1" />
         </div>
       ) : (
         <div className="space-y-2 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4">
@@ -111,6 +132,7 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
               </span>
             )}
           </div>
+          {form.password && <PasswordChecklist password={form.password} className="pt-1" />}
         </div>
       )}
 
@@ -137,21 +159,21 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
         </div>
       </div>
 
-      {isEdit && (
-        <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-[var(--text-primary)]">Account Status</p>
-            <p className="text-xs text-[var(--text-muted)]">Determines if the user can log in.</p>
-          </div>
-          <label className="flex cursor-pointer items-center gap-3">
-            <div className="relative">
-              <input type="checkbox" className="peer sr-only" checked={form.isActive} onChange={set('isActive')} />
-              <div className="h-6 w-11 rounded-full bg-[var(--border-base)] transition-colors peer-checked:bg-[var(--color-brand-500)]" />
-              <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
-            </div>
-          </label>
+      <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-[var(--text-primary)]">Account Status</p>
+          <p className="text-xs text-[var(--text-muted)]">
+            {isEdit ? 'Determines if the user can log in.' : 'Inactive users require admin approval before login.'}
+          </p>
         </div>
-      )}
+        <label className="flex cursor-pointer items-center gap-3">
+          <div className="relative">
+            <input type="checkbox" className="peer sr-only" checked={form.isActive} onChange={set('isActive')} />
+            <div className="h-6 w-11 rounded-full bg-[var(--border-base)] transition-colors peer-checked:bg-[var(--color-brand-500)]" />
+            <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+          </div>
+        </label>
+      </div>
 
       <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-[var(--border-base)]">
         <Button type="submit" loading={loading} className="w-full sm:w-auto">
@@ -250,12 +272,13 @@ const UsersPage = () => {
         email: form.email,
         password: form.password,
         roleId: form.roleId,
+        isActive: form.isActive,
       });
       showToast(`User "${form.name}" created successfully`);
       setModal(null);
       fetchUsers();
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to create user');
+      setFormError(getApiErrorMessage(err, 'Failed to create user'));
     } finally {
       setFormLoading(false);
     }

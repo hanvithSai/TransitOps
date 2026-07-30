@@ -5,6 +5,12 @@ const RefreshToken = require("../models/RefreshToken");
 const Role = require("../models/Role");
 const { AppError } = require("../utils/errorHandler");
 const sendEmail = require("../utils/sendEmail");
+const {
+    validatePasswordStrength,
+    userRequiresPasswordChange,
+    CURRENT_POLICY_VERSION,
+    isPolicyEnforcementEnabled,
+} = require("../utils/passwordPolicy");
 
 /**
  * Generate access token (1 day)
@@ -48,6 +54,15 @@ const login = async (email, password) => {
         throw new AppError("Invalid email or password.", 401);
     }
 
+    let requiresPasswordChange = false;
+    if (isPolicyEnforcementEnabled()) {
+        requiresPasswordChange = userRequiresPasswordChange(user, password);
+        user.mustChangePassword = requiresPasswordChange;
+        if (!requiresPasswordChange) {
+            user.passwordPolicyVersion = CURRENT_POLICY_VERSION;
+        }
+    }
+
     // Update last login
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
@@ -59,7 +74,7 @@ const login = async (email, password) => {
     const userObj = user.toObject();
     delete userObj.password;
 
-    return { user: userObj, accessToken, refreshToken };
+    return { user: userObj, accessToken, refreshToken, requiresPasswordChange };
 };
 
 /**
@@ -86,16 +101,27 @@ const register = async (name, email, password, roleName) => {
         throw new AppError("Invalid role selected.", 400);
     }
 
+    if (isPolicyEnforcementEnabled()) {
+        const { valid, errors } = validatePasswordStrength(password);
+        if (!valid) throw new AppError(errors.join(" "), 400);
+    }
+
     // Create user as inactive
     const user = await User.create({
         name,
         email,
         password,
         role: role._id,
-        isActive: false
+        isActive: false,
+        mustChangePassword: false,
+        passwordPolicyVersion: isPolicyEnforcementEnabled() ? CURRENT_POLICY_VERSION : 0,
     });
 
-    return { user };
+    const populatedUser = await User.findById(user._id)
+        .select("-password")
+        .populate("role", "name displayName permissions");
+
+    return { user: populatedUser };
 };
 
 /**
@@ -207,11 +233,71 @@ const resetPassword = async (resetToken, newPassword) => {
         throw new AppError("Invalid or expired token", 400);
     }
 
+    if (isPolicyEnforcementEnabled()) {
+        const { valid, errors } = validatePasswordStrength(newPassword);
+        if (!valid) throw new AppError(errors.join(" "), 400);
+    }
+
     // Set new password
     user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+    user.mustChangePassword = false;
+    user.passwordPolicyVersion = CURRENT_POLICY_VERSION;
     await user.save();
+
+    await RefreshToken.updateMany({ user: user._id }, { isRevoked: true });
 };
 
-module.exports = { login, refreshAccessToken, logout, getUserById, register, forgotPassword, resetPassword };
+/**
+ * Change password (authenticated user — compliance upgrade flow)
+ */
+const changePassword = async (userId, currentPassword, newPassword, currentRefreshToken) => {
+    const user = await User.findById(userId)
+        .select("+password")
+        .populate("role", "name displayName permissions");
+
+    if (!user) throw new AppError("User not found.", 404);
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) throw new AppError("Current password is incorrect.", 401);
+
+    if (isPolicyEnforcementEnabled()) {
+        const { valid, errors } = validatePasswordStrength(newPassword);
+        if (!valid) throw new AppError(errors.join(" "), 400);
+    }
+
+    if (await user.comparePassword(newPassword)) {
+        throw new AppError("New password must be different from your current password.", 400);
+    }
+
+    user.password = newPassword;
+    user.mustChangePassword = false;
+    user.passwordPolicyVersion = CURRENT_POLICY_VERSION;
+    await user.save();
+
+    // Revoke other sessions; keep current refresh token
+    if (currentRefreshToken) {
+        await RefreshToken.updateMany(
+            { user: userId, token: { $ne: currentRefreshToken }, isRevoked: false },
+            { isRevoked: true }
+        );
+    } else {
+        await RefreshToken.updateMany({ user: userId, isRevoked: false }, { isRevoked: true });
+    }
+
+    const userObj = user.toObject();
+    delete userObj.password;
+    return userObj;
+};
+
+module.exports = {
+    login,
+    refreshAccessToken,
+    logout,
+    getUserById,
+    register,
+    forgotPassword,
+    resetPassword,
+    changePassword,
+};

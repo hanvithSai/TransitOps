@@ -139,8 +139,7 @@ TransitOps/
 MONGO_URI=mongodb+srv://...          # MongoDB Atlas connection string
 PORT=5000                            # Express server port
 JWT_SECRET=...                       # Access token signing secret
-JWT_REFRESH_SECRET=...               # (reserved) Refresh token secret
-CLIENT_URL=http://localhost:5173     # Frontend origin for CORS
+CLIENT_URL=http://localhost:5173     # Frontend origin for CORS and password-reset links
 NODE_ENV=development                 # Environment flag
 ```
 
@@ -325,10 +324,11 @@ NODE_ENV=development                 # Environment flag
 | Method | Endpoint | Auth | Body | Response |
 |---|---|---|---|---|
 | `POST` | `/api/auth/register` | Public | `{ name, email, password, roleName }` | `{ user }` (created with `isActive: false`) |
-| `POST` | `/api/auth/login` | Public | `{ email, password }` | `{ user, accessToken }` + sets `refreshToken` cookie |
+| `POST` | `/api/auth/login` | Public | `{ email, password }` | `{ user, accessToken, requiresPasswordChange? }` + sets `refreshToken` cookie |
 | `POST` | `/api/auth/refresh` | Cookie | — | `{ accessToken, user }` |
 | `POST` | `/api/auth/logout` | Cookie | — | Clears cookie, revokes token |
-| `GET` | `/api/auth/me` | Bearer JWT | — | `{ user }` with role populated |
+| `GET` | `/api/auth/me` | Bearer JWT | — | `{ user }` with role populated (allowed while `mustChangePassword`) |
+| `POST` | `/api/auth/change-password` | Bearer JWT | `{ currentPassword, newPassword }` | `{ user }` — revokes other refresh tokens, keeps current session |
 | `POST` | `/api/auth/forgot-password` | Public | `{ email }` | `{ message }`; in dev without SMTP also `{ data: { previewUrl } }` |
 | `POST` | `/api/auth/reset-password/:token` | Public | `{ password }` | `{ message }` |
 
@@ -475,11 +475,28 @@ Route → authenticate → authorize("role1", "role2") → controller
 - Algorithm: `bcrypt` with salt rounds `12`
 - Never stored in plaintext
 - `select: false` on schema — never returned in queries unless explicitly `+password`
-- Minimum 6 characters enforced at validator and schema level
+- Minimum 6 characters enforced at validator level across register, reset, login, and admin user create/update
+
+**Compliance password policy** (when `PASSWORD_POLICY_ENFORCEMENT=true`, default):
+
+| Rule | Requirement |
+|---|---|
+| Length | Minimum 6 characters |
+| Uppercase | At least one `A–Z` |
+| Lowercase | At least one `a–z` |
+| Number | At least one `0–9` |
+| Special | At least one non-alphanumeric character |
+| Spaces | Not allowed |
+
+- On login, existing passwords are checked against this policy. Non-compliant users receive `requiresPasswordChange: true` and are blocked from all protected routes except `/api/auth/me`, `/api/auth/change-password`, and `/api/auth/logout` until they update.
+- Admin create/update, register, reset, and change-password flows enforce the full policy on **new** passwords.
+- Set `PASSWORD_POLICY_ENFORCEMENT=false` in `.env` once all users have migrated (feature can be retired).
+- User schema fields: `mustChangePassword` (boolean), `passwordPolicyVersion` (number, current `1`).
 
 ### 6.4 CORS
 
-- Origin locked to `CLIENT_URL` env variable (default: `http://localhost:5173`)
+- Production: origin locked to `CLIENT_URL` env variable (default: `http://localhost:5173`)
+- Development: any `http://localhost:<port>` or `http://127.0.0.1:<port>` origin is allowed (Vite may use 5174+ if 5173 is in use)
 - `credentials: true` — required to send/receive cookies for refresh token
 
 ---
@@ -490,8 +507,10 @@ Uses `express-validator` across all modules.
 
 | Validator | Used On | Key Fields |
 |---|---|---|
+| `registerValidator` | `POST /api/auth/register` | name, email, password (min 6 + policy), roleName |
 | `loginValidator` | `POST /api/auth/login` | email (format + normalise), password (min 6) |
-| `createUserValidator` | `POST /api/users` | name, email, password, roleId (MongoId) |
+| `changePasswordValidator` | `POST /api/auth/change-password` | currentPassword, newPassword (min 6 + policy) |
+| `createUserValidator` | `POST /api/users` | name, email, password (min 6 + policy), roleId, optional isActive |
 | `updateUserValidator` | `PUT /api/users/:id` | All optional — same rules + isActive (boolean) |
 | `createVehicleValidator` | `POST /api/vehicles` | registrationNumber, vehicleName, model, type, capacity (>0.1), odometer (>=0) |
 | `updateVehicleValidator` | `PUT /api/vehicles/:id` | All optional — same rules |
@@ -674,16 +693,19 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 **Methods exposed via `useAuth()` hook:**
 - `login(email, password)` → calls `POST /api/auth/login`, stores `accessToken` in `localStorage`
+- `register(name, email, password, roleName)` → calls `POST /api/auth/register`; surfaces backend validation errors via `getApiErrorMessage`
 - `logout()` → calls `POST /api/auth/logout`, clears `localStorage`, resets user state
 - `clearError()` → clears error message
 
 **Session restoration:** On mount, checks `localStorage` for token → calls `GET /api/auth/me` → sets user or clears storage.
 
+**Session sync:** On token refresh, `AuthContext` updates `user` from the refresh response. On window focus, `/auth/me` is called to pick up admin role/status changes.
+
 ### 11.3 API Service
 
 **File:** `frontend/src/services/api.js`
 
-- **Base URL:** `http://localhost:5000/api`
+- **Base URL:** `VITE_API_URL` or `http://localhost:5000/api`
 - **`withCredentials: true`** — sends refresh token cookie on every request
 - **Request interceptor:** Reads `accessToken` from `localStorage`, sets `Authorization: Bearer <token>`
 - **Response interceptor (token refresh queue):**
@@ -692,6 +714,11 @@ Protected (ProtectedRoute wrapping AppLayout):
   - Calls `POST /api/auth/refresh` once
   - On success: replays all queued requests with new token
   - On failure: clears `localStorage`, redirects to `/login`
+- **Demo/mock fallback:** GET data endpoints only; all `/auth/*` requests always fail through to the UI (no fake success)
+
+**File:** `frontend/src/lib/apiErrors.js`
+
+- `getApiErrorMessage(err, fallback)` — extracts `errors[].msg` from validation responses before falling back to `message`
 
 ### 11.4 ProtectedRoute
 

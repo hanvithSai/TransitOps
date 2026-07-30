@@ -21,6 +21,12 @@ export const subscribeDemoMode = (listener) => {
   return () => demoListeners.delete(listener);
 };
 
+let onTokenRefresh = null;
+
+export const setTokenRefreshHandler = (handler) => {
+  onTokenRefresh = handler;
+};
+
 const setDemoMode = (active) => {
   if (demoModeActive === active) return;
   demoModeActive = active;
@@ -114,6 +120,9 @@ api.interceptors.response.use(
         const newToken = data.data.accessToken;
         localStorage.setItem('accessToken', newToken);
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        if (data.data.user && onTokenRefresh) {
+          onTokenRefresh(data.data.user);
+        }
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
@@ -124,6 +133,12 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    if (error.response?.status === 403 && error.response?.data?.requiresPasswordChange) {
+      if (!window.location.pathname.startsWith('/update-password')) {
+        window.location.href = '/update-password';
       }
     }
 

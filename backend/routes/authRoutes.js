@@ -1,11 +1,27 @@
 const express = require("express");
 const router = express.Router();
-const { registerUser, loginUser, refreshToken, logoutUser, getMe, forgotPassword, resetPassword } = require("../controllers/authController");
-const { registerValidator, loginValidator, forgotPasswordValidator, resetPasswordValidator } = require("../validators/authValidator");
+const {
+    registerUser,
+    loginUser,
+    refreshToken,
+    logoutUser,
+    getMe,
+    forgotPassword,
+    resetPassword,
+    changePassword,
+} = require("../controllers/authController");
+const {
+    registerValidator,
+    loginValidator,
+    forgotPasswordValidator,
+    resetPasswordValidator,
+    changePasswordValidator,
+    enforcePasswordPolicy,
+} = require("../validators/authValidator");
 const authenticate = require("../middlewares/authenticate");
 
 // POST /api/auth/register
-router.post("/register", registerValidator, registerUser);
+router.post("/register", registerValidator, enforcePasswordPolicy("password"), registerUser);
 
 // POST /api/auth/login
 router.post("/login", loginValidator, loginUser);
@@ -19,10 +35,24 @@ router.post("/logout", logoutUser);
 // GET /api/auth/me  (protected)
 router.get("/me", authenticate, getMe);
 
+// POST /api/auth/change-password (protected — allowed while mustChangePassword)
+router.post(
+    "/change-password",
+    authenticate,
+    changePasswordValidator,
+    enforcePasswordPolicy("newPassword"),
+    changePassword
+);
+
 // POST /api/auth/forgot-password
 router.post("/forgot-password", forgotPasswordValidator, forgotPassword);
 
 // POST /api/auth/reset-password/:token
-router.post("/reset-password/:token", resetPasswordValidator, resetPassword);
+router.post(
+    "/reset-password/:token",
+    resetPasswordValidator,
+    enforcePasswordPolicy("password"),
+    resetPassword
+);
 
 module.exports = router;
