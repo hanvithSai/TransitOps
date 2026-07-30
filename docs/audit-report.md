@@ -168,14 +168,12 @@ TransitOps/
 
 ### P0 — Broken Flows
 
-#### 1. Password reset uses wrong HTTP method
+#### 1. Password reset HTTP method mismatch — **FIXED**
 
-Frontend sends `PUT`, backend expects `POST`:
+Frontend now sends `POST` to match the backend route.
 
-- **Frontend:** `frontend/src/pages/auth/ResetPasswordPage.jsx` — `api.put('/auth/reset-password/:token', ...)`
+- **Frontend:** `frontend/src/pages/auth/ResetPasswordPage.jsx` — `api.post('/auth/reset-password/:token', ...)`
 - **Backend:** `backend/routes/authRoutes.js` — `router.post('/reset-password/:token', ...)`
-
-**Impact:** Password reset is completely broken against a live backend.
 
 #### 2. Mock login bypasses credential validation
 
@@ -248,7 +246,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 | Path | Component | Status |
 |------|-----------|--------|
 | `/` | LandingPage | Implemented |
-| `/login`, `/register`, `/forgot-password`, `/reset-password/:token` | Auth pages | Implemented (reset broken — see P0) |
+| `/login`, `/register`, `/forgot-password`, `/reset-password/:token` | Auth pages | Implemented |
 | `/dashboard` | DashboardPage | Implemented |
 | `/vehicles` | VehiclesPage | Implemented |
 | `/drivers` | DriversPage | Implemented |
@@ -358,7 +356,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 ### Immediate (before demo/production)
 
-1. Fix reset-password HTTP method (`PUT` → `POST`)
+1. ~~Fix reset-password HTTP method (`PUT` → `POST`)~~ **Done**
 2. Add RBAC to `/api/dashboard/stats` and `/api/reports/*`
 3. Blocklist `admin` role on public registration
 4. Align mock data schemas with real API responses

@@ -37,7 +37,7 @@ const ResetPasswordPage = () => {
 
     setLoading(true);
     try {
-      await api.put(`/auth/reset-password/${token}`, { password });
+      await api.post(`/auth/reset-password/${token}`, { password });
       setSuccess('Password has been reset successfully!');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
