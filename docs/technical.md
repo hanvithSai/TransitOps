@@ -673,6 +673,9 @@ Stack traces included only in `NODE_ENV=development`.
 /                     → redirect to /dashboard
 /login                → LoginPage (public)
 /unauthorized         → UnauthorizedPage (public)
+/*                    → NotFoundPage (public)
+
+/dev/components       → DevComponentsPage (development only)
 
 Protected (ProtectedRoute wrapping AppLayout):
   /dashboard          → DashboardPage (placeholder)

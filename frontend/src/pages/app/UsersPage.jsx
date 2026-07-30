@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { getApiErrorMessage } from '../../lib/apiErrors';
-import { validatePasswordStrength } from '../../lib/passwordPolicy';
+import { validatePasswordStrength, generateSecurePassword } from '../../lib/passwordPolicy';
 import PasswordChecklist from '../../components/auth/PasswordChecklist';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -122,10 +122,15 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
             <KeyRound className="h-3.5 w-3.5" /> Password Reset
           </label>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <Button variant="outline" type="button" onClick={() => setForm((p) => ({ ...p, password: 'TransitOps2026!' }))} className="text-xs shrink-0">
-              Set to Default Password
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, password: generateSecurePassword() }))}
+              className="text-xs shrink-0"
+            >
+              Generate secure password
             </Button>
-            {form.password === 'TransitOps2026!' && (
+            {form.password && validatePasswordStrength(form.password).valid && (
               <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Will be reset on save

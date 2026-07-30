@@ -256,15 +256,17 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 | `/reports` | ReportsPage | Implemented |
 | `/users` | UsersPage | Implemented |
 | `/dev/components` | DevComponentsPage | Public — remove before production |
-| `*` (404) | Redirect to `/dashboard` | Loses URL context |
+| `*` (404) | NotFoundPage | **FIXED** — no longer redirects to dashboard |
 
 ### Routing & Auth Issues
 
-- **404 catch-all** redirects to `/dashboard` — loses URL context
-- **No post-login redirect** — `ProtectedRoute` saves `state.from` but `LoginPage` always goes to `/dashboard`
+- **404 catch-all** redirects to `/dashboard` — loses URL context → **FIXED** — dedicated `NotFoundPage`
+- **No post-login redirect** — **FIXED** — `LoginPage` uses `location.state.from` via `getPostLoginPath()`
 - **Register success omits pending-approval message** — **FIXED** (`RegisterPage` shows backend message)
 - **Auth validation errors show generic "Validation failed"** — **FIXED** (`getApiErrorMessage` surfaces field errors; register validates min 6 chars client-side)
 - **CORS blocks frontend when Vite uses non-5173 port** — **FIXED** (dev allows any localhost port)
+- **`/dev/components` route is public** — **FIXED** — only registered when `import.meta.env.DEV`
+- **UsersPage hardcodes default password** — **FIXED** — `generateSecurePassword()` helper
 
 ### Auth Logic & Data Consistency — **FIXED**
 
@@ -394,7 +396,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 17. Invalidate sessions on password reset
 18. Add audit log read API for admins
 19. Expand test coverage (trip rules, ROI math, auth flows)
-20. Remove `/dev/components` route
+20. ~~Remove `/dev/components` route~~ **Done** (dev-only)
 21. Adopt `EmptyState`, fix Badge variants, add modal focus trap
 22. Add search debouncing
 23. Update stale documentation

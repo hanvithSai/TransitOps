@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
@@ -9,6 +9,7 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import UpdatePasswordPage from './pages/auth/UpdatePasswordPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import NotFoundPage from './pages/NotFoundPage';
 import DashboardPage from './pages/app/DashboardPage';
 import UsersPage from './pages/app/UsersPage';
 import VehiclesPage from './pages/app/VehiclesPage';
@@ -24,8 +25,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Dev — remove before merge */}
-          <Route path="/dev/components" element={<DevComponentsPage />} />
+          {import.meta.env.DEV && (
+            <Route path="/dev/components" element={<DevComponentsPage />} />
+          )}
 
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
@@ -126,7 +128,7 @@ function App() {
           </Route>
 
           {/* 404 */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

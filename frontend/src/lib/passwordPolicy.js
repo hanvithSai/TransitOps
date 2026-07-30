@@ -36,3 +36,26 @@ export const validatePasswordStrength = (password) => {
     results,
   };
 };
+
+/** Generate a random password that satisfies the policy (for admin resets). */
+export const generateSecurePassword = (length = 12) => {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const nums = '23456789';
+  const special = '!@#$%^&*';
+  const all = upper + lower + nums + special;
+  const pick = (chars) => chars[Math.floor(Math.random() * chars.length)];
+
+  let password = pick(upper) + pick(lower) + pick(nums) + pick(special);
+  while (password.length < length) password += pick(all);
+
+  return password;
+};
+
+const AUTH_ONLY_PATHS = new Set(['/', '/login', '/register', '/forgot-password', '/update-password', '/unauthorized']);
+
+export const getPostLoginPath = (fromPath, requiresPasswordChange = false) => {
+  if (requiresPasswordChange) return '/update-password';
+  if (fromPath && !AUTH_ONLY_PATHS.has(fromPath)) return fromPath;
+  return '/dashboard';
+};
