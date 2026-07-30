@@ -16,12 +16,16 @@ import TripsPage from './pages/app/TripsPage';
 import MaintenancePage from './pages/app/MaintenancePage';
 import FinancePage from './pages/app/FinancePage';
 import ReportsPage from './pages/app/ReportsPage';
+import DevComponentsPage from './pages/dev/DevComponentsPage';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Dev — remove before merge */}
+          <Route path="/dev/components" element={<DevComponentsPage />} />
+
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
