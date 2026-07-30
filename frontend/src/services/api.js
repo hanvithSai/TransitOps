@@ -62,6 +62,7 @@ const getMockDataForUrl = (url, method) => {
   if (url.includes('/fuel') && method === 'get') return mockData.finance.fuel;
   if (url.includes('/expenses') && method === 'get') return mockData.finance.expenses;
   if (url.includes('/users') && method === 'get') return mockData.users.list;
+  if (url.includes('/reports/roi') && method === 'get') return mockData.reports.roi;
 
   if (method !== 'get') return { data: { success: true } };
   return { data: {} };

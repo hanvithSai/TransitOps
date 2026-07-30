@@ -25,7 +25,7 @@ export const Button = ({
     sm: 'min-h-9 px-3.5 py-2 text-xs gap-1.5',
     md: 'min-h-11 px-5 py-2.5 text-sm gap-2',
     lg: 'min-h-12 px-8 py-3 text-base gap-2.5',
-    icon: 'h-11 w-11 p-0',
+    icon: 'h-11 w-11 p-0 min-h-0',
   };
 
   const iconSize = size === 'sm' ? 'h-3.5 w-3.5' : size === 'lg' ? 'h-5 w-5' : 'h-4 w-4';
