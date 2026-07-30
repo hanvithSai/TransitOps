@@ -469,6 +469,9 @@ Route → authenticate → authorize("role1", "role2") → controller
 - Factory: `authorize(...roles)` returns middleware
 - Checks `req.user.role.name` against allowed roles array
 - Returns `403` if not in allowed list
+- **Dashboard** (`GET /api/dashboard/stats`): all app roles
+- **Reports** (`GET /api/reports/roi`, `/roi/download`): `admin`, `financial_analyst`, `fleet_manager`
+- **Self-registration**: `admin` role rejected at service layer (403)
 
 ### 6.3 Password Security
 

@@ -209,8 +209,8 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 | Issue | Severity | Details |
 |-------|----------|---------|
-| **Admin role on public registration** | High | `/api/auth/register` accepts `"admin"` — attacker can queue admin accounts for approval |
-| **Dashboard/reports lack RBAC** | High | Any authenticated user (including drivers) can access financial ROI data |
+| **Admin role on public registration** | High | ~~`/api/auth/register` accepts `"admin"`~~ **FIXED** — admin role rejected with 403 |
+| **Dashboard/reports lack RBAC** | High | ~~Any authenticated user can access financial ROI data~~ **FIXED** — `authorize()` on dashboard + reports routes |
 | **User enumeration on forgot-password** | Medium | Returns 404 when email not found vs 200 when found |
 | **No rate limiting** | Medium | Login, register, forgot-password, reset-password unprotected |
 | **No security headers** | Medium | No `helmet` middleware |
@@ -312,9 +312,9 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 | Route | Current | Expected |
 |-------|---------|----------|
-| `GET /api/dashboard/stats` | Any authenticated user | Should restrict by role |
-| `GET /api/reports/roi` | Any authenticated user | Should be admin + financial_analyst |
-| `GET /api/reports/roi/download` | Any authenticated user | Should be admin + financial_analyst |
+| `GET /api/dashboard/stats` | ~~Any authenticated user~~ **FIXED** — all app roles via `authorize()` | Matches frontend nav |
+| `GET /api/reports/roi` | ~~Any authenticated user~~ **FIXED** | admin + financial_analyst + fleet_manager |
+| `GET /api/reports/roi/download` | ~~Any authenticated user~~ **FIXED** | admin + financial_analyst + fleet_manager |
 
 **Permissions array never enforced:** `Role.permissions` is populated and returned to clients but `authorize` middleware ignores it entirely.
 
@@ -370,8 +370,8 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 ### Immediate (before demo/production)
 
 1. ~~Fix reset-password HTTP method (`PUT` → `POST`)~~ **Done**
-2. Add RBAC to `/api/dashboard/stats` and `/api/reports/*`
-3. Blocklist `admin` role on public registration
+2. ~~Add RBAC to `/api/dashboard/stats` and `/api/reports/*`~~ **Done**
+3. ~~Blocklist `admin` role on public registration~~ **Done**
 4. Align mock data schemas with real API responses
 5. Restrict login mock fallback to network errors only (not 401)
 6. Remove debug logs from `authController.forgotPassword`

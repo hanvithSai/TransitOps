@@ -9,7 +9,7 @@ jest.mock('../middlewares/authenticate', () => {
             const { AppError } = require('../utils/errorHandler');
             return next(new AppError("No token provided. Access denied.", 401));
         }
-        req.user = { role: { name: role }, isActive: true };
+        req.user = { role: { name: role }, isActive: true, mustChangePassword: false };
         next();
     };
 });
@@ -26,6 +26,8 @@ const fuelRoutes = require('../routes/fuelRoutes');
 const expenseRoutes = require('../routes/expenseRoutes');
 const userRoutes = require('../routes/userRoutes');
 const roleRoutes = require('../routes/roleRoutes');
+const dashboardRoutes = require('../routes/dashboardRoutes');
+const reportRoutes = require('../routes/reportRoutes');
 
 const app = express();
 app.use(express.json());
@@ -39,6 +41,8 @@ app.use('/api/fuel', fuelRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Apply error handler
 app.use(errorHandler);
@@ -111,13 +115,27 @@ jest.mock('../controllers/userController', () => ({
     deleteUser: (req, res) => res.status(200).send(),
 }));
 
+jest.mock('../controllers/dashboardController', () => ({
+    getDashboardStats: (req, res) => res.status(200).send(),
+}));
+
+jest.mock('../controllers/reportController', () => ({
+    getROIReport: (req, res) => res.status(200).send(),
+    downloadROICSV: (req, res) => res.status(200).send(),
+}));
+
 // Skip validators to avoid payload errors
 jest.mock('../validators/vehicleValidator', () => ({ createVehicleValidator: (req,res,next)=>next(), updateVehicleValidator: (req,res,next)=>next() }));
 jest.mock('../validators/driverValidator', () => ({ createDriverValidator: (req,res,next)=>next(), updateDriverValidator: (req,res,next)=>next() }));
 jest.mock('../validators/tripValidator', () => ({ createTripValidator: (req,res,next)=>next(), completeTripValidator: (req,res,next)=>next() }));
 jest.mock('../validators/maintenanceValidator', () => ({ createMaintenanceValidator: (req,res,next)=>next(), updateMaintenanceValidator: (req,res,next)=>next() }));
 jest.mock('../validators/financeValidator', () => ({ createFuelValidator: (req,res,next)=>next(), updateFuelValidator: (req,res,next)=>next(), createExpenseValidator: (req,res,next)=>next(), updateExpenseValidator: (req,res,next)=>next() }));
-jest.mock('../validators/authValidator', () => ({ createUserValidator: (req,res,next)=>next(), updateUserValidator: (req,res,next)=>next() }));
+jest.mock('../validators/authValidator', () => ({
+    createUserValidator: (req, res, next) => next(),
+    updateUserValidator: (req, res, next) => next(),
+    enforcePasswordPolicy: () => (req, res, next) => next(),
+    enforceOptionalPasswordPolicy: (req, res, next) => next(),
+}));
 // Also mock Role model to prevent DB connection requirements
 jest.mock('../models/Role', () => ({
     find: jest.fn().mockReturnValue({ sort: jest.fn().mockResolvedValue([]) })
@@ -243,6 +261,38 @@ describe('RBAC Middleware Tests', () => {
                 await testAccess('delete', '/api/users/1', role, 403);
                 
                 await testAccess('get', '/api/roles', role, 403);
+            }
+        });
+    });
+
+    describe('Dashboard Module', () => {
+        const allowedRoles = ['admin', 'fleet_manager', 'driver', 'safety_officer', 'financial_analyst'];
+
+        it('allows stats for all app roles', async () => {
+            for (const role of allowedRoles) {
+                await testAccess('get', '/api/dashboard/stats', role, 200);
+            }
+        });
+
+        it('denies stats without auth', async () => {
+            await testAccess('get', '/api/dashboard/stats', null, 401);
+        });
+    });
+
+    describe('Reports Module', () => {
+        const allowedRoles = ['admin', 'financial_analyst', 'fleet_manager'];
+
+        it('allows ROI for admin, financial_analyst, fleet_manager', async () => {
+            for (const role of allowedRoles) {
+                await testAccess('get', '/api/reports/roi', role, 200);
+                await testAccess('get', '/api/reports/roi/download', role, 200);
+            }
+        });
+
+        it('denies ROI for driver and safety_officer', async () => {
+            for (const role of ['driver', 'safety_officer']) {
+                await testAccess('get', '/api/reports/roi', role, 403);
+                await testAccess('get', '/api/reports/roi/download', role, 403);
             }
         });
     });

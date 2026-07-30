@@ -96,6 +96,10 @@ const register = async (name, email, password, roleName) => {
     };
     const dbRoleName = roleMap[roleName] || roleName;
 
+    if (dbRoleName === "admin") {
+        throw new AppError("Admin accounts cannot be created via self-registration.", 403);
+    }
+
     const role = await Role.findOne({ name: dbRoleName });
     if (!role) {
         throw new AppError("Invalid role selected.", 400);

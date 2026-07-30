@@ -53,7 +53,11 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={
+                <ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver', 'safety_officer', 'financial_analyst']}>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
 
             <Route
               path="/vehicles"
