@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
-import { cn } from "../../lib/utils";
+import { cn } from '../../lib/utils';
 
 export const Toast = ({ message, type = 'success', onDismiss }) => {
   useEffect(() => {
@@ -15,25 +15,18 @@ export const Toast = ({ message, type = 'success', onDismiss }) => {
   };
 
   const icons = {
-    success: <CheckCircle2 className="h-5 w-5 text-[var(--color-success)] shrink-0" />,
-    error: <AlertCircle className="h-5 w-5 text-[var(--color-error)] shrink-0" />,
-    info: <Info className="h-5 w-5 text-[var(--color-info)] shrink-0" />,
+    success: CheckCircle2,
+    error: AlertCircle,
+    info: Info,
   };
 
+  const Icon = icons[type] || Info;
+
   return (
-    <div 
-      className={cn(
-        "fixed bottom-6 right-6 z-[120] flex items-start gap-3 rounded-[10px] border px-4 py-3 text-sm font-medium shadow-lg",
-        "animate-in slide-in-from-bottom-5 fade-in duration-300",
-        variants[type]
-      )}
-    >
-      {icons[type]}
-      <div className="flex-1 mt-0.5">{message}</div>
-      <button 
-        onClick={onDismiss}
-        className="ml-2 mt-0.5 shrink-0 opacity-70 hover:opacity-100 transition-opacity"
-      >
+    <div className={cn('app-toast', variants[type])} role="status">
+      <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      <div className="flex-1 text-sm font-medium">{message}</div>
+      <button type="button" onClick={onDismiss} className="app-toast-dismiss" aria-label="Dismiss">
         <X className="h-4 w-4" />
       </button>
     </div>

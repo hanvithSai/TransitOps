@@ -1,36 +1,37 @@
-import { cn } from "../../lib/utils";
+import { cn } from '../../lib/utils';
 
 export const Table = ({ children, className }) => (
-  <div className={cn("w-full overflow-x-auto rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm", className)}>
-    <table className="w-full text-left text-sm">
-      {children}
-    </table>
+  <div className={cn('app-table-wrap', className)}>
+    <table className="app-table">{children}</table>
   </div>
 );
 
 export const TableHead = ({ children, className }) => (
-  <thead className={cn("border-b border-[var(--border-base)] bg-[var(--bg-base)] text-[11px] font-semibold tracking-wider text-[var(--text-secondary)] uppercase", className)}>
+  <thead className={cn('app-table-head', className)}>
     <tr>{children}</tr>
   </thead>
 );
 
-export const TableRow = ({ children, className, onClick }) => (
-  <tr 
+export const TableRow = ({ children, className, onClick, selected }) => (
+  <tr
     onClick={onClick}
     className={cn(
-      "border-b border-[var(--border-base)] last:border-0 transition-colors hover:bg-[var(--bg-surface-hover)]",
-      onClick && "cursor-pointer",
-      className
+      'app-table-row',
+      onClick && 'cursor-pointer',
+      selected && 'table-row-selected',
+      className,
     )}
   >
     {children}
   </tr>
 );
 
-export const TableHeader = ({ children, className }) => (
-  <th className={cn("px-6 py-4 whitespace-nowrap", className)}>{children}</th>
+export const TableHeader = ({ children, className, align }) => (
+  <th className={cn('app-table-th', align === 'right' && 'text-right', className)}>{children}</th>
 );
 
-export const TableCell = ({ children, className }) => (
-  <td className={cn("px-6 py-4 text-[var(--text-primary)]", className)}>{children}</td>
+export const TableCell = ({ children, className, mono, align }) => (
+  <td className={cn('app-table-td', mono && 'text-mono-data', align === 'right' && 'text-right', className)}>
+    {children}
+  </td>
 );

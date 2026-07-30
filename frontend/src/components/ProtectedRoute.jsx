@@ -15,10 +15,10 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   // Wait for initial session check
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[var(--color-surface-950)]">
+      <div className="flex h-screen items-center justify-center bg-[var(--bg-base)]">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-brand-600)] border-t-transparent" />
-          <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>
+          <p className="text-sm text-[var(--text-secondary)]">Loading…</p>
         </div>
       </div>
     );

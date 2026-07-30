@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import api from '../services/api';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { Download, BarChart3, TrendingUp, Droplet, DollarSign, AlertCircle, FileX } from 'lucide-react';
+import api from '../../services/api';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { Download, BarChart3, TrendingUp, Droplet, DollarSign, FileX } from 'lucide-react';
 
 const ReportsPage = () => {
   const [data, setData] = useState([]);
@@ -48,46 +50,37 @@ const ReportsPage = () => {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
+      <div className="app-page-stack">
+        <PageHeader icon={BarChart3} title="Reports & analytics" subtitle="Vehicle ROI, operational costs, and fleet utilization" />
+        <SkeletonTable rows={5} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-red-500/20 bg-red-50 p-8 text-center dark:bg-red-900/10 dark:border-red-900/30">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
-          <AlertCircle className="h-6 w-6" />
-        </div>
-        <h3 className="mb-2 text-lg font-semibold text-red-700 dark:text-red-400">Failed to load reports</h3>
-        <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-6 max-w-md">{error}</p>
-        <Button onClick={fetchReportData} variant="outline" className="border-red-200 text-red-700 hover:bg-red-100 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/40">
-          Try Again
-        </Button>
+      <div className="app-page-stack">
+        <PageHeader icon={BarChart3} title="Reports & analytics" subtitle="Vehicle ROI, operational costs, and fleet utilization" />
+        <Card className="flex flex-col items-center py-12 text-center">
+          <p className="text-body-lg font-medium text-[var(--color-error-text)]">{error}</p>
+          <Button onClick={fetchReportData} variant="outline" className="mt-6">Try again</Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/10 text-[var(--color-brand-600)] dark:bg-[var(--color-brand-500)]/20 dark:text-[var(--color-brand-400)]">
-            <BarChart3 className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Reports & Analytics</h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Vehicle ROI, operational costs, and fleet utilization
-            </p>
-          </div>
-        </div>
-        <Button onClick={handleDownloadCSV} variant="primary" className="shadow-sm">
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
-      </div>
+    <div className="app-page-stack">
+      <PageHeader
+        icon={BarChart3}
+        title="Reports & analytics"
+        subtitle="Vehicle ROI, operational costs, and fleet utilization"
+        action={(
+          <Button onClick={handleDownloadCSV} icon={Download}>
+            Export CSV
+          </Button>
+        )}
+      />
 
       {metrics && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

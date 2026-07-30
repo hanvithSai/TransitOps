@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, CarFront, Activity, Map, Wrench, ShieldAlert } from 'lucide-react';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { Toast } from '../components/ui/Toast';
-import { cn } from '../lib/utils';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { Toast } from '../../components/ui/Toast';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -76,7 +77,7 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
             <select 
               id="status" 
               className={cn(
-                "w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]",
+                "w-full appearance-none select-field px-4 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]",
                 isEdit && (initial.status === 'In Shop' || initial.status === 'On Trip') ? 'opacity-60 cursor-not-allowed bg-[var(--bg-base)]' : 'hover:bg-[var(--bg-surface-hover)]'
               )}
               value={form.status} 
@@ -237,22 +238,17 @@ const VehiclesPage = () => {
   };
 
   return (
-    <div className="space-y-8 pb-10 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Vehicle Registry</h1>
-          <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">
-            Manage your fleet, track capacity and status
-          </p>
-        </div>
-        {canManage && (
-          <Button onClick={() => { setFormError(''); setModal('create'); }} className="shadow-sm sm:w-auto w-full">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Vehicle
+    <div className="app-page-stack">
+      <PageHeader
+        icon={CarFront}
+        title="Vehicle registry"
+        subtitle="Manage your fleet, track capacity and status"
+        action={canManage ? (
+          <Button onClick={() => { setFormError(''); setModal('create'); }} icon={Plus}>
+            Add vehicle
           </Button>
-        )}
-      </div>
+        ) : null}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
@@ -285,7 +281,7 @@ const VehiclesPage = () => {
             placeholder="Search by registration, name, model…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
+            className="w-full select-field py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
           />
         </div>
         <div className="relative min-w-[180px]">
@@ -295,7 +291,7 @@ const VehiclesPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-10 text-sm font-medium text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)] cursor-pointer"
+            className="w-full appearance-none select-field py-2.5 pl-10 pr-10 text-sm font-medium text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)] cursor-pointer"
           >
             <option value="">All Statuses</option>
             <option value="Available">Available</option>
@@ -348,13 +344,7 @@ const VehiclesPage = () => {
               <tbody className="divide-y divide-[var(--border-base)] bg-[var(--bg-surface)]">
                 {vehicles.map((vehicle) => (
                   <TableRow key={vehicle._id} className="hover:bg-[var(--bg-surface-hover)] transition-colors group">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 min-w-[5rem] max-w-max items-center justify-center rounded-md border border-[var(--border-base)] bg-[var(--bg-base)] px-3 text-[13px] font-bold text-[var(--text-primary)] uppercase tracking-wider shadow-sm">
-                          {vehicle.registrationNumber}
-                        </div>
-                      </div>
-                    </TableCell>
+                    <TableCell mono>{vehicle.registrationNumber}</TableCell>
                     <TableCell>
                       <p className="font-semibold text-[var(--text-primary)]">{vehicle.vehicleName}</p>
                       <p className="mt-0.5 text-xs font-medium text-[var(--text-muted)]">{vehicle.model} <span className="mx-1.5 opacity-50">•</span> {vehicle.type}</p>
@@ -368,23 +358,11 @@ const VehiclesPage = () => {
                     </TableCell>
                     {canManage && (
                       <TableCell className="text-right align-middle">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEdit(vehicle)}
-                            className="h-8 w-8 text-[var(--text-muted)] hover:text-[var(--color-brand-600)] hover:bg-[var(--color-brand-50)] dark:hover:bg-[var(--color-brand-900)]/20"
-                            title="Edit vehicle"
-                          >
+                        <div className="app-row-actions">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(vehicle)} aria-label="Edit vehicle">
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDelete(vehicle)}
-                            className="h-8 w-8 text-[var(--text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
-                            title="Delete vehicle"
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => openDelete(vehicle)} aria-label="Delete vehicle">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -417,7 +395,7 @@ const VehiclesPage = () => {
       )}
 
       {modal === 'delete' && selected && (
-        <Modal title="Confirm Deletion" onClose={closeModal} maxWidth="sm">
+        <Modal title="Confirm Deletion" onClose={closeModal} maxWidth="max-w-sm">
           <ConfirmModal vehicle={selected} onConfirm={handleDelete} onCancel={closeModal} loading={formLoading} />
         </Modal>
       )}

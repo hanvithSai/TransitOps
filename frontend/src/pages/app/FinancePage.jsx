@@ -14,14 +14,15 @@ import {
   FileText,
   AlertCircle
 } from 'lucide-react';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { Toast } from '../components/ui/Toast';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { Toast } from '../../components/ui/Toast';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const CATEGORY_COLORS = {
@@ -158,34 +159,25 @@ const FinancePage = () => {
   const currentTotal = dataList.reduce((sum, item) => sum + (isFuelTab ? (item.cost || 0) : (item.amount || 0)), 0);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col gap-6 max-w-7xl mx-auto">
-      
-      {/* ─── Header ─────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
-            <Wallet className="h-6 w-6 text-[var(--color-brand-600)]" />
-            Finance Management
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">Track fleet operational costs, fuel logs, and expenses</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex flex-col items-end mr-4">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-              Total {isFuelTab ? 'Fuel Cost' : 'Expenses'}
-            </span>
-            <span className="text-lg font-bold text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">
-              {formatCurrency(currentTotal)}
-            </span>
+    <div className="app-page-stack flex h-[calc(100vh-8rem)] max-w-7xl flex-col mx-auto">
+      <PageHeader
+        icon={Wallet}
+        title="Finance management"
+        subtitle="Track fleet operational costs, fuel logs, and expenses"
+        action={(
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-label">Total {isFuelTab ? 'fuel cost' : 'expenses'}</span>
+              <span className="text-h3 text-[var(--color-brand-600)]">{formatCurrency(currentTotal)}</span>
+            </div>
+            {(user?.role?.name === 'admin' || user?.role?.name === 'fleet_manager') && (
+              <Button onClick={handleOpenModal} icon={Plus}>
+                Log {isFuelTab ? 'fuel' : 'expense'}
+              </Button>
+            )}
           </div>
-          {(user?.role?.name === 'admin' || user?.role?.name === 'fleet_manager') && (
-            <Button onClick={handleOpenModal} className="shrink-0">
-              <Plus className="mr-2 h-4 w-4" />
-              Log {isFuelTab ? 'Fuel' : 'Expense'}
-            </Button>
-          )}
-        </div>
-      </div>
+        )}
+      />
 
       {/* ─── Tabs ───────────────────────────────────────────── */}
       <div className="flex gap-2 border-b border-[var(--border-base)] pb-4">

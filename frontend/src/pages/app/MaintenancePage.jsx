@@ -11,14 +11,15 @@ import {
   CarFront,
   AlertCircle
 } from 'lucide-react';
-import api from '../services/api';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { Toast } from '../components/ui/Toast';
+import api from '../../services/api';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { Toast } from '../../components/ui/Toast';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -207,17 +208,12 @@ const MaintenancePage = () => {
   };
 
   return (
-    <div className="space-y-6 pb-10 max-w-7xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
-          <Wrench className="h-6 w-6 text-[var(--color-brand-600)]" />
-          Maintenance Logs
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Manage repairs, maintenance records, and costs to keep your fleet running
-        </p>
-      </div>
+    <div className="app-page-stack max-w-7xl mx-auto">
+      <PageHeader
+        icon={Wrench}
+        title="Maintenance logs"
+        subtitle="Manage repairs, maintenance records, and costs to keep your fleet running"
+      />
 
       {/* Main Grid: Split Pane */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

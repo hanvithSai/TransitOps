@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, MapPin, Navigation, Map, ShieldAlert, CheckCircle2, Clock, Truck, User, Calendar, FileText, XCircle, AlertCircle, Play, Package, DollarSign, Fuel, Activity } from 'lucide-react';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { Toast } from '../components/ui/Toast';
-import { cn } from '../lib/utils';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { Toast } from '../../components/ui/Toast';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -166,24 +167,20 @@ const TripsPage = () => {
   const draft = trips.filter(t => t.status === 'Draft').length;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col gap-6 animate-in fade-in duration-500">
+    <div className="app-page-stack flex h-[calc(100vh-8rem)] flex-col">
       
       {/* ─── Header & Stats ─────────────────────────────────── */}
       <div className="flex-none">
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Trip Dispatcher</h1>
-            <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">Manage dispatch workflow and monitor active trips</p>
-          </div>
-          {(user?.role?.name === 'admin' || user?.role?.name === 'driver') && (
-            <Button onClick={handleNewTripClick} className="shadow-sm sm:w-auto w-full">
-              <Plus className="mr-2 h-4 w-4" />
-              New Trip
-            </Button>
-          )}
-        </div>
+        <PageHeader
+          icon={Map}
+          title="Trip dispatcher"
+          subtitle="Manage dispatch workflow and monitor active trips"
+          action={(user?.role?.name === 'admin' || user?.role?.name === 'driver') ? (
+            <Button onClick={handleNewTripClick} icon={Plus}>New trip</Button>
+          ) : null}
+        />
 
-        <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-5">
           {[
             { label: 'Total Trips', value: total, icon: Map, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
             { label: 'Dispatched', value: dispatched, icon: Navigation, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
@@ -228,7 +225,7 @@ const TripsPage = () => {
                 <Search className="h-4 w-4" />
               </div>
               <input type="text" placeholder="Search route, ID..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
+                className="w-full select-field py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
               />
             </div>
           </div>
@@ -344,7 +341,7 @@ const TripsPage = () => {
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-[var(--text-secondary)]">Assign Vehicle</label>
                         <div className="relative">
-                          <select required className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] px-4 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--color-brand-300)]" value={createForm.vehicle} onChange={e => setCreateForm({...createForm, vehicle: e.target.value})}>
+                          <select required className="w-full appearance-none select-field px-4 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--color-brand-300)]" value={createForm.vehicle} onChange={e => setCreateForm({...createForm, vehicle: e.target.value})}>
                             <option value="">— Select Available Vehicle —</option>
                             {availableVehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber} ({v.vehicleName} - {v.capacity}t)</option>)}
                           </select>
@@ -358,7 +355,7 @@ const TripsPage = () => {
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-[var(--text-secondary)]">Assign Driver</label>
                         <div className="relative">
-                          <select required className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] px-4 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--color-brand-300)]" value={createForm.driver} onChange={e => setCreateForm({...createForm, driver: e.target.value})}>
+                          <select required className="w-full appearance-none select-field px-4 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--color-brand-300)]" value={createForm.driver} onChange={e => setCreateForm({...createForm, driver: e.target.value})}>
                             <option value="">— Select Available Driver —</option>
                             {availableDrivers.map(d => <option key={d._id} value={d._id}>{d.name} ({d.licenseCategory})</option>)}
                           </select>
@@ -589,7 +586,7 @@ const TripsPage = () => {
       )}
 
       {modalType === 'cancel' && (
-        <Modal title="Cancel Trip" onClose={() => setModalType(null)} maxWidth="sm">
+        <Modal title="Cancel Trip" onClose={() => setModalType(null)} maxWidth="max-w-sm">
           <div className="space-y-5">
             <div className="flex items-start gap-4 rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-error)]/20">

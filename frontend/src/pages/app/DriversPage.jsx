@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, Users, Shield, Map, XCircle, ShieldAlert } from 'lucide-react';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { Table, TableHead, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { Toast } from '../components/ui/Toast';
-import { cn } from '../lib/utils';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { Toast } from '../../components/ui/Toast';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -109,7 +110,7 @@ const DriverForm = ({ initial, onSubmit, loading, error }) => {
             <select 
               id="status" 
               className={cn(
-                "w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]",
+                "w-full appearance-none select-field px-4 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]",
                 "hover:bg-[var(--bg-surface-hover)]"
               )}
               value={form.status} 
@@ -263,22 +264,15 @@ const DriversPage = () => {
   };
 
   return (
-    <div className="space-y-8 pb-10 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Driver Registry</h1>
-          <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">
-            Manage drivers, license expirations, and safety scores
-          </p>
-        </div>
-        {canManage && (
-          <Button onClick={() => { setFormError(''); setModal('create'); }} className="shadow-sm sm:w-auto w-full">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Driver
-          </Button>
-        )}
-      </div>
+    <div className="app-page-stack">
+      <PageHeader
+        icon={Users}
+        title="Driver registry"
+        subtitle="Manage drivers, license expirations, and safety scores"
+        action={canManage ? (
+          <Button onClick={() => { setFormError(''); setModal('create'); }} icon={Plus}>Add driver</Button>
+        ) : null}
+      />
 
       {/* Alert */}
       {expiringSoonDrivers.length > 0 && (
@@ -324,7 +318,7 @@ const DriversPage = () => {
             placeholder="Search by name, license number, category…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
+            className="w-full select-field py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
           />
         </div>
         <div className="relative min-w-[180px]">
@@ -334,7 +328,7 @@ const DriversPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full appearance-none rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-10 text-sm font-medium text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)] cursor-pointer"
+            className="w-full appearance-none select-field py-2.5 pl-10 pr-10 text-sm font-medium text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)] cursor-pointer"
           >
             <option value="">All Statuses</option>
             <option value="Available">Available</option>
@@ -475,7 +469,7 @@ const DriversPage = () => {
       )}
 
       {modal === 'delete' && selected && (
-        <Modal title="Confirm Deletion" onClose={closeModal} maxWidth="sm">
+        <Modal title="Confirm Deletion" onClose={closeModal} maxWidth="max-w-sm">
           <ConfirmModal driver={selected} onConfirm={handleDelete} onCancel={closeModal} loading={formLoading} />
         </Modal>
       )}

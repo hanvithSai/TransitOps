@@ -124,5 +124,21 @@ export const mockData = {
         total: 2
       }
     }
+  },
+  reports: {
+    roi: {
+      data: {
+        data: [
+          { vehicleId: "v1", vehicleName: "Volvo FH16", registrationNumber: "MH-01-AB-1234", revenue: 85000, fuel: 22000, expenses: 8000, roi: 55000 },
+          { vehicleId: "v2", vehicleName: "Tata Signa", registrationNumber: "DL-04-XY-9876", revenue: 62000, fuel: 18000, expenses: 6500, roi: 37500 },
+          { vehicleId: "v4", vehicleName: "Ashok Leyland", registrationNumber: "TN-02-PQ-3321", revenue: 45000, fuel: 12000, expenses: 4200, roi: 28800 }
+        ],
+        metrics: {
+          fleetUtilization: 76,
+          fuelEfficiency: 4.2,
+          operationalCost: 68700
+        }
+      }
+    }
   }
 };
