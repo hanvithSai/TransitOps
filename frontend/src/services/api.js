@@ -124,10 +124,6 @@ api.interceptors.response.use(
       }
     }
 
-    if (originalRequest.url?.includes('/auth/login')) {
-      return resolveWithMock(originalRequest);
-    }
-
     return Promise.reject(error);
   }
 );

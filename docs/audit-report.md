@@ -175,15 +175,9 @@ Frontend now sends `POST` to match the backend route.
 - **Frontend:** `frontend/src/pages/auth/ResetPasswordPage.jsx` — `api.post('/auth/reset-password/:token', ...)`
 - **Backend:** `backend/routes/authRoutes.js` — `router.post('/reset-password/:token', ...)`
 
-#### 2. Mock login bypasses credential validation
+#### 2. Mock login bypasses credential validation — **FIXED**
 
-Any failed login (wrong password, backend down) falls back to mock admin in `frontend/src/services/api.js`:
-
-```javascript
-if (originalRequest.url?.includes('/auth/login')) {
-  return resolveWithMock(originalRequest);
-}
-```
+Failed login responses (401 wrong password, inactive user) now propagate to the UI instead of falling back to a mock admin session.
 
 **Impact:** Misleading in dev/demo; masks real auth failures.
 
