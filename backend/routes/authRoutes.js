@@ -19,8 +19,10 @@ const {
     enforcePasswordPolicy,
 } = require("../validators/authValidator");
 const authenticate = require("../middlewares/authenticate");
+const { authLimiter } = require("../middlewares/rateLimiter");
 
-// POST /api/auth/register
+// Rate-limit all auth endpoints
+router.use(authLimiter);
 router.post("/register", registerValidator, enforcePasswordPolicy("password"), registerUser);
 
 // POST /api/auth/login

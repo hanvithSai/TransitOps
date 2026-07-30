@@ -211,9 +211,9 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 |-------|----------|---------|
 | **Admin role on public registration** | High | ~~`/api/auth/register` accepts `"admin"`~~ **FIXED** — admin role rejected with 403 |
 | **Dashboard/reports lack RBAC** | High | ~~Any authenticated user can access financial ROI data~~ **FIXED** — `authorize()` on dashboard + reports routes |
-| **User enumeration on forgot-password** | Medium | Returns 404 when email not found vs 200 when found |
-| **No rate limiting** | Medium | Login, register, forgot-password, reset-password unprotected |
-| **No security headers** | Medium | No `helmet` middleware |
+| **User enumeration on forgot-password** | Medium | ~~Returns 404 when email not found~~ **FIXED** — always 200 with generic message |
+| **No rate limiting** | Medium | ~~Login, register, forgot-password unprotected~~ **FIXED** — `authLimiter` on `/api/auth/*` |
+| **No security headers** | Medium | ~~No `helmet` middleware~~ **FIXED** — `helmet()` in `server.js` |
 | **Debug logging in production code** | Medium | `authController.forgotPassword` logs raw email addresses |
 | **ReDoS via unescaped `$regex`** | Medium | Search filters pass raw user input into regex (vehicles, drivers, trips, maintenance) |
 | **Refresh tokens never rotate** | Low | Same token reused; no per-user token limit |
@@ -389,7 +389,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 ### Medium-term (quality & security)
 
-15. Add rate limiting + helmet
+15. ~~Add rate limiting + helmet~~ **Done** (auth rate limit + helmet; forgot-password enumeration fixed)
 16. Implement refresh token rotation
 17. Invalidate sessions on password reset
 18. Add audit log read API for admins

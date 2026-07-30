@@ -185,7 +185,8 @@ const getUserById = async (id) => {
 const forgotPassword = async (email, origin) => {
     const user = await User.findOne({ email });
     if (!user) {
-        throw new AppError("There is no user with that email address.", 404);
+        // Always respond success to prevent email enumeration
+        return { sent: false };
     }
 
     // Get reset token
@@ -207,7 +208,7 @@ const forgotPassword = async (email, origin) => {
             subject: "Password Reset Request - TransitOps",
             html: message,
         });
-        return emailResult;
+        return { ...emailResult, sent: true };
     } catch (err) {
         console.error("Email sending failed:", err);
         user.resetPasswordToken = undefined;

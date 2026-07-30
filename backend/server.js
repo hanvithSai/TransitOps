@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const { errorHandler } = require("./utils/errorHandler");
@@ -24,6 +25,7 @@ const app = express();
 // ── Middleware ────────────────────────────────────────────────────────────────
 const isDev = process.env.NODE_ENV !== "production";
 
+app.use(helmet());
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);

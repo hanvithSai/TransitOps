@@ -473,6 +473,11 @@ Route → authenticate → authorize("role1", "role2") → controller
 - **Reports** (`GET /api/reports/roi`, `/roi/download`): `admin`, `financial_analyst`, `fleet_manager`
 - **Self-registration**: `admin` role rejected at service layer (403)
 
+**Security middleware:**
+- `helmet()` — standard HTTP security headers on all responses
+- `authLimiter` — 30 requests per 15 minutes per IP on `/api/auth/*`
+- Forgot-password always returns 200 with generic message (prevents email enumeration)
+
 ### 6.3 Password Security
 
 - Algorithm: `bcrypt` with salt rounds `12`

@@ -142,7 +142,7 @@ const forgotPassword = async (req, res, next) => {
             success: true,
             message: emailResult.isDevFallback
                 ? "Development mode: use the preview link below to open the reset email."
-                : "Email sent with password reset instructions",
+                : "If an account exists for that email, reset instructions have been sent.",
         };
 
         if (emailResult.isDevFallback && emailResult.previewUrl) {
