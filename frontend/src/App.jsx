@@ -7,15 +7,15 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import DashboardPage from './pages/DashboardPage';
-import UsersPage from './pages/UsersPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
-import VehiclesPage from './pages/VehiclesPage';
-import DriversPage from './pages/DriversPage';
-import TripsPage from './pages/TripsPage';
-import MaintenancePage from './pages/MaintenancePage';
-import FinancePage from './pages/FinancePage';
-import ReportsPage from './pages/ReportsPage';
+import DashboardPage from './pages/app/DashboardPage';
+import UsersPage from './pages/app/UsersPage';
+import VehiclesPage from './pages/app/VehiclesPage';
+import DriversPage from './pages/app/DriversPage';
+import TripsPage from './pages/app/TripsPage';
+import MaintenancePage from './pages/app/MaintenancePage';
+import FinancePage from './pages/app/FinancePage';
+import ReportsPage from './pages/app/ReportsPage';
 
 function App() {
   return (
@@ -40,7 +40,6 @@ function App() {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
 
-            {/* Phase 2+ routes */}
             <Route
               path="/vehicles"
               element={
@@ -114,7 +113,5 @@ function App() {
     </BrowserRouter>
   );
 }
-
-/* ── Coming Soon placeholder removed ── */
 
 export default App;
