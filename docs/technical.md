@@ -478,6 +478,9 @@ Route → authenticate → authorize("role1", "role2") → controller
 - `authLimiter` — 30 requests per 15 minutes per IP on `/api/auth/*`
 - Forgot-password always returns 200 with generic message (prevents email enumeration)
 
+**Search safety:**
+- User search input is escaped via `utils/escapeRegex.js` before MongoDB `$regex` queries (vehicles, drivers, trips, maintenance)
+
 ### 6.3 Password Security
 
 - Algorithm: `bcrypt` with salt rounds `12`

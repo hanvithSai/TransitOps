@@ -2,6 +2,7 @@ const Trip = require('../models/Trip');
 const Vehicle = require('../models/Vehicle');
 const Driver = require('../models/Driver');
 const { AppError } = require('../utils/errorHandler');
+const escapeRegex = require('../utils/escapeRegex');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,10 +42,13 @@ exports.getAllTrips = async ({
     if (status) query.status = status;
 
     if (search) {
-        query.$or = [
-            { source: { $regex: search, $options: 'i' } },
-            { destination: { $regex: search, $options: 'i' } },
-        ];
+        const safeSearch = escapeRegex(search.trim());
+        if (safeSearch) {
+            query.$or = [
+                { source: { $regex: safeSearch, $options: 'i' } },
+                { destination: { $regex: safeSearch, $options: 'i' } },
+            ];
+        }
     }
 
     const skip = (page - 1) * limit;

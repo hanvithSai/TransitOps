@@ -1,6 +1,7 @@
 const MaintenanceLog = require('../models/MaintenanceLog');
 const Vehicle = require('../models/Vehicle');
 const { AppError } = require('../utils/errorHandler');
+const escapeRegex = require('../utils/escapeRegex');
 
 exports.getAllLogs = async ({ page = 1, limit = 20, search = '', status = '' } = {}) => {
   const query = {};
@@ -9,18 +10,19 @@ exports.getAllLogs = async ({ page = 1, limit = 20, search = '', status = '' } =
     query.status = status;
   }
 
-  if (search) {
+  const safeSearch = escapeRegex(search.trim());
+  if (safeSearch) {
     const matchingVehicles = await Vehicle.find({
       $or: [
-        { registrationNumber: { $regex: search, $options: 'i' } },
-        { vehicleName: { $regex: search, $options: 'i' } }
+        { registrationNumber: { $regex: safeSearch, $options: 'i' } },
+        { vehicleName: { $regex: safeSearch, $options: 'i' } }
       ]
     }).select('_id');
     
     const vehicleIds = matchingVehicles.map(v => v._id);
     
     query.$or = [
-      { serviceType: { $regex: search, $options: 'i' } },
+      { serviceType: { $regex: safeSearch, $options: 'i' } },
       { vehicle: { $in: vehicleIds } }
     ];
   }

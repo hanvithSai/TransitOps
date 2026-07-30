@@ -215,7 +215,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 | **No rate limiting** | Medium | ~~Login, register, forgot-password unprotected~~ **FIXED** — `authLimiter` on `/api/auth/*` |
 | **No security headers** | Medium | ~~No `helmet` middleware~~ **FIXED** — `helmet()` in `server.js` |
 | **Debug logging in production code** | Medium | `authController.forgotPassword` logs raw email addresses |
-| **ReDoS via unescaped `$regex`** | Medium | Search filters pass raw user input into regex (vehicles, drivers, trips, maintenance) |
+| **ReDoS via unescaped `$regex`** | Medium | ~~Search filters pass raw user input into regex~~ **FIXED** — `escapeRegex()` on vehicle, driver, trip, maintenance search |
 | **Refresh tokens never rotate** | Low | Same token reused; no per-user token limit |
 | **Password reset doesn't invalidate sessions** | Low | `passwordUpdatedAt` exists but isn't checked during auth |
 
@@ -384,7 +384,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 10. Include maintenance costs in ROI calculation
 11. Set `closeDate` when maintenance log is completed
 12. Check active trips before cron-suspending drivers
-13. Escape user input in `$regex` search queries
+13. ~~Escape user input in `$regex` search queries~~ **Done**
 14. Handle CastError for invalid ObjectIds
 
 ### Medium-term (quality & security)

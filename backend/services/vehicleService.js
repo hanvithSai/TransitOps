@@ -4,15 +4,17 @@ const MaintenanceLog = require('../models/MaintenanceLog');
 const FuelLog = require('../models/FuelLog');
 const Expense = require('../models/Expense');
 const { AppError } = require('../utils/errorHandler');
+const escapeRegex = require('../utils/escapeRegex');
 
 exports.getAllVehicles = async (page = 1, limit = 20, search = '', status = '') => {
   const query = {};
   
-  if (search) {
+  const safeSearch = escapeRegex(search.trim());
+  if (safeSearch) {
     query.$or = [
-      { registrationNumber: { $regex: search, $options: 'i' } },
-      { vehicleName: { $regex: search, $options: 'i' } },
-      { model: { $regex: search, $options: 'i' } }
+      { registrationNumber: { $regex: safeSearch, $options: 'i' } },
+      { vehicleName: { $regex: safeSearch, $options: 'i' } },
+      { model: { $regex: safeSearch, $options: 'i' } }
     ];
   }
   
