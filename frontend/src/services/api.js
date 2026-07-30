@@ -51,9 +51,9 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const isAuthEndpoint = (url = '') => url.includes('/auth/');
+
 const getMockDataForUrl = (url, method) => {
-  if (url.includes('/auth/login')) return mockData.auth.login;
-  if (url.includes('/auth/refresh')) return mockData.auth.refresh;
   if (url.includes('/dashboard/stats')) return mockData.dashboard.stats;
   if (url.includes('/vehicles') && method === 'get') return mockData.vehicles.list;
   if (url.includes('/drivers') && method === 'get') return mockData.drivers.list;
@@ -83,6 +83,9 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (!error.response || error.response.status >= 500) {
+      if (isAuthEndpoint(originalRequest.url)) {
+        return Promise.reject(error);
+      }
       return resolveWithMock(originalRequest);
     }
 

@@ -179,9 +179,11 @@ Frontend now sends `POST` to match the backend route.
 
 Failed login responses (401 wrong password, inactive user) now propagate to the UI instead of falling back to a mock admin session.
 
-**Impact:** Misleading in dev/demo; masks real auth failures.
+#### 3. Auth mutations fake success in demo mode — **FIXED**
 
-#### 3. Mock data schema mismatches break demo mode
+Register, login, forgot-password, reset-password, and other `/auth/*` requests no longer receive mock `{ success: true }` responses when the backend is unreachable or returns 5xx. Auth errors surface to the UI instead.
+
+#### 4. Mock data schema mismatches break demo mode
 
 | Mock field | App expects | Affected page |
 |------------|-------------|---------------|
@@ -193,7 +195,7 @@ Failed login responses (401 wrong password, inactive user) now propagate to the 
 | `trip: "t1"` (string) | populated object | Finance — crash on `.source` access |
 | Nested `{ data: { data, metrics } }` | flat `response.data.data` | Reports — wrong table data |
 
-#### 4. Race condition on trip dispatch
+#### 5. Race condition on trip dispatch
 
 Vehicle/driver availability checks and status updates are **not wrapped in a MongoDB transaction**. Two concurrent dispatches can double-book the same vehicle or driver.
 
