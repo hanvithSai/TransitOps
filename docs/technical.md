@@ -329,6 +329,8 @@ NODE_ENV=development                 # Environment flag
 | `POST` | `/api/auth/refresh` | Cookie | — | `{ accessToken, user }` |
 | `POST` | `/api/auth/logout` | Cookie | — | Clears cookie, revokes token |
 | `GET` | `/api/auth/me` | Bearer JWT | — | `{ user }` with role populated |
+| `POST` | `/api/auth/forgot-password` | Public | `{ email }` | `{ message }`; in dev without SMTP also `{ data: { previewUrl } }` |
+| `POST` | `/api/auth/reset-password/:token` | Public | `{ password }` | `{ message }` |
 
 ### 5.2 User Routes — `/api/users` (Admin Only)
 

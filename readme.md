@@ -47,7 +47,8 @@ The project is structured as a monorepo, clearly separating the client applicati
     ```bash
     npm install
     ```
-3.  Create a `.env` file based on your environment requirements (e.g., PORT, MONGO_URI, JWT_SECRET).
+3.  Create a `.env` file based on your environment requirements (e.g., `PORT`, `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`).
+    For password reset emails, configure SMTP in production. In development without SMTP, forgot-password returns an Ethereal preview link in the API response.
 4.  Start the development server:
     ```bash
     npm run dev

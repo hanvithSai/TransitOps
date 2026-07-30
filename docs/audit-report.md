@@ -183,7 +183,11 @@ Failed login responses (401 wrong password, inactive user) now propagate to the 
 
 Register, login, forgot-password, reset-password, and other `/auth/*` requests no longer receive mock `{ success: true }` responses when the backend is unreachable or returns 5xx. Auth errors surface to the UI instead.
 
-#### 4. Mock data schema mismatches break demo mode
+#### 4. Forgot-password silent failure without SMTP — **FIXED**
+
+Production now requires SMTP configuration and throws a clear error if missing. In development without SMTP, Ethereal test mail is used and the API returns a `previewUrl` link shown on the forgot-password page.
+
+#### 5. Mock data schema mismatches break demo mode
 
 | Mock field | App expects | Affected page |
 |------------|-------------|---------------|
@@ -195,7 +199,7 @@ Register, login, forgot-password, reset-password, and other `/auth/*` requests n
 | `trip: "t1"` (string) | populated object | Finance — crash on `.source` access |
 | Nested `{ data: { data, metrics } }` | flat `response.data.data` | Reports — wrong table data |
 
-#### 5. Race condition on trip dispatch
+#### 6. Race condition on trip dispatch
 
 Vehicle/driver availability checks and status updates are **not wrapped in a MongoDB transaction**. Two concurrent dispatches can double-book the same vehicle or driver.
 

@@ -10,6 +10,7 @@ const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
 
@@ -17,6 +18,7 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     setError('');
     setMessage('');
+    setPreviewUrl('');
 
     if (!email) {
       setError('Please enter your email address.');
@@ -29,6 +31,9 @@ const ForgotPasswordPage = () => {
     try {
       const { data } = await api.post('/auth/forgot-password', { email });
       setMessage(data.message || 'Password reset link sent to your email.');
+      if (data.data?.previewUrl) {
+        setPreviewUrl(data.data.previewUrl);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset email. Please try again.');
       setShake(true);
@@ -57,6 +62,16 @@ const ForgotPasswordPage = () => {
           <div className="auth-alert auth-alert-success flex-col items-center py-6">
             <CheckCircle2 className="h-10 w-10" aria-hidden="true" />
             <span>{message}</span>
+            {previewUrl && (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="auth-link mt-3 text-sm font-semibold underline"
+              >
+                Open reset email preview
+              </a>
+            )}
           </div>
           <Link to="/login" className="auth-link inline-flex items-center justify-center gap-2">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />

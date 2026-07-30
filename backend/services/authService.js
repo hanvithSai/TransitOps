@@ -172,11 +172,12 @@ const forgotPassword = async (email, origin) => {
     `;
 
     try {
-        await sendEmail({
+        const emailResult = await sendEmail({
             email: user.email,
             subject: "Password Reset Request - TransitOps",
             html: message,
         });
+        return emailResult;
     } catch (err) {
         console.error("Email sending failed:", err);
         user.resetPasswordToken = undefined;
