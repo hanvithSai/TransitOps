@@ -10,7 +10,6 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
-import { SelectField } from '../../components/common/SelectField';
 import { SearchableSelectField } from '../../components/common/SearchableSelectField';
 import { driverOptions, vehicleOptions, withPlaceholder } from '../../lib/selectOptions';
 import { SearchInput } from '../../components/common/SearchInput';

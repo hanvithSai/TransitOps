@@ -1,6 +1,6 @@
 # Product Documentation
 
-**Last updated:** July 31, 2026 (production live · https://transitops-han.vercel.app)  
+**Last updated:** July 31, 2026 (production live · frontend UX polish shipped)  
 **MVP status:** Phases 1–8 complete · production-deployed · demo-ready
 
 ## Product Features
@@ -31,14 +31,17 @@
 
 ## User Experience (UX)
 
-* **Design system v2.1:** Tokens, UI primitives, dark mode, marketing landing page
+* **Design system v2.1:** Tokens, UI primitives, dark mode, marketing landing page — see `docs/style-guide.md`
 * **Role-based views:** Nav, `ProtectedRoute`, and backend `authorize()` with `Role.permissions` enforcement
 * **Interactive analytics:** Recharts on dashboard; ROI summary cards on reports
 * **Defensive deletion:** Delete blocked when history exists; Retire (vehicles) and Set Off Duty (drivers) offered as alternatives
 * **Form validation:** React Hook Form + Zod on all major CRUD forms
 * **Feedback patterns:** Toast notifications, confirm modals for destructive actions; Modal focus trap
-* **Offline demo mode:** Aligned `mockData.js` fallback for network/5xx errors (auth never mocked)
-* **Search UX:** Debounced search on list pages; skeleton loading states
+* **Offline demo mode:** Aligned `mockData.js` fallback for network/5xx errors (auth never mocked); `DemoModeBanner` when active
+* **Search UX:** Debounced search on list pages; skeleton loading states; `SearchableSelectField` on large option lists (vehicles, drivers, trips)
+* **Page layouts:** Trips master-detail workspace; Maintenance sidebar (log + schedules) + scrollable service history; uniform KPI spacing via `StatCard` + `app-page-stack` rhythm
+* **App shell:** Collapsible sidebar on `md+`; hamburger menu mobile-only; theme persisted in `localStorage`
+* **Long text:** `ClampedText` with tooltip on trip detail fields; fuel liters capped at 4 decimals in display
 
 ## Future Enhancements
 

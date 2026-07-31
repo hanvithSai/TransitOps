@@ -189,8 +189,9 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 
 ## Feature / Functionality
 ### Current Implementation
-- **Complete**: CRUD, vehicle association, cost tracking, automated vehicle status toggling (In Shop / Available), `closeDate` on completion.
-- **Missing**: Recurring maintenance schedules based on odometer.
+- ✅ CRUD, vehicle association, cost tracking, automated vehicle status toggling (In Shop / Available), `closeDate` on completion
+- ✅ Recurring maintenance schedules (P6) + redesigned workspace UI (sidebar + history)
+- ☐ Odometer-triggered schedule automation
 
 ### Business Logic Validation
 - □ Maintenance log must be tied to a valid Vehicle.
@@ -264,15 +265,15 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 # 8. UI Validation
 
 ## Verify
-- □ **Loading States**: Spinners/skeletons visible during API calls to prevent double-clicks.
-- □ **Empty States**: Clear messaging when tables/lists have no data.
-- □ **Success Messages**: Toast notifications for creates, updates, and deletes.
-- □ **Error Messages**: Toast notifications explaining exactly why an action failed.
-- □ **Disabled Buttons**: Submit buttons disabled while submitting or if form is invalid.
-- □ **Confirmation Dialogs**: Modals confirming destructive actions (Delete, Cancel Trip).
-- □ **Responsive Layout**: Tables scroll horizontally on mobile; sidebar collapses.
-- □ **Form Validation**: Client-side regex, required fields, and numeric bounds matching backend.
-- □ **Data Refresh**: Tables automatically re-fetch data after a mutation (create/edit/delete).
+- ✅ **Loading States**: Skeleton tables/KPI grids on major pages; spinners on auth submit
+- ✅ **Empty States**: `EmptyState` on list pages
+- ✅ **Success / error messages**: Toast notifications for mutations and API failures
+- ✅ **Confirmation dialogs**: Modals for delete, cancel trip, and other destructive actions
+- ✅ **Searchable selects**: Large vehicle/driver/trip pickers use `SearchableSelectField`
+- ✅ **Responsive layout**: Sidebar off-canvas below `768px`; hamburger mobile-only; tables scroll horizontally
+- ✅ **Form validation**: React Hook Form + Zod on major CRUD forms
+- □ **Disabled buttons**: Consistent disabled state on all submit buttons while pending
+- □ **Data refresh**: Verify auto re-fetch after every mutation on all pages
 
 ---
 

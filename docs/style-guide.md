@@ -6,7 +6,7 @@
 | **Status** | Active — mandatory reference for all UI work |
 | **Audience** | Product, design, engineering |
 | **Code source of truth** | `frontend/src/index.css` (tokens + layout utilities), `frontend/src/components/ui/` (React primitives) |
-| **Last updated** | July 31, 2026 — post P4 hardening + CI green |
+| **Last updated** | July 31, 2026 — post frontend UX polish (searchable selects, trips/maintenance layouts, app shell) |
 
 ---
 
@@ -14,7 +14,7 @@
 
 This guide defines the visual language, interaction patterns, and content standards for **TransitOps** — an enterprise B2B fleet operations platform used by dispatchers, fleet managers, safety officers, and finance teams.
 
-Every screen, component, and revision must conform to this document. For implementation history and audit notes, see [`frontend-redesign.md`](./frontend-redesign.md).
+Every screen, component, and revision must conform to this document. For open UX polish and future work, see [`backlog.md`](./backlog.md). For audit history, see [`audit-report.md`](./audit-report.md).
 
 ### Implementation status (v2.1)
 
@@ -26,7 +26,9 @@ The following are **implemented and in production use**:
 | Marketing landing page | `LandingPage.jsx` + `.mkt-*` utilities |
 | Auth pages | `AuthLayout` + `.auth-*` utilities |
 | App shell | `AppLayout.jsx` + `.app-*` utilities |
-| UI primitives | `components/ui/*` (Button, Input, Card, Badge, Modal, Table, Toast, PageHeader, EmptyState, Skeleton) |
+| UI primitives | `components/ui/*` (Button, Input, Card, Badge, Modal, Table, Toast, PageHeader, EmptyState, Skeleton, StatCard, ClampedText) |
+| Shared form controls | `components/common/*` (Modal, Toast, SelectField, SearchableSelectField, SearchInput) |
+| Option helpers | `lib/selectOptions.js` — vehicle/driver/trip labels for searchable selects |
 | App pages | `pages/app/*` — Dashboard, Vehicles, Drivers, Trips, Maintenance, Finance, Reports, Users (incl. Audit tab) |
 | Dev token reference | `/dev/components` — `DevComponentsPage.jsx` + `.ds-*` utilities (remove before production merge) |
 
@@ -491,7 +493,18 @@ Pass `shake={true}` to trigger `.auth-shake` on validation failure (500ms, one-t
 
 ### 9.3 Select
 
-Use the `.select-field` class from `index.css` — same height, radius, and focus treatment as `Input`.
+**Native dropdown (`SelectField`):** Use for short fixed lists (status filters, roles, categories). Styled via `.select-field` in `index.css` — same height, radius, focus treatment, and optional left icon adornment as `Input`.
+
+**Searchable combobox (`SearchableSelectField`):** Use when an option list is large or grows over time (vehicles, drivers, trips). Type to filter; falls back to native `SelectField` when fewer than six options (`minSearchOptions`). Used on Trips (assign vehicle/driver), Maintenance (vehicle), Finance modal (vehicle/trip), Users (linked driver profile).
+
+| Property | Rule |
+|----------|------|
+| Options shape | `{ value, label, keywords?, disabled? }` |
+| Placeholder row | `withPlaceholder()` from `lib/selectOptions.js` |
+| React Hook Form | Spread `{...register('field')}` — emits synthetic `onChange({ target: { value, name } })` |
+| Empty filter | Show `emptyMessage` (default "No matches found") |
+
+Do not hand-roll `<select>` styling on app pages — use `SelectField` or `SearchableSelectField`.
 
 ### 9.4 Card
 
@@ -624,8 +637,9 @@ Every entity list page (Vehicles, Drivers, Trips, Users, etc.) follows:
 
 1. `PageHeader` with entity-specific icon and create action
 2. Optional KPI summary row
-3. Toolbar: `.app-toolbar-card` — search input (`.select-field` or native search) + status filter (`.select-field`)
-4. Data table in a `Card` with `noPadding` — wraps `.app-table-wrap`
+3. Toolbar: `.app-toolbar-card` — `SearchInput` + status filter (`SelectField`)
+4. Forms with many entities: `SearchableSelectField` for vehicle/driver/trip pickers (see §9.3)
+5. Data table in a `Card` with `noPadding` — wraps `.app-table-wrap` (`.table-comfortable` spacing on finance/maintenance)
 5. Create/edit modal with validated form
 6. Toast on success; confirm modal on delete
 
@@ -725,7 +739,7 @@ Implemented in `frontend/src/layouts/AppLayout.jsx` with `.app-shell` utilities.
 | Element | Behavior |
 |---------|----------|
 | Breadcrumb | `.app-breadcrumb` — Home → current page label |
-| Mobile menu | Hamburger (`.app-header-icon-btn`) opens sidebar drawer |
+| Mobile menu | `.app-header-menu-btn` — **visible only below `768px`** when sidebar is off-canvas; hidden on laptop/desktop via CSS (not Tailwind alone — avoids conflict with `.app-header-icon-btn`) |
 | Theme toggle | `.app-header-icon-btn` — persists to `localStorage` key `transitops-theme` |
 | Sign out | Logout icon button (`.app-header-logout`) — redirects to `/login` |
 | Demo banner | `.demo-banner` rendered **above** header when API fallback is active |
@@ -892,9 +906,12 @@ Update this document when:
 | Unauthorized | `frontend/src/pages/UnauthorizedPage.jsx` |
 | Dev token reference (remove before merge) | `frontend/src/pages/dev/DevComponentsPage.jsx` |
 | Routing | `frontend/src/App.jsx` |
-| Class name helper | `frontend/src/lib/utils.js` (`cn()`) |
-| Redesign notes | `docs/frontend-redesign.md` |
+| Shared form controls | `frontend/src/components/common/` (SelectField, SearchableSelectField, SearchInput) |
+| Select option helpers | `frontend/src/lib/selectOptions.js` |
+| Class name helper | `frontend/src/lib/utils.js` (`cn()`, fuel display formatters) |
 | **This guide** | `docs/style-guide.md` |
+| Open polish / backlog | `docs/backlog.md` |
+| Audit report | `docs/audit-report.md` |
 
 ### Page map
 
@@ -903,7 +920,7 @@ Update this document when:
 | `/` | `LandingPage` |
 | `/login`, `/register`, `/forgot-password`, `/reset-password/:token` | Auth pages |
 | `/dashboard` | `DashboardPage` |
-| `/vehicles`, `/drivers`, `/trips`, `/maintenance` | Entity list pages |
+| `/trips`, `/maintenance` | Entity pages — Trips uses 50/50 master-detail; Maintenance uses sidebar + scrollable history |
 | `/fuel`, `/expenses` | `FinancePage` (tabbed by route) |
 | `/reports` | `ReportsPage` |
 | `/users` | `UsersPage` |

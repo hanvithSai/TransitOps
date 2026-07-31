@@ -1,6 +1,6 @@
 # TransitOps Backlog
 
-**Last updated:** July 31, 2026 (production live · Vercel + Render + Atlas)  
+**Last updated:** July 31, 2026 (post frontend UX polish · redesign doc consolidated)  
 **Scope:** Remaining post-MVP work after P6 implementation and cloud deployment.
 
 **Recently shipped (P6 batch):** PDF ROI export, license expiry email reminders + in-app notifications, user↔driver linking, recurring maintenance schedules, RBAC `permissions` array enforcement, API rate limiting, account lockout, refresh token cap, notification bell UI, Trips EmptyState, mobile vehicle cards, `useEntityList` hook.
@@ -34,7 +34,12 @@
 | Adopt `useEntityList` across all CRUD pages | Hook added; refactor pages incrementally |
 | Mobile card fallback on remaining tables | Vehicles done; Drivers, Users, Finance, Reports pending |
 | Dark mode semantic colors on all pages | Tokens exist; migrate hardcoded Tailwind |
-| EmptyState on Trips | ✅ Done |
+| Extract shared CRUD hooks | Reduce 400–700 line page files |
+| Expand Vitest coverage | Beyond `ProtectedRoute` smoke tests |
+| Wire remember-me or remove checkbox | Login checkbox is decorative |
+| Monospace font for registration numbers / IDs | Optional typography polish |
+
+**Recently completed (frontend UX):** SearchableSelectField on vehicle/driver/trip pickers · Maintenance workspace redesign · Trips KPI alignment with other pages · Hamburger menu mobile-only · ESLint unused-import fixes for CI
 
 ---
 
