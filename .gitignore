@@ -1,2 +1,5 @@
 # Cursor IDE — local editor config, not part of the app
 .cursor/
+
+# Local git hooks (install via `git config core.hooksPath .githooks` — not shared in repo)
+.githooks/
