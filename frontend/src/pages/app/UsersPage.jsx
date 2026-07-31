@@ -21,7 +21,6 @@ import api from '../../services/api';
 import { getApiErrorMessage } from '../../lib/apiErrors';
 import { validatePasswordStrength, generateSecurePassword } from '../../lib/passwordPolicy';
 import PasswordChecklist from '../../components/auth/PasswordChecklist';
-import { Card } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';

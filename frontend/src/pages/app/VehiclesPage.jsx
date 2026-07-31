@@ -18,7 +18,6 @@ import { SkeletonTable } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { vehicleFormSchema } from '../../schemas/vehicle';
 import { useDebounce } from '../../hooks/useDebounce';
-import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
