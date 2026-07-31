@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Users, 
   Shield, 
@@ -26,6 +26,8 @@ import { StatCard } from '../../components/ui/StatCard';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchableSelectField } from '../../components/common/SearchableSelectField';
+import { driverOptions, withPlaceholder } from '../../lib/selectOptions';
 import { SearchInput } from '../../components/common/SearchInput';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -80,6 +82,11 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
   const displayError = localError || error;
   const selectedRole = roles.find((r) => r._id === form.roleId);
   const isDriverRole = selectedRole?.name === 'driver';
+
+  const linkedDriverOptions = useMemo(
+    () => withPlaceholder(driverOptions(drivers), '— None —', { disabled: false }),
+    [drivers],
+  );
 
   return (
     <form onSubmit={handleSubmit} className="app-form-stack">
@@ -141,12 +148,14 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
       </SelectField>
 
       {isDriverRole && (
-        <SelectField label="Linked driver profile" id="driverId" value={form.driverId || ''} onChange={set('driverId')}>
-          <option value="">— None —</option>
-          {drivers.map((d) => (
-            <option key={d._id} value={d._id}>{d.name} ({d.licenseNumber})</option>
-          ))}
-        </SelectField>
+        <SearchableSelectField
+          label="Linked driver profile"
+          id="driverId"
+          value={form.driverId || ''}
+          onChange={set('driverId')}
+          options={linkedDriverOptions}
+          placeholder="Search drivers…"
+        />
       )}
 
       <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4 flex items-center justify-between">

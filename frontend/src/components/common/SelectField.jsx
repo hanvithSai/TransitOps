@@ -1,6 +1,7 @@
+import { forwardRef } from 'react';
 import { cn } from '../../lib/utils';
 
-export const SelectField = ({
+export const SelectField = forwardRef(({
   label,
   id,
   error,
@@ -10,7 +11,7 @@ export const SelectField = ({
   icon: Icon,
   children,
   ...props
-}) => {
+}, ref) => {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
@@ -28,6 +29,7 @@ export const SelectField = ({
           </div>
         )}
         <select
+          ref={ref}
           id={selectId}
           disabled={disabled}
           className={cn(
@@ -43,4 +45,6 @@ export const SelectField = ({
       {error && <p className="text-[13px] font-medium text-[var(--color-error)]">{error}</p>}
     </div>
   );
-};
+});
+
+SelectField.displayName = 'SelectField';

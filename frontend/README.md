@@ -14,6 +14,13 @@ npm install
 
 If `npm run dev` opens Uber MFA login, use `./dev` instead (bypasses npm).
 
+If `./dev` fails with `styleText` / Node version errors, your shell is on an older Node (e.g. 20.11). `./dev` auto-uses a locally installed `.nvmrc` version when present. Otherwise:
+
+```bash
+export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+./dev
+```
+
 Requires **backend running** on port 5000 (`cd backend && ./dev`).
 
 ## Environment

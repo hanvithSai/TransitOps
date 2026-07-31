@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -21,6 +21,8 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchableSelectField } from '../../components/common/SearchableSelectField';
+import { tripOptions, vehicleOptions, withPlaceholder } from '../../lib/selectOptions';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -181,6 +183,16 @@ const FinancePage = () => {
 
   // Filter trips in the dropdown based on selected vehicle
   const filteredTrips = trips.filter((t) => !selectedVehicle || t.vehicle?._id === selectedVehicle);
+
+  const financeVehicleOptions = useMemo(
+    () => withPlaceholder(vehicleOptions(vehicles), '— Select vehicle —'),
+    [vehicles],
+  );
+
+  const financeTripOptions = useMemo(
+    () => withPlaceholder(tripOptions(filteredTrips), '— Select associated trip —', { disabled: false }),
+    [filteredTrips],
+  );
 
   // Compute total for the current view
   const currentTotal = dataList.reduce((sum, item) => sum + (isFuelTab ? (item.cost || 0) : (item.amount || 0)), 0);
@@ -401,20 +413,27 @@ const FinancePage = () => {
             )}
             
             <div className="app-form-grid app-form-grid--2">
-              <SelectField
+              <SearchableSelectField
                 label="Vehicle"
                 error={errors.vehicle?.message}
                 required
-                {...register('vehicle', { onChange: () => setValue('trip', '') })}
-              >
-                <option value="" disabled>— Select vehicle —</option>
-                {vehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
-              </SelectField>
-              
-              <SelectField label="Trip (optional)" disabled={!selectedVehicle} {...register('trip')}>
-                <option value="">— Select associated trip —</option>
-                {filteredTrips.map(t => <option key={t._id} value={t._id}>{t.source} → {t.destination}</option>)}
-              </SelectField>
+                options={financeVehicleOptions}
+                placeholder="Search vehicles…"
+                {...register('vehicle', {
+                  onChange: (e) => {
+                    setValue('vehicle', e.target.value, { shouldValidate: true, shouldDirty: true });
+                    setValue('trip', '');
+                  },
+                })}
+              />
+
+              <SearchableSelectField
+                label="Trip (optional)"
+                disabled={!selectedVehicle}
+                options={financeTripOptions}
+                placeholder="Search trips…"
+                {...register('trip')}
+              />
             </div>
 
             {isFuelTab ? (

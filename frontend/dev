@@ -1,3 +1,53 @@
 #!/usr/bin/env sh
 cd "$(dirname "$0")"
+
+MIN_MAJOR=20
+MIN_MINOR=19
+
+node_ok() {
+  node -e "
+    const [major, minor] = process.versions.node.split('.').map(Number);
+    process.exit(major > $MIN_MAJOR || (major === $MIN_MAJOR && minor >= $MIN_MINOR) ? 0 : 1);
+  " 2>/dev/null
+}
+
+try_local_nvmrc() {
+  if [ ! -f .nvmrc ]; then
+    return 1
+  fi
+
+  nvmrc_version=$(tr -d 'v \t\r\n' < .nvmrc)
+  local_node="$HOME/.nvm/versions/node/v${nvmrc_version}/bin"
+
+  if [ -x "${local_node}/node" ]; then
+    PATH="${local_node}:$PATH"
+    export PATH
+    return 0
+  fi
+
+  return 1
+}
+
+if ! node_ok; then
+  try_local_nvmrc
+fi
+
+if ! node_ok; then
+  current=$(node -v 2>/dev/null || echo "unknown")
+  nvmrc_hint=""
+  if [ -f .nvmrc ]; then
+    nvmrc_hint=$(tr -d 'v \t\r\n' < .nvmrc)
+  fi
+
+  cat >&2 <<EOF
+Error: Node.js >= ${MIN_MAJOR}.${MIN_MINOR} is required (Vite 8 / rolldown).
+Current: ${current}
+
+Fix (pick one):
+  nvm use                    # uses .nvmrc (${nvmrc_hint})
+  export PATH="\$HOME/.nvm/versions/node/v${nvmrc_hint}/bin:\$PATH"
+EOF
+  exit 1
+fi
+
 exec node node_modules/vite/bin/vite.js "$@"

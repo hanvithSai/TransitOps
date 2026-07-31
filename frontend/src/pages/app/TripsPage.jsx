@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, MapPin, Navigation, Map, ShieldAlert, CheckCircle2, Clock, Truck, User, Calendar, FileText, XCircle, AlertCircle, Play, Package, DollarSign, Fuel, Activity } from 'lucide-react';
@@ -11,6 +11,8 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchableSelectField } from '../../components/common/SearchableSelectField';
+import { driverOptions, vehicleOptions, withPlaceholder } from '../../lib/selectOptions';
 import { SearchInput } from '../../components/common/SearchInput';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -202,6 +204,16 @@ const TripsPage = () => {
   const total = trips.length;
   const dispatched = trips.filter(t => t.status === 'Dispatched').length;
   const draft = trips.filter(t => t.status === 'Draft').length;
+
+  const tripVehicleOptions = useMemo(
+    () => withPlaceholder(vehicleOptions(availableVehicles, { assignable: true }), '— Select Available Vehicle —'),
+    [availableVehicles],
+  );
+
+  const tripDriverOptions = useMemo(
+    () => withPlaceholder(driverOptions(availableDrivers), '— Select Available Driver —'),
+    [availableDrivers],
+  );
 
   return (
     <div className="flex h-[calc(100dvh-9rem)] max-h-[calc(100dvh-9rem)] flex-col gap-4 overflow-hidden sm:gap-5">
@@ -410,14 +422,22 @@ const TripsPage = () => {
                   <div className="app-form-section">
                     <h3 className="app-form-section-title"><Truck className="h-4 w-4 shrink-0" /> Assignments</h3>
                     <div className="app-form-section-body app-form-section-body--2">
-                      <SelectField label="Assign Vehicle" error={createErrors.vehicle?.message} required {...registerCreate('vehicle')}>
-                        <option value="">— Select Available Vehicle —</option>
-                        {availableVehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber} ({v.vehicleName} - {v.capacity}t)</option>)}
-                      </SelectField>
-                      <SelectField label="Assign Driver" error={createErrors.driver?.message} required {...registerCreate('driver')}>
-                        <option value="">— Select Available Driver —</option>
-                        {availableDrivers.map(d => <option key={d._id} value={d._id}>{d.name} ({d.licenseCategory})</option>)}
-                      </SelectField>
+                      <SearchableSelectField
+                        label="Assign Vehicle"
+                        error={createErrors.vehicle?.message}
+                        required
+                        options={tripVehicleOptions}
+                        placeholder="Search vehicles…"
+                        {...registerCreate('vehicle')}
+                      />
+                      <SearchableSelectField
+                        label="Assign Driver"
+                        error={createErrors.driver?.message}
+                        required
+                        options={tripDriverOptions}
+                        placeholder="Search drivers…"
+                        {...registerCreate('driver')}
+                      />
                     </div>
                   </div>
 

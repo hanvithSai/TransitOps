@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -18,6 +18,8 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchableSelectField } from '../../components/common/SearchableSelectField';
+import { vehicleOptions, withPlaceholder } from '../../lib/selectOptions';
 import { SearchInput } from '../../components/common/SearchInput';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
@@ -240,6 +242,23 @@ const MaintenancePage = () => {
     }
   };
 
+  const vehicleSelectOptions = useMemo(() => {
+    const base = vehicleOptions(vehicles, { detailed: true });
+    if (editingLog?.vehicle && !vehicles.find((v) => v._id === editingLog.vehicle._id)) {
+      base.push({
+        value: editingLog.vehicle._id,
+        label: `${editingLog.vehicle.registrationNumber} (${editingLog.vehicle.vehicleName || '—'})`,
+        keywords: `${editingLog.vehicle.registrationNumber} ${editingLog.vehicle.vehicleName || ''}`,
+      });
+    }
+    return withPlaceholder(base, 'Select vehicle…');
+  }, [vehicles, editingLog]);
+
+  const scheduleVehicleOptions = useMemo(
+    () => withPlaceholder(vehicleOptions(vehicles), 'Select vehicle'),
+    [vehicles],
+  );
+
   return (
     <div className="app-page-stack">
       <PageHeader
@@ -285,26 +304,16 @@ const MaintenancePage = () => {
                   </div>
                 )}
 
-                <SelectField
+                <SearchableSelectField
                   label="Vehicle"
                   id="vehicle"
                   error={errors.vehicle?.message}
                   disabled={!!editingLog}
                   required
+                  options={vehicleSelectOptions}
+                  placeholder="Search vehicles…"
                   {...register('vehicle')}
-                >
-                  <option value="" disabled>Select vehicle…</option>
-                  {vehicles.map((v) => (
-                    <option key={v._id} value={v._id}>
-                      {v.registrationNumber} ({v.vehicleName}) — {v.status}
-                    </option>
-                  ))}
-                  {editingLog && editingLog.vehicle && !vehicles.find(v => v._id === editingLog.vehicle._id) && (
-                    <option value={editingLog.vehicle._id}>
-                      {editingLog.vehicle.registrationNumber} ({editingLog.vehicle.vehicleName})
-                    </option>
-                  )}
-                </SelectField>
+                />
 
                 <Input
                   label="Service type"
@@ -391,17 +400,14 @@ const MaintenancePage = () => {
                 )}
 
                 <form onSubmit={handleScheduleCreate} className="app-maintenance-schedule-form" aria-label="Add recurring schedule">
-                  <SelectField
+                  <SearchableSelectField
                     label="Vehicle"
                     value={scheduleForm.vehicle}
                     onChange={(e) => setScheduleForm((p) => ({ ...p, vehicle: e.target.value }))}
+                    options={scheduleVehicleOptions}
+                    placeholder="Search vehicles…"
                     required
-                  >
-                    <option value="">Select vehicle</option>
-                    {vehicles.map((v) => (
-                      <option key={v._id} value={v._id}>{v.registrationNumber}</option>
-                    ))}
-                  </SelectField>
+                  />
                   <Input
                     label="Service type"
                     value={scheduleForm.serviceType}
