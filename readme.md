@@ -20,7 +20,7 @@ The platform is built using the MERN stack with a focus on maintainability and m
 *   **Backend:** Node.js, Express 5, MongoDB, Mongoose 9.
 *   **Security & Authentication:** JSON Web Tokens (JWT) for stateless authentication and Role-Based Access Control (RBAC). Passwords are encrypted using bcrypt.
 *   **Automation:** Node-cron for background tasks (e.g., automated license suspension).
-*   **Continuous Integration:** Configured with GitHub Actions for automated testing and strict linting.
+*   **Continuous Integration:** GitHub Actions — backend tests (8 suites / 53 tests), frontend Vitest + ESLint + production build. **CI status: passing on `main`.**
 
 ## Repository Structure
 
@@ -113,7 +113,7 @@ See `docs/mock_data.md` for full seeded dataset details.
 
 ## Implementation Status
 
-**MVP Phases 1–8 are complete.** P0–P4 hardening is shipped: mock offline mode, trip dispatch transactions, session security, test coverage (8 backend suites), Docker Compose, health endpoint, and admin audit log UI.
+**MVP Phases 1–8 are complete.** P0–P4 hardening is shipped: mock offline mode, trip dispatch transactions, session security, test coverage (8 backend suites + Vitest smoke tests), Docker Compose, health endpoint, admin audit log UI, and green CI on `main`.
 
 Remaining work is **P6** future product features — see `docs/backlog.md`. Audit: `docs/audit-report.md`.
 

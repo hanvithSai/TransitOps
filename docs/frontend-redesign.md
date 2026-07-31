@@ -26,7 +26,8 @@
 | No shared hooks (`useVehicles`, etc.) | Low | All CRUD pages |
 | Badge variant mismatch (`success`/`info` vs `emerald`/`blue`) | **High** | `Badge.jsx`, all list pages |
 | LoginPage bypasses `Input` component | Low | `LoginPage.jsx` |
-| No TypeScript, no frontend tests | Medium | Entire frontend |
+| No TypeScript | Low | Entire frontend |
+| Frontend tests | Vitest smoke tests only (`ProtectedRoute.test.jsx`) | `src/components/ProtectedRoute.test.jsx` |
 
 ### Visual Design
 
@@ -44,7 +45,7 @@
 |---------|----------|
 | CRUD pattern is consistent: search + filter + table + modal + toast | — |
 | Empty states exist but vary in quality | Medium |
-| Loading uses spinners only — no skeletons | Medium |
+| Loading uses spinners only — no skeletons | ✅ Fixed — `SkeletonTable` on list pages |
 | Remember-me checkbox is decorative (not wired) | Low |
 | 404 redirects to dashboard (may confuse) | ✅ Fixed — `NotFoundPage` |
 
@@ -62,7 +63,7 @@
 | Finding | Priority |
 |---------|----------|
 | Hover states on table rows and buttons present | — |
-| Modal has Escape close but no focus trap | **High** |
+| Modal has Escape close but no focus trap | ✅ Fixed — `Modal.jsx` |
 | Chart tooltips use CSS vars (good) | — |
 | Dark mode not persisted across sessions | Medium |
 
@@ -71,7 +72,7 @@
 | Finding | Priority |
 |---------|----------|
 | Focus rings on buttons/inputs | — |
-| Modal missing focus trap and `aria-labelledby` | **High** |
+| Modal missing focus trap and `aria-labelledby` | ✅ Fixed — focus trap in `Modal.jsx` |
 | Icon-only buttons mostly have `aria-label` | — |
 | Semantic heading hierarchy inconsistent | Medium |
 
@@ -79,8 +80,8 @@
 
 | Finding | Priority |
 |---------|----------|
-| No frontend tests; CI only lint + build | Medium |
-| Mock login returns admin regardless of credentials | **High** |
+| Vitest smoke tests in CI (`ProtectedRoute`); broader page coverage still open | Low |
+| Mock login bypass on auth failure | ✅ Fixed — network/5xx only |
 | RBAC nav mismatch: Trips allows `safety_officer` at route but not in nav | ✅ Fixed — nav aligned |
 | Dashboard/reports lack backend RBAC enforcement | ✅ Fixed — `authorize()` on routes + frontend |
 | Node pinned at 20.20.2 in `.nvmrc` | Low |
@@ -180,7 +181,7 @@ See git diff for full file list. Key changes:
 - Pages updated with PageHeader, Skeleton, EmptyState where applicable
 - Badge aliases: `success`→`emerald`, `info`→`blue`, `warning`→`amber`, `danger`→`red`, `default`→`gray`
 
-### Known Follow-ups (Jul 31, 2026 — post P0–P3)
+### Known Follow-ups (Jul 31, 2026 — post P4)
 
 - ✅ React Hook Form + Zod on CRUD forms — **Done**
 - ✅ Retire / Set Off Duty delete alternatives — **Done**
@@ -189,9 +190,11 @@ See git diff for full file list. Key changes:
 - ✅ Mock data schema alignment — **Done**
 - ✅ FinancePage dual-form tab validation — **Done**
 - ✅ Modal focus trap and `aria-labelledby` — **Done**
-- ✅ Search debouncing, SkeletonTable, EmptyState (Vehicles/Finance) — **Done**
-- Adopt `EmptyState` on Drivers and Maintenance — see `backlog.md` #1
+- ✅ Search debouncing, SkeletonTable, EmptyState — **Done**
+- ✅ EmptyState on Drivers and Maintenance — **Done**
+- ✅ Vitest + RTL for `ProtectedRoute` auth redirect tests — **Done**
+- ✅ ESLint fixes restoring green CI — **Done**
 - Extract shared CRUD hooks to reduce page duplication
-- Add Vitest + RTL for auth redirect tests
+- Expand Vitest coverage beyond `ProtectedRoute`
 - Mobile card fallback for tables
 - Wire remember-me or remove checkbox

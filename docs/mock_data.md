@@ -1,6 +1,6 @@
 # Mock Data for TransitOps Demo
 
-**Last updated:** July 31, 2026 (post P0–P3 hardening)
+**Last updated:** July 31, 2026 (post P4 hardening · CI green)
 
 The backend seeder populates MongoDB with realistic Indian fleet data. The frontend `mockData.js` fallback serves aligned offline data when the API is unreachable (network error or 5xx only — auth errors are never mocked).
 

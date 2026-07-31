@@ -1,6 +1,6 @@
 # Database Documentation
 
-**Last updated:** July 31, 2026 (post P0–P3 hardening)
+**Last updated:** July 31, 2026 (post P4 hardening)
 
 ## Collections
 
@@ -15,7 +15,7 @@
 | `maintenancelogs` | MaintenanceLog | Service records linked to vehicles |
 | `fuellogs` | FuelLog | Fuel purchases per vehicle/trip |
 | `expenses` | Expense | Operational costs (Toll, Repair, etc.) |
-| `auditlogs` | AuditLog | Mutation audit trail (write-only from middleware) |
+| `auditlogs` | AuditLog | Mutation audit trail; admin read via `GET /api/audit-logs` |
 
 ## Status Enums
 
@@ -65,6 +65,14 @@
 | `{ vehicle: 1 }` | Per-vehicle maintenance lookup |
 | `{ vehicle: 1, date: -1 }` | Chronological service history |
 | `{ status: 1 }` | Active maintenance queries |
+
+### AuditLog (`AuditLog.js`)
+
+| Index | Purpose |
+|-------|---------|
+| `{ user: 1, createdAt: -1 }` | Per-user audit history |
+| `{ resource: 1, action: 1 }` | Filter by entity and action |
+| `{ createdAt: -1 }` | Chronological audit feed |
 
 ### Other
 

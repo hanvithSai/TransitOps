@@ -5,6 +5,8 @@
 > **Tech Stack:** MERN (MongoDB, Express.js, React, Node.js)
 >
 > **Purpose:** Production-grade submission for the ODOO Hiring Hackathon.
+>
+> **Implementation status (Jul 31, 2026):** MVP Phases 1–8 **complete**. P0–P4 production hardening **complete** (Docker Compose, tests, audit UI, health endpoint). GitHub Actions CI **passing**. Remaining work: P6 future features — see `docs/backlog.md`.
 
 ---
 
@@ -449,6 +451,13 @@ Phase 7 ✅ Complete
 
 Phase 8 ✅ Complete
 - Reports, ROI aggregation, CSV export
+
+**Post-MVP hardening (P0–P4) ✅ Complete**
+- Security: helmet, auth rate limit, JWT session hardening, RBAC expansion
+- Data integrity: dispatch transactions, odometer/revenue on completion
+- Operations: Docker Compose, `/api/health`, graceful shutdown, env validation
+- Quality: 8 Jest backend suites, Vitest smoke tests, green CI
+- Audit: read API + admin UI tab on Users page
 
 Phase 9+ — see `docs/backlog.md`
 

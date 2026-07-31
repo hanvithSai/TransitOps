@@ -6,7 +6,7 @@
 | **Status** | Active — mandatory reference for all UI work |
 | **Audience** | Product, design, engineering |
 | **Code source of truth** | `frontend/src/index.css` (tokens + layout utilities), `frontend/src/components/ui/` (React primitives) |
-| **Last updated** | July 2026 — post frontend revamp (`frontend-revamp`) |
+| **Last updated** | July 31, 2026 — post P4 hardening + CI green |
 
 ---
 
@@ -27,7 +27,7 @@ The following are **implemented and in production use**:
 | Auth pages | `AuthLayout` + `.auth-*` utilities |
 | App shell | `AppLayout.jsx` + `.app-*` utilities |
 | UI primitives | `components/ui/*` (Button, Input, Card, Badge, Modal, Table, Toast, PageHeader, EmptyState, Skeleton) |
-| App pages | `pages/app/*` — Dashboard, Vehicles, Drivers, Trips, Maintenance, Finance, Reports, Users |
+| App pages | `pages/app/*` — Dashboard, Vehicles, Drivers, Trips, Maintenance, Finance, Reports, Users (incl. Audit tab) |
 | Dev token reference | `/dev/components` — `DevComponentsPage.jsx` + `.ds-*` utilities (remove before production merge) |
 
 **Dual styling pattern:** App and auth pages use **React components** from `components/ui/`. The marketing landing page also exposes matching **CSS classes** (`.btn`, `.badge-*`) for static markup — prefer React components when adding interactive app UI.

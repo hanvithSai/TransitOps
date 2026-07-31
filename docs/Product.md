@@ -1,7 +1,7 @@
 # Product Documentation
 
-**Last updated:** July 31, 2026 (post P0–P3 hardening)  
-**MVP status:** Phases 1–8 complete · demo-ready
+**Last updated:** July 31, 2026 (post P4 hardening · CI green)  
+**MVP status:** Phases 1–8 complete · demo-ready · production-hardened
 
 ## Product Features
 
@@ -15,7 +15,7 @@
 | Dashboard & Analytics | ✅ | Live KPIs + Recharts trend charts |
 | Reports & CSV Export | ✅ | Per-vehicle ROI including fuel, expenses, and maintenance |
 | User Management | ✅ | Admin CRUD, role assignment, approval workflow |
-| Audit Logging | ⚠️ Partial | Written on mutations; no admin read UI yet |
+| Audit Logging | ✅ | Written on mutations; admin read API + Users page Audit tab |
 
 ## User Stories
 

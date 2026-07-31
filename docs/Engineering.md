@@ -1,6 +1,6 @@
 # Engineering Documentation
 
-**Last updated:** July 31, 2026 (post P0–P3 hardening)
+**Last updated:** July 31, 2026 (post P4 hardening + CI green)
 
 ## Engineering Decisions
 
@@ -15,6 +15,8 @@
 * **Security middleware:** `helmet()` on all responses; `express-rate-limit` on `/api/auth/*`; user search input escaped via `utils/escapeRegex.js`.
 * **Session security:** JWT access tokens include `pwdAt` (password change timestamp); invalidated in `authenticate` after reset. Refresh tokens rotate on each `/auth/refresh`.
 * **Trip dispatch:** MongoDB transactions in `tripService.dispatchTrip` (requires replica-set MongoDB).
+* **Audit trail:** Mutations logged via `auditMiddleware`; admin read API at `GET /api/audit-logs` with filter UI on Users page.
+* **Operations:** Docker Compose (MongoDB replica set + API + nginx frontend), `GET /api/health`, SIGTERM graceful shutdown, startup env validation.
 * **Demo fallback:** Frontend `api.js` serves aligned `mockData.js` on network error or 5xx only (auth endpoints excluded).
 
 ## Tech Stack
@@ -32,6 +34,7 @@
 | React Hook Form | Form state management |
 | Zod + `@hookform/resolvers` | Client-side validation |
 | Lucide React | Icons |
+| Vitest + Testing Library | Frontend smoke tests (`ProtectedRoute.test.jsx`) |
 
 ### Backend
 
@@ -57,9 +60,11 @@ backend/
   models/        # Mongoose schemas
   routes/        # Route definitions + RBAC
   validators/    # express-validator rules
-  utils/         # cronJobs, errorHandler, sendEmail, escapeRegex, pagination
+  utils/         # cronJobs, errorHandler, sendEmail, escapeRegex, pagination, validateEnv
   seeders/       # Demo data seeder
-  tests/         # Jest tests
+  tests/         # Jest tests (8 suites / 53 tests)
+  app.js         # Express app (routes, middleware, health)
+  server.js      # DB connect, cron, graceful shutdown
 
 frontend/src/
   pages/app/     # Authenticated app pages
@@ -70,6 +75,7 @@ frontend/src/
   contexts/      # AuthContext
   hooks/         # useDebounce (search)
   services/      # api.js, mockData.js
+  test/          # Vitest setup
 ```
 
 ## Environment Variables
@@ -85,10 +91,12 @@ frontend/src/
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`):
+GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main` (Node.js 22):
 
-* Backend: `npm test` (8 suites; `jest --watchman=false`)
-* Frontend: `npm test` + `npm run lint` + `npm run build`
+* **backend-ci:** `npm install` → `npm test` (8 Jest suites)
+* **frontend-ci:** `npm install` → `npm test` (Vitest) → `npm run lint` → `npm run build`
+
+**Status:** Passing on `main` as of July 31, 2026.
 
 ## Related Docs
 

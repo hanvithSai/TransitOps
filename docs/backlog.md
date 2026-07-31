@@ -1,9 +1,9 @@
 # TransitOps Backlog
 
-**Last updated:** July 31, 2026 (P3 + P4 complete)  
-**Scope:** Pending work only — MVP Phases 1–8 and production hardening are complete.
+**Last updated:** July 31, 2026 (P4 complete · CI green)  
+**Scope:** Pending work only — MVP Phases 1–8 and production hardening (P0–P4) are complete.
 
-**Recently shipped:** EmptyState on Maintenance, driver `Suspended` restricted to safety officers, expanded Jest coverage (8 suites / 53 tests), Docker Compose with MongoDB replica set, `/api/health`, SIGTERM graceful shutdown, env validation, Vitest + RTL smoke tests, audit log read API + admin UI tab.
+**Recently shipped:** EmptyState on Maintenance, driver `Suspended` restricted to safety officers, expanded Jest coverage (8 suites / 53 tests), Docker Compose with MongoDB replica set, `/api/health`, SIGTERM graceful shutdown, env validation, Vitest + RTL smoke tests, audit log read API + admin UI tab, ESLint fixes restoring green CI on `main`.
 
 ---
 

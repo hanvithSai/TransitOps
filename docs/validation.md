@@ -1,6 +1,6 @@
 # TransitOps Production Readiness Validation Checklist
 
-**Last updated:** July 31, 2026 (post P0–P3 hardening)
+**Last updated:** July 31, 2026 (post P4 hardening · CI green)
 
 This checklist tracks production readiness. ✅ = implemented · ⚠️ = partial · ☐ = not done.
 
@@ -18,6 +18,11 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - ✅ Auth endpoints excluded from mock fallback
 - ✅ Auth rate limiting + `helmet()` security headers
 - ✅ Admin self-registration blocked; forgot-password enumeration-safe
+- ✅ Docker Compose with MongoDB replica set for dispatch transactions
+- ✅ `GET /api/health` readiness probe
+- ✅ SIGTERM graceful shutdown + startup env validation (`validateEnv.js`)
+- ✅ Audit log read API (`GET /api/audit-logs`) + admin UI tab
+- ✅ GitHub Actions CI passing (backend tests, frontend Vitest + lint + build)
 - ⚠️ No account lockout; no rate limiting on non-auth routes
 - ☐ `Role.permissions` array enforcement
 
@@ -97,8 +102,8 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 
 ## Feature / Functionality
 ### Current Implementation
-- **Complete**: CRUD operations, pagination, safety score, license tracking, delete protections.
-- **Partial**: License expiry warnings.
+- **Complete**: CRUD operations, pagination, safety score, license tracking, delete protections, daily cron suspension.
+- **Partial**: License expiry warnings (UI badges only; no email).
 - **Missing**: Shift tracking, hours-of-service compliance.
 
 ### Business Logic Validation
@@ -138,7 +143,7 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 ## Feature / Functionality
 ### Current Implementation
 - **Complete**: Complex dispatch logic (10 rules), MongoDB transaction on dispatch, trip completion with odometer roll-forward and optional revenue, status enums, related entity status syncing.
-- **Partial**: Automated test coverage for dispatch rule matrix.
+- **Partial**: Automated test coverage for full dispatch rule matrix (basic dispatch tests exist).
 - **Missing**: Multi-stop routing, live GPS tracking.
 
 ### Business Logic Validation
@@ -336,10 +341,10 @@ Follow this workflow in a staging environment to guarantee end-to-end functional
 
 # 14. Technical Debt & Improvements
 
-See `docs/backlog.md` for the current prioritized backlog. Key open items (Jul 31, 2026):
+See `docs/backlog.md` for the current prioritized backlog. P0–P4 hardening is **complete** (Jul 31, 2026). Open items are **P6** future features and optional polish:
 
-- **Expand Jest coverage** — dispatch rules, ROI math, concurrency (P4)
-- **Docker / health endpoint / replica-set MongoDB** — required for dispatch transactions in prod (P4)
-- **Audit log read API + admin UI** (P4)
-- **EmptyState on Drivers/Maintenance**; restrict manual driver `Suspended` (P3)
-- **React Query** adoption (optional, P6)
+- PDF export, license email reminders, in-app notifications
+- `Role.permissions` array enforcement
+- Per-user refresh token cap, non-auth rate limiting, account lockout
+- Broader Vitest/E2E coverage (smoke tests exist today)
+- Cloud deployment documentation (Docker Compose covers local/full-stack demo)

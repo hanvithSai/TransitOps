@@ -1,12 +1,12 @@
 # TransitOps – Technical Implementation Reference
 
-> **Status:** ✅ Phases 1–8 Complete · P0–P3 hardening shipped on `minorFixes`  
+> **Status:** ✅ Phases 1–8 Complete · P0–P4 hardening shipped on `main` (CI green)  
 > **Stack:** MERN (MongoDB · Express 5 · React 19 · Node.js)  
-> **Last Updated:** 2026-07-31 (post P0–P3 hardening)
+> **Last Updated:** 2026-07-31 (post P4 hardening)
 
 **Phases:** 1 Auth · 2 Vehicles · 3 Drivers · 4 Trips · 5 Maintenance · 6 Fuel/Expenses · 7 Dashboard · 8 Reports/CSV
 
-Pending work (tests, Docker, polish): see `backlog.md`.
+Pending work (P6 future features): see `backlog.md`.
 
 ---
 
@@ -27,11 +27,14 @@ TransitOps/
 │   │   ├── fuelController.js             # Fuel log CRUD
 │   │   ├── expenseController.js          # Expense CRUD
 │   │   ├── dashboardController.js        # Dashboard KPI aggregations
-│   │   └── reportController.js             # ROI report + CSV export
+│   │   ├── reportController.js             # ROI report + CSV export
+│   │   └── auditController.js              # Audit log read (admin)
 │   ├── middlewares/
 │   │   ├── authenticate.js               # JWT Bearer verification
 │   │   ├── authorize.js                  # RBAC role-gate factory
-│   │   └── auditMiddleware.js            # Mutation audit logging
+│   │   ├── auditMiddleware.js            # Mutation audit logging
+│   │   ├── rateLimiter.js                # Auth rate limiting
+│   │   └── requirePasswordUpdated.js     # Block routes until password changed
 │   ├── models/
 │   │   ├── Role.js                       # Role schema
 │   │   ├── User.js                       # User schema (bcrypt pre-save)
@@ -54,7 +57,8 @@ TransitOps/
 │   │   ├── fuelRoutes.js                 # /api/fuel
 │   │   ├── expenseRoutes.js              # /api/expenses
 │   │   ├── dashboardRoutes.js            # /api/dashboard
-│   │   └── reportRoutes.js               # /api/reports
+│   │   ├── reportRoutes.js               # /api/reports
+│   │   └── auditRoutes.js                # /api/audit-logs (admin read)
 │   ├── seeders/
 │   │   └── seed.js                       # Seeds roles + demo fleet data
 │   ├── services/
@@ -66,13 +70,17 @@ TransitOps/
 │   │   ├── maintenanceService.js         # Maintenance + vehicle status sync
 │   │   ├── fuelService.js                # Fuel log CRUD logic
 │   │   ├── expenseService.js             # Expense CRUD logic
-│   │   └── reportService.js              # ROI aggregation + CSV generation
+│   │   ├── reportService.js              # ROI aggregation + CSV generation
+│   │   └── auditService.js               # Audit log queries
 │   ├── utils/
 │   │   ├── errorHandler.js               # AppError class + global handler
 │   │   ├── cronJobs.js                   # Daily license expiry suspension
 │   │   ├── sendEmail.js                  # Nodemailer helper
 │   │   ├── escapeRegex.js                # Safe regex escaping for search
-│   │   └── pagination.js                 # parsePagination() for list endpoints
+│   │   ├── pagination.js                 # parsePagination() for list endpoints
+│   │   ├── passwordPolicy.js             # Server-side password rules
+│   │   └── validateEnv.js                # Startup env validation
+│   ├── tests/                            # Jest + Supertest (8 suites / 53 tests)
 │   ├── validators/
 │   │   ├── authValidator.js              # express-validator rule sets
 │   │   ├── vehicleValidator.js           # Vehicle field rules
@@ -80,16 +88,23 @@ TransitOps/
 │   │   ├── tripValidator.js              # Trip field rules
 │   │   ├── maintenanceValidator.js       # Maintenance log field rules
 │   │   └── financeValidator.js           # Fuel & Expense field rules
-│   ├── .env                              # Environment variables
-│   ├── server.js                         # Express app entry point
+│   ├── .env.example                      # Environment template
+│   ├── app.js                            # Express app (routes, middleware, health)
+│   ├── server.js                         # DB connect, cron, graceful shutdown
+│   ├── Dockerfile                        # Production API image
 │   └── package.json
 │
+├── docker-compose.yml                    # MongoDB replica set + API + frontend
 └── frontend/
     ├── src/
     │   ├── components/
     │   │   ├── ui/                       # Button, Card, Modal, Table, Toast, Skeleton, etc.
     │   │   ├── common/                   # Modal/Toast re-exports, SelectField
-    │   │   └── ProtectedRoute.jsx        # Auth + role guard component
+    │   │   ├── ProtectedRoute.jsx        # Auth + role guard component
+    │   │   └── ProtectedRoute.test.jsx   # Vitest smoke tests
+    │   ├── hooks/                        # useDebounce (search)
+    │   ├── lib/                          # passwordPolicy, apiErrors
+    │   ├── test/                         # Vitest setup
     │   ├── schemas/                      # Zod form schemas (mirror backend validators)
     │   ├── contexts/
     │   │   └── AuthContext.jsx           # Auth state + login/logout + useAuth()
@@ -234,7 +249,7 @@ FROM_NAME=TransitOps
 | `vehicleName` | String | Required |
 | `model` | String | Required |
 | `type` | String | Required |
-| `capacity` | Number | Required, minimum 0.1 (tons) |
+| `capacity` | Number | Required, minimum 0.1 (kg) |
 | `odometer` | Number | Required, minimum 0 |
 | `acquisitionCost` | Number | Optional, >= 0 |
 | `status` | String (enum) | `Available` · `On Trip` · `In Shop` · `Retired`. Default `Available` |
@@ -267,7 +282,7 @@ FROM_NAME=TransitOps
 | `destination` | String | Required, trimmed |
 | `vehicle` | ObjectId → Vehicle | Required reference |
 | `driver` | ObjectId → Driver | Required reference |
-| `cargoWeight` | Number | Required, >= 0 (tons) |
+| `cargoWeight` | Number | Required, >= 0 (kg) |
 | `plannedDistance` | Number | Required, >= 0 (km) |
 | `revenue` | Number | Optional, >= 0 |
 | `actualDistance` | Number | Optional (set on complete), >= 0 |
@@ -451,7 +466,21 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 CSV is generated in `reportService.generateCSV()` (hand-rolled, not `json2csv`).
 
-### 5.12 Standard Response Envelope
+### 5.12 Health — `/api/health`
+
+| Method | Endpoint | Auth | Response |
+|---|---|---|---|
+| `GET` | `/api/health` | Public | `{ status: "ok", timestamp }` — used by Docker Compose healthcheck |
+
+### 5.13 Audit Log Routes — `/api/audit-logs` (Admin Only)
+
+| Method | Endpoint | Query params | Response |
+|---|---|---|---|
+| `GET` | `/api/audit-logs` | `page`, `limit`, `action`, `resource`, `userId`, `from`, `to` | Paginated `{ logs, total, page, pages }` with populated user |
+
+Mutations are logged automatically by `auditMiddleware` on successful POST/PUT/PATCH/DELETE responses.
+
+### 5.14 Standard Response Envelope
 
 ```json
 // Success
@@ -823,6 +852,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Create modal | Form: name, email, password (with show/hide), role select |
 | Edit modal | Pre-filled form + `isActive` toggle switch |
 | Delete modal | Confirmation dialog before hard delete |
+| Audit tab | Filterable audit log table (`GET /api/audit-logs`) with action/resource filters |
 | Toast notifications | 3.5s auto-dismiss; success (green) / error (red) |
 
 ### 11.7 LoginPage
@@ -968,7 +998,8 @@ Protected (ProtectedRoute wrapping AppLayout):
 ```bash
 npm run dev    # nodemon server.js (development with auto-restart)
 npm run start  # node server.js (production)
-npm run seed   # Seed roles + admin user (idempotent)
+npm run seed   # Seed roles + demo data (idempotent)
+npm test       # Jest — 8 suites (use --watchman=false on macOS if needed)
 ```
 
 ### Frontend
@@ -976,18 +1007,41 @@ npm run seed   # Seed roles + admin user (idempotent)
 ```bash
 npm run dev     # Vite dev server (http://localhost:5173)
 npm run build   # Production build to dist/
+npm run lint    # ESLint (required by CI)
+npm test        # Vitest (ProtectedRoute smoke tests)
 npm run preview # Preview production build
+```
+
+### Docker (repo root)
+
+```bash
+docker compose up --build   # MongoDB replica set + API :5000 + frontend :5173
 ```
 
 ---
 
-## 14. Default Credentials
+## 14. CI / Testing
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main` with **Node.js 22**:
+
+| Job | Steps |
+|-----|-------|
+| `backend-ci` | `npm install` → `npm test` |
+| `frontend-ci` | `npm install` → `npm test` → `npm run lint` → `npm run build` |
+
+**Backend test suites (53 tests):** `rbac`, `authRegister`, `authForgotPassword`, `escapeRegex`, `tripDispatch`, `trip`, `report`, `driver`.
+
+**Frontend tests (4 tests):** `ProtectedRoute.test.jsx` — auth redirect and role gating.
+
+---
+
+## 15. Default Credentials
 
 See `docs/mock_data.md` for the full table. Password for all seeded accounts: **`Password@123`**
 
 ---
 
-## 15. Phase Roadmap
+## 16. Phase Roadmap
 
 | Phase | Module | Status |
 |---|---|---|
