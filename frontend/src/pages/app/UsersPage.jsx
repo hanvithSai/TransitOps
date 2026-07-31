@@ -45,9 +45,9 @@ const ROLE_BADGE = {
 
 
 /* ─── UserForm ─────────────────────────────────────────────── */
-const EMPTY_FORM = { name: '', email: '', password: '', roleId: '', isActive: true };
+const EMPTY_FORM = { name: '', email: '', password: '', roleId: '', driverId: '', isActive: true };
 
-const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
+const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) => {
   const [form, setForm] = useState(initial || EMPTY_FORM);
   const [showPass, setShowPass] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -78,6 +78,8 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
   };
 
   const displayError = localError || error;
+  const selectedRole = roles.find((r) => r._id === form.roleId);
+  const isDriverRole = selectedRole?.name === 'driver';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -167,6 +169,25 @@ const UserForm = ({ initial, roles, onSubmit, loading, error }) => {
         </div>
       </div>
 
+      {isDriverRole && (
+        <div className="space-y-1.5">
+          <label htmlFor="driverId" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Linked driver profile
+          </label>
+          <select
+            id="driverId"
+            className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none"
+            value={form.driverId || ''}
+            onChange={set('driverId')}
+          >
+            <option value="">— None —</option>
+            {drivers.map((d) => (
+              <option key={d._id} value={d._id}>{d.name} ({d.licenseNumber})</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-[var(--text-primary)]">Account Status</p>
@@ -220,6 +241,7 @@ const UsersPage = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers]     = useState([]);
   const [roles, setRoles]     = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditAction, setAuditAction] = useState('');
@@ -251,12 +273,14 @@ const UsersPage = () => {
     const init = async () => {
       setLoading(true);
       try {
-        const [usersRes, rolesRes] = await Promise.all([
+        const [usersRes, rolesRes, driversRes] = await Promise.all([
           api.get('/users?limit=100'),
           api.get('/roles'),
+          api.get('/drivers?limit=100'),
         ]);
         setUsers(usersRes.data.data.users);
         setRoles(rolesRes.data.data.roles);
+        setDrivers(driversRes.data.data.drivers);
       } catch {
         showToast('Failed to load data', 'error');
       } finally {
@@ -307,6 +331,7 @@ const UsersPage = () => {
         password: form.password,
         roleId: form.roleId,
         isActive: form.isActive,
+        driverId: form.driverId || null,
       });
       showToast(`User "${form.name}" created successfully`);
       setModal(null);
@@ -323,7 +348,7 @@ const UsersPage = () => {
     setFormLoading(true);
     setFormError('');
     try {
-      const payload = { name: form.name, email: form.email, roleId: form.roleId, isActive: form.isActive };
+      const payload = { name: form.name, email: form.email, roleId: form.roleId, isActive: form.isActive, driverId: form.driverId || null };
       if (form.password) payload.password = form.password;
       await api.put(`/users/${selected._id}`, payload);
       showToast(`User "${form.name}" updated`);
@@ -672,15 +697,16 @@ const UsersPage = () => {
       {/* Modals */}
       {modal === 'create' && (
         <Modal title="Add New User" onClose={closeModal}>
-          <UserForm roles={roles} onSubmit={handleCreate} loading={formLoading} error={formError} />
+          <UserForm roles={roles} drivers={drivers} onSubmit={handleCreate} loading={formLoading} error={formError} />
         </Modal>
       )}
 
       {modal === 'edit' && selected && (
         <Modal title="Edit User" onClose={closeModal}>
           <UserForm
-            initial={{ name: selected.name, email: selected.email, password: '', roleId: selected.role?._id || '', isActive: selected.isActive }}
+            initial={{ name: selected.name, email: selected.email, password: '', roleId: selected.role?._id || '', driverId: selected.driver?._id || '', isActive: selected.isActive }}
             roles={roles}
+            drivers={drivers}
             onSubmit={handleEdit}
             loading={formLoading}
             error={formError}

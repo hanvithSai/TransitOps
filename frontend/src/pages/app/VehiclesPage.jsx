@@ -356,7 +356,8 @@ const VehiclesPage = () => {
             ) : null}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHead>
                 <TableHeader>Registration</TableHeader>
@@ -402,6 +403,25 @@ const VehiclesPage = () => {
               </tbody>
             </Table>
           </div>
+          <div className="md:hidden divide-y divide-[var(--border-base)]">
+            {vehicles.map((vehicle) => (
+              <div key={vehicle._id} className="p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-mono text-sm font-semibold text-[var(--text-primary)]">{vehicle.registrationNumber}</p>
+                  <Badge variant={STATUS_VARIANT[vehicle.status] || 'default'}>{vehicle.status}</Badge>
+                </div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">{vehicle.vehicleName}</p>
+                <p className="text-xs text-[var(--text-muted)]">{vehicle.capacity} kg · {vehicle.odometer} km</p>
+                {canManage && (
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="outline" size="sm" onClick={() => openEdit(vehicle)}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => openDelete(vehicle)}>Delete</Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </Card>
 

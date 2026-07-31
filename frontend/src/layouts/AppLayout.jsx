@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import DemoModeBanner from '../components/DemoModeBanner';
+import NotificationBell from '../components/common/NotificationBell';
 import { cn } from '../lib/utils';
 
 const NAV_ITEMS = [
@@ -157,6 +158,7 @@ const AppLayout = () => {
             <span className="text-sm font-medium text-[var(--text-secondary)] sm:hidden">{pageLabel}</span>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <button type="button" onClick={() => setIsDark(!isDark)} className="app-header-icon-btn" aria-label={isDark ? 'Light mode' : 'Dark mode'}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>

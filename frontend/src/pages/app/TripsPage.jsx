@@ -13,6 +13,7 @@ import { SelectField } from '../../components/common/SelectField';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SkeletonTable } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { createTripSchema, completeTripSchema } from '../../schemas/trip';
 import { useDebounce } from '../../hooks/useDebounce';
 import { cn } from '../../lib/utils';
@@ -269,11 +270,11 @@ const TripsPage = () => {
                 <SkeletonTable rows={5} />
               </div>
             ) : trips.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-center px-4">
-                <Map className="h-10 w-10 text-[var(--text-muted)] opacity-50 mb-3" />
-                <p className="text-sm font-semibold text-[var(--text-primary)]">No trips found</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Adjust your filters or create a new trip.</p>
-              </div>
+              <EmptyState
+                icon={Map}
+                title="No trips found"
+                description="Adjust your filters or create a new trip to get started."
+              />
             ) : (
               <div className="divide-y divide-[var(--border-base)]">
                 {trips.map(trip => {

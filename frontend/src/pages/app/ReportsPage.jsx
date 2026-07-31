@@ -48,6 +48,21 @@ const ReportsPage = () => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await api.get('/reports/roi/download-pdf', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'vehicle-roi-report.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Failed to download PDF');
+    }
+  };
+
   if (loading) {
     return (
       <div className="app-page-stack">
@@ -76,9 +91,14 @@ const ReportsPage = () => {
         title="Reports & analytics"
         subtitle="Vehicle ROI, operational costs, and fleet utilization"
         action={(
-          <Button onClick={handleDownloadCSV} icon={Download}>
-            Export CSV
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleDownloadCSV} icon={Download} variant="outline">
+              Export CSV
+            </Button>
+            <Button onClick={handleDownloadPDF} icon={Download}>
+              Export PDF
+            </Button>
+          </div>
         )}
       />
 

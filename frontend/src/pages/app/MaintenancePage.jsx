@@ -108,6 +108,8 @@ const MaintenancePage = () => {
 
   // Delete State
   const [deletingLog, setDeletingLog] = useState(null);
+  const [schedules, setSchedules] = useState([]);
+  const [scheduleForm, setScheduleForm] = useState({ vehicle: '', serviceType: '', intervalDays: '90', intervalKm: '5000' });
 
   // Notifications
   const [toast, setToast] = useState(null);
@@ -136,10 +138,38 @@ const MaintenancePage = () => {
     }
   }, [debouncedSearch]);
 
+  const fetchSchedules = useCallback(async () => {
+    try {
+      const { data } = await api.get('/maintenance-schedules?limit=50');
+      setSchedules(data.data.schedules || []);
+    } catch {
+      setSchedules([]);
+    }
+  }, []);
+
+  const handleScheduleCreate = async (e) => {
+    e.preventDefault();
+    if (!scheduleForm.vehicle || !scheduleForm.serviceType) return;
+    try {
+      await api.post('/maintenance-schedules', {
+        vehicle: scheduleForm.vehicle,
+        serviceType: scheduleForm.serviceType,
+        intervalDays: Number(scheduleForm.intervalDays) || 0,
+        intervalKm: Number(scheduleForm.intervalKm) || 0,
+      });
+      showToast('Recurring schedule created');
+      setScheduleForm({ vehicle: '', serviceType: '', intervalDays: '90', intervalKm: '5000' });
+      fetchSchedules();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to create schedule', 'error');
+    }
+  };
+
   useEffect(() => {
     fetchVehicles();
     fetchLogs();
-  }, [fetchVehicles, fetchLogs]);
+    fetchSchedules();
+  }, [fetchVehicles, fetchLogs, fetchSchedules]);
 
   // Submit Handler: Create or Update
   const handleSave = async (form) => {
@@ -455,6 +485,31 @@ const MaintenancePage = () => {
         </div>
 
       </div>
+
+      <Card className="mt-6 border border-[var(--border-base)] p-5">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Recurring maintenance schedules</h3>
+        {schedules.length === 0 ? (
+          <p className="text-sm text-[var(--text-muted)] mb-4">No schedules yet. Add one below.</p>
+        ) : (
+          <ul className="mb-4 space-y-2 text-sm text-[var(--text-secondary)]">
+            {schedules.map((s) => (
+              <li key={s._id}>
+                {s.vehicle?.registrationNumber} — {s.serviceType} (every {s.intervalDays || '—'} days / {s.intervalKm || '—'} km)
+              </li>
+            ))}
+          </ul>
+        )}
+        <form onSubmit={handleScheduleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          <SelectField label="Vehicle" value={scheduleForm.vehicle} onChange={(e) => setScheduleForm((p) => ({ ...p, vehicle: e.target.value }))} required>
+            <option value="">Select vehicle</option>
+            {vehicles.map((v) => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
+          </SelectField>
+          <Input label="Service type" value={scheduleForm.serviceType} onChange={(e) => setScheduleForm((p) => ({ ...p, serviceType: e.target.value }))} required />
+          <Input label="Interval (days)" type="number" value={scheduleForm.intervalDays} onChange={(e) => setScheduleForm((p) => ({ ...p, intervalDays: e.target.value }))} />
+          <Input label="Interval (km)" type="number" value={scheduleForm.intervalKm} onChange={(e) => setScheduleForm((p) => ({ ...p, intervalKm: e.target.value }))} />
+          <Button type="submit">Add schedule</Button>
+        </form>
+      </Card>
 
       {/* Delete Confirmation Modal */}
       {deletingLog && (

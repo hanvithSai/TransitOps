@@ -1,22 +1,22 @@
 # Engineering Documentation
 
-**Last updated:** July 31, 2026 (post P4 hardening + CI green)
+**Last updated:** July 31, 2026 (P6 batch on `minorFixes`)
 
 ## Engineering Decisions
 
 * **Monorepo structure:** `frontend/` and `backend/` separated for clear concerns while sharing one repository.
 * **REST API:** Express 5 exposes JSON REST endpoints consumed by the React SPA.
 * **JWT authentication:** Access tokens (localStorage) + httpOnly refresh cookies; bcrypt (12 rounds) for passwords.
-* **Role-based access control (RBAC):** Route-level enforcement via `authorize()` middleware using role names. The `Role.permissions` array is stored but not yet enforced programmatically.
+* **Role-based access control (RBAC):** Route-level enforcement via `authorize()` — role names plus `Role.permissions` array (including `*` wildcard).
 * **Mongoose ODM:** Schema validation, references, indexes, and middleware for MongoDB.
 * **Layered backend:** `routes → controllers → services → models` with `express-validator` at the route layer.
 * **Client form validation:** React Hook Form + Zod schemas in `frontend/src/schemas/` mirror backend validators.
 * **Background jobs:** `node-cron` runs daily license-expiry suspension (midnight IST), skipping drivers on active dispatched trips.
-* **Security middleware:** `helmet()` on all responses; `express-rate-limit` on `/api/auth/*`; user search input escaped via `utils/escapeRegex.js`.
+* **Security middleware:** `helmet()` on all responses; `express-rate-limit` on `/api/auth/*` and general `/api/*`; user search input escaped via `utils/escapeRegex.js`.
 * **Session security:** JWT access tokens include `pwdAt` (password change timestamp); invalidated in `authenticate` after reset. Refresh tokens rotate on each `/auth/refresh`.
 * **Trip dispatch:** MongoDB transactions in `tripService.dispatchTrip` (requires replica-set MongoDB).
 * **Audit trail:** Mutations logged via `auditMiddleware`; admin read API at `GET /api/audit-logs` with filter UI on Users page.
-* **Operations:** Docker Compose (MongoDB replica set + API + nginx frontend), `GET /api/health`, SIGTERM graceful shutdown, startup env validation.
+* **P6 batch:** PDF export, notifications, maintenance schedules, user↔driver link, permission-based RBAC, account lockout, API rate limit, refresh token cap.
 * **Demo fallback:** Frontend `api.js` serves aligned `mockData.js` on network error or 5xx only (auth endpoints excluded).
 
 ## Tech Stack
