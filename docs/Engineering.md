@@ -1,6 +1,6 @@
 # Engineering Documentation
 
-**Last updated:** July 31, 2026 (production deployed · Vercel + Render + Atlas)
+**Last updated:** July 31, 2026 (production deployed · docs sync · frontend-redesign.md retired)
 
 ## Engineering Decisions
 
@@ -18,7 +18,8 @@
 * **Audit trail:** Mutations logged via `auditMiddleware`; admin read API at `GET /api/audit-logs` with filter UI on Users page.
 * **Cross-origin production auth:** Refresh cookies use `SameSite=None; Secure` when `NODE_ENV=production`; CORS reads `CLIENT_URL` / `FRONTEND_URL` (comma-separated supported).
 * **Environment split:** Frontend `.env.development` (localhost API) vs `.env.production` (Render API for Vercel builds).
-* **Local dev bypass:** `./dev` shell scripts run Vite/Express without npm (avoids corporate registry MFA on some machines).
+* **Local dev bypass:** `./dev` shell scripts run Vite/Express without npm; frontend `./dev` auto-selects `.nvmrc` Node when the active shell is too old for Vite 8.
+* **Repo hygiene:** Root `.gitignore` excludes `.cursor/` (local IDE config).
 * **P6 batch:** PDF export, notifications, maintenance schedules, user↔driver link, permission-based RBAC, account lockout, API rate limit, refresh token cap.
 * **Production hosting:** Vercel (frontend) + Render Docker (backend) + MongoDB Atlas — see `deployment.md`.
 
@@ -72,8 +73,9 @@ backend/
 frontend/src/
   pages/app/     # Authenticated app pages
   pages/auth/    # Login, register, password reset
-  components/ui/ # Design system primitives
-  components/common/  # Shared Modal, Toast, SelectField
+  components/common/  # Modal, Toast, SelectField, SearchableSelectField, SearchInput
+  components/ui/      # Design system primitives (StatCard, ClampedText, etc.)
+  lib/                # selectOptions, utils (cn, formatFuelLiters*)
   schemas/       # Zod validation schemas
   contexts/      # AuthContext
   hooks/         # useDebounce (search)
@@ -110,3 +112,4 @@ GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main` (Node.js 22):
 * Deployment: `deployment.md`
 * Pending work: `backlog.md`
 * Audit findings: `audit-report.md`
+* UI / design system: `style-guide.md`

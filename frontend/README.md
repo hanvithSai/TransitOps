@@ -49,7 +49,8 @@ See `/docs/deployment.md` for full prod/dev matrix.
 - `src/pages/app/` — Authenticated modules (dashboard, vehicles, trips, etc.)
 - `src/pages/auth/` — Login, register, password reset
 - `src/components/ui/` — Design system primitives
-- `src/components/common/` — Shared Modal, Toast, SelectField
+- `src/components/common/` — Modal, Toast, SelectField, SearchableSelectField, SearchInput
+- `src/lib/selectOptions.js` — Vehicle/driver/trip option builders for searchable selects
 - `src/schemas/` — Zod validation (mirrors backend validators)
 - `src/services/api.js` — Axios + JWT refresh + mock fallback
 - `src/test/setup.js` — Vitest + Testing Library setup

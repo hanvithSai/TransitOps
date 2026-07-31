@@ -99,11 +99,11 @@ TransitOps/
     ├── src/
     │   ├── components/
     │   │   ├── ui/                       # Button, Card, Modal, Table, Toast, Skeleton, etc.
-    │   │   ├── common/                   # Modal/Toast re-exports, SelectField
+    │   │   ├── common/                   # Modal, Toast, SelectField, SearchableSelectField, SearchInput
     │   │   ├── ProtectedRoute.jsx        # Auth + role guard component
     │   │   └── ProtectedRoute.test.jsx   # Vitest smoke tests
     │   ├── hooks/                        # useDebounce (search)
-    │   ├── lib/                          # passwordPolicy, apiErrors
+    │   ├── lib/                          # selectOptions, passwordPolicy, apiErrors, utils
     │   ├── test/                         # Vitest setup
     │   ├── schemas/                      # Zod form schemas (mirror backend validators)
     │   ├── contexts/
@@ -841,17 +841,17 @@ Protected (ProtectedRoute wrapping AppLayout):
 3. If `allowedRoles` provided and user role not in list → `<Navigate to="/unauthorized" />`
 4. Otherwise → renders `children`
 
-### 11.5 AppLayout — Sidebar
+### 11.5 AppLayout — Sidebar & Header
 
 **File:** `frontend/src/layouts/AppLayout.jsx`
 
-- Collapsible sidebar (260px expanded / 72px collapsed)
-- Toggle button on sidebar edge
-- Navigation links filtered by `user.role.name` — each nav item has a `roles[]` whitelist
-- Role badge with colour-coded styling per role
-- User avatar (initials), online status dot, logout button
-- Top header with welcome message and role badge
-- `<Outlet />` for nested page content
+- Collapsible sidebar (260px expanded / 72px collapsed) — visible `md+` (`hidden md:flex`)
+- Mobile drawer below `768px`; hamburger uses `.app-header-menu-btn` (CSS-hidden on desktop)
+- Breadcrumbs: Home → current page label
+- Navigation filtered by `user.role.name` — must match `ProtectedRoute` allowed roles
+- Theme toggle persists to `localStorage` key `transitops-theme`
+- `DemoModeBanner` above header when API mock fallback is active
+- `<Outlet />` in `.app-content-inner` for page content
 
 ### 11.6 UsersPage — Admin User Management
 
@@ -864,6 +864,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Role filter | Dropdown populated from `GET /api/roles` |
 | User table | Avatar initials, role badge, status badge, last login timestamp |
 | Create modal | Form: name, email, password (with show/hide), role select |
+| Linked driver | `SearchableSelectField` when role is driver |
 | Edit modal | Pre-filled form + `isActive` toggle switch |
 | Delete modal | Confirmation dialog before hard delete |
 | Audit tab | Filterable audit log table (`GET /api/audit-logs`) with action/resource filters |
@@ -912,35 +913,32 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Set Off Duty | Row action deactivates driver while preserving trip history |
 | RBAC UI | Create/Edit/Delete actions restricted to `admin` and `safety_officer` |
 
-### 11.10 TripsPage — Trip Management
+### 11.10 TripsPage — Trip Dispatcher
 
 **File:** `frontend/src/pages/TripsPage.jsx`
 
 | Feature | Implementation |
 |---|---|
-| Stats bar | Draft / Dispatched / Completed / Cancelled counts |
-| Search & Filter | Real-time filter on source/destination + Status dropdown |
-| Trip table | Populated vehicle and driver names, cargo/distance, timestamps |
-| Create modal | Select vehicle + driver, enter cargo weight, planned distance, revenue |
-| Dispatch action | Triggers `PUT /api/trips/:id/dispatch` with full business rule enforcement |
-| Complete action | Modal with actualDistance and fuelUsed inputs |
-| Cancel action | Confirmation before cancellation (Draft only) |
-| RBAC UI | Create/Dispatch restricted to `admin`/`driver`; Complete additionally allows `fleet_manager` |
+| Layout | Fixed-height page: header + KPI row + 50/50 master-detail (list \| workspace) on `lg+` |
+| Stats bar | Five `StatCard` tiles (stack layout — matches Vehicles/Drivers spacing) |
+| List panel | Status pill tabs, debounced `SearchInput`, selectable trip rows |
+| Detail / create | Inline workspace for selected trip or new trip form |
+| Assignments | `SearchableSelectField` for available vehicle and driver |
+| Actions | Dispatch, complete (modal), cancel (confirm) — RBAC gated |
+| Long text | `ClampedText` on route/cargo fields with `title` tooltip |
 
-### 11.11 MaintenancePage — Maintenance Logs
+### 11.11 MaintenancePage — Maintenance Workspace
 
 **File:** `frontend/src/pages/MaintenancePage.jsx`
 
 | Feature | Implementation |
 |---|---|
-| Split-pane layout | Left pane: LOG SERVICE RECORD form; Right pane: SERVICE LOGS table |
-| Vehicle dropdown | Populated from `/api/vehicles` (non-Retired vehicles) |
-| Form fields | Vehicle, Service Type, Cost, Date, Status (Active / Completed) |
-| Click-to-edit | Clicking a log row loads it into the left form for editing |
-| Status badges | `In Shop` (amber/orange) for `Active`; `Completed` (green) for `Completed` |
-| Delete confirmation | Modal prompt before deleting a log |
-| Business rule display | Automatic vehicle status updates reflected after save/delete |
-| RBAC UI | Write controls restricted to `admin` and `fleet_manager` |
+| Layout | Section jump nav; left sidebar (log form + recurring schedules); right scrollable service history |
+| Vehicle pickers | `SearchableSelectField` on log form and schedule form |
+| Form | React Hook Form + Zod; vehicle status sync on save/delete |
+| Schedules | List + add recurring schedule form in sidebar |
+| History | Search + comfortable table in scroll region |
+| RBAC | Write controls for `admin` and `fleet_manager` only |
 
 ### 11.12 FinancePage — Fuel & Expenses
 
@@ -950,7 +948,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 |---|---|
 | Dual Tab Navigation | Separate `fuelForm` and `expenseForm` (RHF + Zod) per tab — `/fuel` vs `/expenses` |
 | Dynamic Data Table | Table columns swap based on the active tab (Liters/Odometer vs Category/Notes) |
-| Shared Action Modal | Modal form swaps inputs based on active tab; fetches active Vehicles and Trips for dropdowns |
+| Shared Action Modal | Modal form swaps inputs by tab; `SearchableSelectField` for vehicle and trip |
 | Delete confirmation | Modal prompt before deleting fuel/expense records |
 | Relational Validation | UI alerts user if the selected trip doesn't belong to the selected vehicle |
 | Category Badges | Unique color styling for Expense categories (`Toll`, `Repair`, `Parking`, etc.) |
@@ -982,26 +980,13 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 ## 12. Design System
 
-**File:** `frontend/src/index.css`
+**Files:** `frontend/src/index.css`, `docs/style-guide.md`
 
-### Colour Tokens (CSS Custom Properties)
+Design tokens live in `index.css` as CSS custom properties (`--color-brand-*`, `--bg-*`, `--text-*`, `--border-*`, semantic success/warning/error). Typography uses **Outfit** (headings) and **Inter** (body) via Google Fonts. Tailwind v4 is loaded through `@tailwindcss/vite`.
 
-| Token | Value | Usage |
-|---|---|---|
-| `--color-brand-400/500/600/700` | Blue spectrum | Primary actions, links, active states |
-| `--color-surface-950/900/800/700` | Near-black blues | Page bg, sidebar, cards, hover states |
-| `--color-text-primary` | `#f0f4ff` | Headings, values |
-| `--color-text-secondary` | `#94a3b8` | Labels, subtext |
-| `--color-text-muted` | `#64748b` | Placeholders, captions |
-| `--color-border` | `rgba(255,255,255,0.07)` | Dividers |
-| `--color-border-light` | `rgba(255,255,255,0.12)` | Input borders, card borders |
-| `--color-success` | `#22c55e` | Active status |
-| `--color-warning` | `#f59e0b` | Warning states |
-| `--color-danger` | `#ef4444` | Error states |
-| `--sidebar-width` | `260px` | Sidebar expanded width |
+Shared layout utilities include `.app-page-stack`, `.app-stat-grid`, `.app-toolbar-card`, `.searchable-select-*`, and page-specific workspaces (e.g. `.app-trips-page`, `.app-maintenance-workspace`).
 
-**Typography:** Inter (Google Fonts), weights 300–800
-**Tailwind:** v4 with `@tailwindcss/vite` plugin
+For the full token table, component specs, and interaction rules, use **`docs/style-guide.md`** — the single source of truth for UI work.
 
 ---
 

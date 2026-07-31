@@ -147,4 +147,4 @@ Remaining work is **P6 deferred items** (file uploads, GPS, mobile app, AI) — 
 | `docs/validation.md` | Production readiness checklist |
 | `docs/mock_data.md` | Seeder credentials and generated data overview |
 | `docs/style-guide.md` | Design system v2.1 tokens and component rules |
-| `docs/frontend-redesign.md` | Frontend UX evaluation and redesign notes |
+| `docs/audit-report.md` | Codebase audit with priority recommendations |
