@@ -13,8 +13,10 @@
 | `drivers` | Driver | License details, expiry, safety score, status |
 | `trips` | Trip | Dispatch lifecycle, revenue, distances, fuel |
 | `maintenancelogs` | MaintenanceLog | Service records linked to vehicles |
+| `maintenanceschedules` | MaintenanceSchedule | Recurring service intervals per vehicle (P6) |
 | `fuellogs` | FuelLog | Fuel purchases per vehicle/trip |
 | `expenses` | Expense | Operational costs (Toll, Repair, etc.) |
+| `notifications` | Notification | In-app alerts (license expiry, maintenance due) |
 | `auditlogs` | AuditLog | Mutation audit trail; admin read via `GET /api/audit-logs` |
 
 ## Status Enums
@@ -73,6 +75,22 @@
 | `{ user: 1, createdAt: -1 }` | Per-user audit history |
 | `{ resource: 1, action: 1 }` | Filter by entity and action |
 | `{ createdAt: -1 }` | Chronological audit feed |
+
+### MaintenanceSchedule (`MaintenanceSchedule.js`)
+
+| Index | Purpose |
+|-------|---------|
+| `{ vehicle: 1 }` | Schedules per vehicle |
+
+Fields: `serviceType`, `intervalKm`, `intervalDays`, `lastServiceOdometer`, `lastServiceDate`, `isActive`.
+
+### Notification (`Notification.js`)
+
+| Index | Purpose |
+|-------|---------|
+| `{ user: 1, read: 1, createdAt: -1 }` | Unread feed per user |
+
+Types: `license_expiry`, `maintenance_due`, `system`.
 
 ### Other
 

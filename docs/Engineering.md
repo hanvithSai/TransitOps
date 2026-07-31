@@ -19,7 +19,7 @@
 * **Cross-origin production auth:** Refresh cookies use `SameSite=None; Secure` when `NODE_ENV=production`; CORS reads `CLIENT_URL` / `FRONTEND_URL` (comma-separated supported).
 * **Environment split:** Frontend `.env.development` (localhost API) vs `.env.production` (Render API for Vercel builds).
 * **Local dev bypass:** `./dev` shell scripts run Vite/Express without npm; frontend `./dev` auto-selects `.nvmrc` Node when the active shell is too old for Vite 8.
-* **Repo hygiene:** Root `.gitignore` excludes `.cursor/` (local IDE config).
+* **Repo hygiene:** Root `.gitignore` excludes `.cursor/` (local IDE config) and `.githooks/` (local git hooks — enable with `git config core.hooksPath .githooks`).
 * **P6 batch:** PDF export, notifications, maintenance schedules, user↔driver link, permission-based RBAC, account lockout, API rate limit, refresh token cap.
 * **Production hosting:** Vercel (frontend) + Render Docker (backend) + MongoDB Atlas — see `deployment.md`.
 
