@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, User, Shield, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, AlertCircle, User, CheckCircle2 } from 'lucide-react';
+import { SelectField } from '../../components/common/SelectField';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthLayout from '../../components/layout/AuthLayout';
 import PasswordChecklist from '../../components/auth/PasswordChecklist';
@@ -20,7 +21,6 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Fleet Manager' });
-  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -103,41 +103,27 @@ const RegisterPage = () => {
         <Input label="Email address" id="email" name="email" type="email" icon={Mail} value={form.email} onChange={handleChange} placeholder="name@company.com" required autoComplete="email" />
 
         <div className="space-y-2">
-          <label htmlFor="password" className="text-label !normal-case !tracking-normal !text-[var(--text-primary)]">
-            Password <span className="text-[var(--color-error)]">*</span>
-          </label>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[var(--text-muted)]">
-              <Lock className="h-4 w-4" aria-hidden="true" />
-            </div>
-            <input
-              id="password"
-              name="password"
-              type={showPass ? 'text' : 'password'}
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              required
-              autoComplete="new-password"
-              className="flex h-11 w-full rounded-[var(--radius-md)] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-10 text-sm text-[var(--text-primary)] transition-smooth placeholder:text-[var(--text-muted)] focus-visible:border-[var(--color-brand-500)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]"
-            />
-            <button type="button" onClick={() => setShowPass(!showPass)} className="absolute inset-y-0 right-0 flex items-center px-3.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]" aria-label={showPass ? 'Hide password' : 'Show password'}>
-              {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <PasswordChecklist password={form.password} className="pt-1" />
+          <Input
+            label="Password"
+            id="password"
+            name="password"
+            type="password"
+            icon={Lock}
+            showPasswordToggle
+            value={form.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+            required
+            autoComplete="new-password"
+          />
+          <PasswordChecklist password={form.password} className="mt-1" />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="role" className="text-label !normal-case !tracking-normal !text-[var(--text-primary)] flex items-center gap-1.5">
-            <Shield className="h-3.5 w-3.5" aria-hidden="true" /> Role
-          </label>
-          <select id="role" name="role" value={form.role} onChange={handleChange} className="select-field" required>
-            {ROLES.map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
-        </div>
+        <SelectField label="Role" id="role" name="role" value={form.role} onChange={handleChange} required>
+          {ROLES.map((role) => (
+            <option key={role} value={role}>{role}</option>
+          ))}
+        </SelectField>
 
         <Button type="submit" loading={loading} fullWidth size="lg">
           Create account

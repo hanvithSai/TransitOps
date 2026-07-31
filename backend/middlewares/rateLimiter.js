@@ -1,8 +1,11 @@
 const rateLimit = require("express-rate-limit");
 
+const isDev = process.env.NODE_ENV !== "production";
+
+/** Brute-force protection for credential endpoints only (not /me or /refresh). */
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 30,
+    max: isDev ? 500 : 30,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -13,7 +16,7 @@ const authLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300,
+    max: isDev ? 5000 : 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: {

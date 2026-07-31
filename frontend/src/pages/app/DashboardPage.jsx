@@ -34,6 +34,8 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, []);
 
+  const chartMargin = { top: 12, right: 16, left: 8, bottom: 8 };
+
   const tooltipStyle = {
     backgroundColor: 'var(--bg-surface)',
     borderColor: 'var(--border-base)',
@@ -96,10 +98,10 @@ const DashboardPage = () => {
           const Icon = kpiIcons[i];
           return (
             <div key={kpi.label} className="kpi-card" style={{ '--kpi-accent': kpi.accent }}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="kpi-card-header">
                 <p className="text-label">{kpi.label}</p>
                 <div className="app-kpi-icon">
-                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <Icon className="h-5 w-5" aria-hidden="true" />
                 </div>
               </div>
               <p className="text-kpi-value kpi-card-value">{kpi.value}</p>
@@ -109,11 +111,11 @@ const DashboardPage = () => {
       </div>
 
       <div className="app-chart-grid">
-        <Card className="flex h-[22rem] flex-col sm:h-[24rem]">
-          <h3 className="text-h3 mb-4">Completed trips by month</h3>
-          <div className="min-h-0 flex-1 w-full">
+        <Card className="app-chart-card">
+          <h3 className="app-chart-card-title text-h3">Completed trips by month</h3>
+          <div className="app-chart-card-body">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={charts.tripsTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <BarChart data={charts.tripsTrend} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-base)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
@@ -124,18 +126,18 @@ const DashboardPage = () => {
           </div>
         </Card>
 
-        <Card className="flex h-[22rem] flex-col sm:h-[24rem]">
-          <h3 className="text-h3 mb-2">Fleet status</h3>
-          <div className="relative min-h-0 flex-1">
+        <Card className="app-chart-card">
+          <h3 className="app-chart-card-title text-h3">Fleet status</h3>
+          <div className="app-chart-card-body app-chart-card-body--pie">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                 <Pie data={charts.fleetStatus} cx="50%" cy="50%" innerRadius={64} outerRadius={96} paddingAngle={4} dataKey="value" stroke="none">
                   {charts.fleetStatus.map((entry, index) => (
                     <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
-                <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: '13px', color: 'var(--text-secondary)', paddingTop: '12px' }} />
+                <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: '13px', color: 'var(--text-secondary)', paddingTop: '16px' }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center -mt-6">
@@ -145,11 +147,11 @@ const DashboardPage = () => {
           </div>
         </Card>
 
-        <Card className="flex h-[22rem] flex-col sm:h-[24rem]">
-          <h3 className="text-h3 mb-4">Fuel cost trend</h3>
-          <div className="min-h-0 flex-1 w-full">
+        <Card className="app-chart-card">
+          <h3 className="app-chart-card-title text-h3">Fuel cost trend</h3>
+          <div className="app-chart-card-body">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={charts.fuelTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <LineChart data={charts.fuelTrend} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-base)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
@@ -160,11 +162,11 @@ const DashboardPage = () => {
           </div>
         </Card>
 
-        <Card className="flex h-[22rem] flex-col sm:h-[24rem]">
-          <h3 className="text-h3 mb-4">Maintenance cost trend</h3>
-          <div className="min-h-0 flex-1 w-full">
+        <Card className="app-chart-card">
+          <h3 className="app-chart-card-title text-h3">Maintenance cost trend</h3>
+          <div className="app-chart-card-body">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={charts.maintenanceTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <LineChart data={charts.maintenanceTrend} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-base)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />

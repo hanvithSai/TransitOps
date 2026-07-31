@@ -1,14 +1,16 @@
-export const EmptyState = ({ icon: Icon, title, description, action }) => (
-  <div className="flex flex-col items-center justify-center py-24 text-center h-full">
+import { cn } from '../../lib/utils';
+
+export const EmptyState = ({ icon: Icon, title, description, action, className }) => (
+  <div className={cn('app-empty-state h-full', className)}>
     {Icon && (
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
-        <Icon className="h-7 w-7 text-[var(--text-muted)]" />
+      <div className="app-empty-state-icon" aria-hidden="true">
+        <Icon className="h-7 w-7" />
       </div>
     )}
-    <p className="text-sm font-semibold text-[var(--text-primary)]">{title}</p>
+    <p className="app-empty-state-title">{title}</p>
     {description && (
-      <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[280px]">{description}</p>
+      <p className="app-empty-state-description">{description}</p>
     )}
-    {action && <div className="mt-6">{action}</div>}
+    {action && <div className="mt-2">{action}</div>}
   </div>
 );

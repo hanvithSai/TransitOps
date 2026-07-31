@@ -1,8 +1,8 @@
 import { cn } from '../../lib/utils';
 
-export const Table = ({ children, className }) => (
-  <div className={cn('app-table-wrap', className)}>
-    <table className="app-table">{children}</table>
+export const Table = ({ children, className, comfortable = true }) => (
+  <div className={cn('app-table-wrap', comfortable && 'app-table-wrap--comfortable', className)}>
+    <table className={cn('app-table', comfortable && 'app-table--comfortable')}>{children}</table>
   </div>
 );
 

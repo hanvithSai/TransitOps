@@ -1,22 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Search, MapPin, Navigation, Map, ShieldAlert, CheckCircle2, Clock, Truck, User, Calendar, FileText, XCircle, AlertCircle, Play, Package, DollarSign, Fuel, Activity } from 'lucide-react';
+import { Plus, MapPin, Navigation, Map, ShieldAlert, CheckCircle2, Clock, Truck, User, Calendar, FileText, XCircle, AlertCircle, Play, Package, DollarSign, Fuel, Activity } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchInput } from '../../components/common/SearchInput';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { createTripSchema, completeTripSchema } from '../../schemas/trip';
 import { useDebounce } from '../../hooks/useDebounce';
-import { cn } from '../../lib/utils';
+import { ClampedText } from '../../components/ui/ClampedText';
+import { cn, formatFuelLitersDisplay } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -201,10 +204,10 @@ const TripsPage = () => {
   const draft = trips.filter(t => t.status === 'Draft').length;
 
   return (
-    <div className="app-page-stack flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-[calc(100dvh-9rem)] max-h-[calc(100dvh-9rem)] flex-col gap-4 overflow-hidden sm:gap-5">
       
-      {/* ─── Header & Stats ─────────────────────────────────── */}
-      <div className="flex-none">
+      {/* ─── Header & Stats (compact, fixed height) ─────────── */}
+      <div className="shrink-0">
         <PageHeader
           icon={Map}
           title="Trip dispatcher"
@@ -214,7 +217,7 @@ const TripsPage = () => {
           ) : null}
         />
 
-        <div className="mt-6 grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-5">
+        <div className="app-stat-grid app-stat-grid--5 mt-4 sm:mt-5">
           {[
             { label: 'Total Trips', value: total, icon: Map, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
             { label: 'Dispatched', value: dispatched, icon: Navigation, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
@@ -222,30 +225,37 @@ const TripsPage = () => {
             { label: 'Completed', value: trips.filter(t => t.status === 'Completed').length, icon: CheckCircle2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
             { label: 'Cancelled', value: trips.filter(t => t.status === 'Cancelled').length, icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' },
           ].map((s) => (
-            <Card key={s.label} className="p-4 flex flex-col justify-center transition-smooth hover:shadow-md hover:-translate-y-0.5 hover:border-[var(--color-brand-200)] dark:hover:border-[var(--color-brand-800)]">
-              <div className="flex items-start justify-between mb-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{s.label}</p>
-                <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", s.bg, s.color)}>
-                  <s.icon className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <p className={cn("text-2xl font-bold tracking-tight", s.color)}>{s.value}</p>
-            </Card>
+            <StatCard
+              key={s.label}
+              label={s.label}
+              value={s.value}
+              icon={s.icon}
+              iconBg={s.bg}
+              iconColor={s.color}
+              valueClassName={s.color}
+              layout="row"
+            />
           ))}
         </div>
       </div>
 
-      {/* ─── Split Layout ───────────────────────────────────── */}
-      <div className="flex min-h-0 flex-1 gap-6">
+      {/* ─── Master / Detail — equal split, always visible ─── */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-4 lg:grid-cols-2 lg:grid-rows-1 lg:gap-6">
         
         {/* LEFT PANEL: Trip List */}
-        <Card className="flex w-1/3 min-w-[320px] max-w-md flex-col overflow-hidden shadow-sm border border-[var(--border-base)]">
-          <div className="border-b border-[var(--border-base)] bg-[var(--bg-base)] p-4 flex-none space-y-4">
-            <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar -mx-2 px-2 mask-linear-x">
+        <Card noPadding className="flex min-h-0 flex-col overflow-hidden border border-[var(--border-base)] shadow-sm">
+          <div className="app-trips-list-toolbar shrink-0">
+            <div className="app-trips-list-toolbar-head">
+              <h2 className="app-trips-list-title">Trips</h2>
+              {!loading && (
+                <span className="app-trips-list-count">{trips.length} shown</span>
+              )}
+            </div>
+            <div className="app-trips-filter-row no-scrollbar mask-linear-x">
               {['', 'Draft', 'Dispatched', 'Completed', 'Cancelled'].map(t => (
                 <button key={t} onClick={() => setActiveTab(t)}
                   className={cn(
-                    "rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]",
+                    "app-tab-btn app-tab-btn--pill transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]",
                     activeTab === t 
                       ? "bg-[var(--color-brand-500)] text-white shadow-sm" 
                       : "bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border-base)] hover:text-[var(--text-primary)]"
@@ -254,19 +264,16 @@ const TripsPage = () => {
                 </button>
               ))}
             </div>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-                <Search className="h-4 w-4" />
-              </div>
-              <input type="text" placeholder="Search route, ID..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full select-field py-2.5 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search route, ID…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
           
-          <div className="flex-1 overflow-y-auto bg-[var(--bg-surface)]">
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[var(--bg-surface)]">
             {loading ? (
-              <div className="p-4">
+              <div className="p-5 sm:p-6">
                 <SkeletonTable rows={5} />
               </div>
             ) : trips.length === 0 ? (
@@ -274,48 +281,71 @@ const TripsPage = () => {
                 icon={Map}
                 title="No trips found"
                 description="Adjust your filters or create a new trip to get started."
+                className="py-16 px-6"
               />
             ) : (
-              <div className="divide-y divide-[var(--border-base)]">
+              <div className="flex w-full flex-col" role="list">
                 {trips.map(trip => {
                   const StatusIcon = STATUS_ICON[trip.status] || Map;
+                  const routeLabel = `${trip.source} → ${trip.destination}`;
+                  const vehicleLabel = trip.vehicle?.registrationNumber || 'No vehicle';
+                  const driverLabel = trip.driver?.name || 'No driver';
                   return (
-                    <button key={trip._id} onClick={() => { setSelectedTrip(trip); setIsCreating(false); }}
+                    <button
+                      key={trip._id}
+                      type="button"
+                      role="listitem"
+                      onClick={() => { setSelectedTrip(trip); setIsCreating(false); }}
                       className={cn(
-                        "w-full p-4 text-left transition-all duration-200 group focus-visible:outline-none focus-visible:bg-[var(--bg-surface-hover)]",
-                        selectedTrip?._id === trip._id && !isCreating 
-                          ? 'bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)]/10 ring-1 ring-inset ring-[var(--color-brand-500)]/50' 
-                          : 'hover:bg-[var(--bg-surface-hover)]'
+                        'app-trip-list-item group flex w-full max-w-full flex-col items-stretch border-0 bg-transparent text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand-500)]',
+                        selectedTrip?._id === trip._id && !isCreating
+                          ? 'app-trip-list-item--selected'
+                          : 'hover:bg-[var(--bg-surface-hover)]',
                       )}
                     >
-                      <div className="mb-3 flex items-center justify-between">
-                        <Badge variant={STATUS_VARIANT[trip.status]} className="flex items-center gap-1.5 shadow-sm">
-                          <StatusIcon className="h-3 w-3" /> {trip.status}
+                      <div className="app-trip-list-item-header">
+                        <Badge variant={STATUS_VARIANT[trip.status]} className="gap-2 shadow-sm">
+                          <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          {trip.status}
                         </Badge>
-                        <span className="text-[11px] font-medium text-[var(--text-muted)] flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                        <span className="app-trip-list-item-date">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                           {new Date(trip.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
+
+                      <div className="app-trip-list-route">
                         <div className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border-base)] bg-[var(--bg-base)] text-[var(--text-muted)] transition-colors",
-                          selectedTrip?._id === trip._id && !isCreating ? "text-[var(--color-brand-600)] border-[var(--color-brand-200)] bg-white dark:bg-[var(--bg-surface)] dark:border-[var(--color-brand-800)] dark:text-[var(--color-brand-400)]" : "group-hover:text-[var(--color-brand-500)]"
+                          'app-trip-list-route-icon',
+                          selectedTrip?._id === trip._id && !isCreating
+                            ? 'text-[var(--color-brand-600)] border-[var(--color-brand-200)] bg-white dark:bg-[var(--bg-surface)] dark:border-[var(--color-brand-800)] dark:text-[var(--color-brand-400)]'
+                            : 'group-hover:text-[var(--color-brand-500)]',
                         )}>
-                          <MapPin className="h-4 w-4" />
+                          <MapPin className="h-4 w-4" aria-hidden="true" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-[var(--text-primary)] truncate text-sm">
+                        <div className="app-trip-list-route-text">
+                          <ClampedText
+                            as="p"
+                            lines={2}
+                            title={routeLabel}
+                            className="app-trip-list-route-path"
+                          >
                             {trip.source}
-                          </p>
-                          <p className="font-semibold text-[var(--text-primary)] truncate text-sm mt-0.5">
-                            <span className="text-[var(--text-muted)] font-normal mr-1">to</span> {trip.destination}
-                          </p>
+                            <span className="app-trip-list-route-path-muted"> → </span>
+                            {trip.destination}
+                          </ClampedText>
                         </div>
                       </div>
-                      <div className="mt-3 flex items-center gap-4 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-base)]/50 p-2 rounded-lg border border-[var(--border-base)]/50">
-                        <span className="flex items-center gap-1.5 truncate"><Truck className="h-3.5 w-3.5 text-[var(--text-muted)]" />{trip.vehicle?.registrationNumber || 'No Vehicle'}</span>
-                        <span className="flex items-center gap-1.5 truncate"><User className="h-3.5 w-3.5 text-[var(--text-muted)]" />{trip.driver?.name?.split(' ')[0] || 'No Driver'}</span>
+
+                      <div className="app-trip-list-meta">
+                        <span className="app-trip-list-meta-item">
+                          <Truck className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+                          <ClampedText lines={2} text={vehicleLabel} />
+                        </span>
+                        <span className="app-trip-list-meta-item">
+                          <User className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+                          <ClampedText lines={2} text={driverLabel} />
+                        </span>
                       </div>
                     </button>
                   );
@@ -325,52 +355,61 @@ const TripsPage = () => {
           </div>
         </Card>
 
-        {/* RIGHT PANEL: Detail / Form */}
-        <Card className="flex flex-1 flex-col overflow-hidden shadow-sm border border-[var(--border-base)] bg-[var(--bg-surface)]">
+        {/* RIGHT PANEL: Detail / Form / Placeholder */}
+        <Card noPadding className="flex min-h-0 min-w-0 flex-col overflow-hidden border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm">
           {!selectedTrip && !isCreating ? (
-            <div className="flex h-full flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in-95 duration-300">
-              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--bg-base)] to-[var(--bg-surface-hover)] text-[var(--text-muted)] border border-[var(--border-base)] shadow-sm">
-                <Map className="h-10 w-10 opacity-50" />
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="app-trips-list-toolbar shrink-0 border-b border-[var(--border-base)]">
+                <div className="app-trips-list-toolbar-head">
+                  <h2 className="app-trips-list-title">Trip workspace</h2>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Select a Trip</h3>
-              <p className="mt-2 text-sm text-[var(--text-secondary)] max-w-[250px]">Choose a trip from the list to view its complete details, payload information, and dispatch status.</p>
-              {(user?.role?.name === 'admin' || user?.role?.name === 'driver') && (
-                <Button onClick={handleNewTripClick} variant="outline" className="mt-6 shadow-sm">
-                  <Plus className="mr-2 h-4 w-4" /> Create New Trip
-                </Button>
-              )}
+              <div className="flex flex-1 flex-col items-center justify-center p-6 text-center sm:p-8">
+                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--bg-base)] to-[var(--bg-surface-hover)] text-[var(--text-muted)] border border-[var(--border-base)] shadow-sm sm:h-20 sm:w-20">
+                  <Map className="h-8 w-8 opacity-50 sm:h-10 sm:w-10" />
+                </div>
+                <h3 className="text-lg font-bold text-[var(--text-primary)]">Select a trip</h3>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">
+                  Pick a trip from the list to view details, or create a new draft trip here.
+                </p>
+                {(user?.role?.name === 'admin' || user?.role?.name === 'driver') && (
+                  <Button onClick={handleNewTripClick} className="mt-6 shadow-sm" icon={Plus}>
+                    Create new trip
+                  </Button>
+                )}
+              </div>
             </div>
           ) : isCreating ? (
             // ─── CREATE FORM ─────────────────────────────────────────
-            <div className="flex h-full flex-col animate-in slide-in-from-right-4 duration-300">
-              <div className="border-b border-[var(--border-base)] px-6 py-5 bg-[var(--bg-base)]">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand-500)] text-white shadow-sm">
-                    <Plus className="h-4 w-4" />
+            <div className="flex h-full min-h-0 flex-col animate-in slide-in-from-right-4 duration-300">
+              <div className="app-trips-panel-header shrink-0">
+                <div className="app-trips-panel-header-inner">
+                  <div className="app-trips-panel-header-icon">
+                    <Plus className="h-5 w-5" />
                   </div>
                   <h2 className="text-xl font-bold text-[var(--text-primary)]">Plan New Trip</h2>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 bg-[var(--bg-surface)]">
-                <form id="create-trip-form" onSubmit={handleCreateFormSubmit(handleCreateSubmit)} className="space-y-6 max-w-2xl mx-auto">
+              <div className="app-trips-panel-body">
+                <form id="create-trip-form" onSubmit={handleCreateFormSubmit(handleCreateSubmit)} className="app-form-stack--relaxed app-trips-panel-body--form">
                   {formError && (
-                    <div className="flex items-center gap-3 rounded-lg bg-[var(--color-error)]/10 p-4 text-sm text-[var(--color-error)] animate-in fade-in slide-in-from-top-2">
+                    <div className="app-form-alert animate-in fade-in slide-in-from-top-2">
                       <AlertCircle className="h-5 w-5 shrink-0" />
                       <p className="font-medium">{formError}</p>
                     </div>
                   )}
                   
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><MapPin className="h-4 w-4" /> Route Configuration</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] shadow-sm">
+                  <div className="app-form-section">
+                    <h3 className="app-form-section-title"><MapPin className="h-4 w-4 shrink-0" /> Route Configuration</h3>
+                    <div className="app-form-section-body app-form-section-body--2">
                       <Input required label="Source Location" className="w-full" error={createErrors.source?.message} {...registerCreate('source')} placeholder="e.g. Warehouse A" />
                       <Input required label="Destination" className="w-full" error={createErrors.destination?.message} {...registerCreate('destination')} placeholder="e.g. City Hub" />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><Truck className="h-4 w-4" /> Assignments</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] shadow-sm">
+                  <div className="app-form-section">
+                    <h3 className="app-form-section-title"><Truck className="h-4 w-4 shrink-0" /> Assignments</h3>
+                    <div className="app-form-section-body app-form-section-body--2">
                       <SelectField label="Assign Vehicle" error={createErrors.vehicle?.message} required {...registerCreate('vehicle')}>
                         <option value="">— Select Available Vehicle —</option>
                         {availableVehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber} ({v.vehicleName} - {v.capacity}t)</option>)}
@@ -382,22 +421,22 @@ const TripsPage = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><Package className="h-4 w-4" /> Payload & Metrics</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] shadow-sm">
+                  <div className="app-form-section">
+                    <h3 className="app-form-section-title"><Package className="h-4 w-4 shrink-0" /> Payload & Metrics</h3>
+                    <div className="app-form-section-body app-form-section-body--3">
                       <Input required label="Cargo (kg)" type="number" min="0" step="0.1" error={createErrors.cargoWeight?.message} {...registerCreate('cargoWeight')} />
                       <Input required label="Distance (km)" type="number" min="0" error={createErrors.plannedDistance?.message} {...registerCreate('plannedDistance')} />
                       <Input label="Revenue (opt)" type="number" min="0" error={createErrors.revenue?.message} {...registerCreate('revenue')} />
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-[var(--text-secondary)]">Notes (optional)</label>
-                    <textarea rows="3" className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] resize-none" {...registerCreate('notes')} placeholder="Add any special instructions or notes..." />
+                  <div className="app-form-field">
+                    <label htmlFor="trip-notes" className="app-form-field-label">Notes (optional)</label>
+                    <textarea id="trip-notes" rows="4" className="app-textarea-field" {...registerCreate('notes')} placeholder="Add any special instructions or notes..." />
                   </div>
                 </form>
               </div>
-              <div className="border-t border-[var(--border-base)] p-5 flex justify-end gap-3 bg-[var(--bg-base)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+              <div className="app-form-footer z-10">
                 <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
                 <Button form="create-trip-form" type="submit" loading={actionLoading}>
                   Create Draft
@@ -406,170 +445,223 @@ const TripsPage = () => {
             </div>
           ) : (
             // ─── TRIP DETAIL VIEW ────────────────────────────────────
-            <div className="flex h-full flex-col animate-in slide-in-from-right-4 duration-300">
-              <div className="border-b border-[var(--border-base)] bg-[var(--bg-base)] px-6 py-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-xl font-bold text-[var(--text-primary)]">Trip Details</h2>
-                    <Badge variant={STATUS_VARIANT[selectedTrip.status]} className="flex items-center gap-1.5 shadow-sm">
-                      {selectedTrip.status === 'Draft' && <Clock className="h-3 w-3" />}
-                      {selectedTrip.status === 'Dispatched' && <Navigation className="h-3 w-3" />}
-                      {selectedTrip.status === 'Completed' && <CheckCircle2 className="h-3 w-3" />}
-                      {selectedTrip.status === 'Cancelled' && <XCircle className="h-3 w-3" />}
-                      {selectedTrip.status}
-                    </Badge>
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="app-trip-detail-header">
+                <div className="app-trip-detail-header-top">
+                  <div className="app-trip-detail-title-block">
+                    <div className="app-trip-detail-title-row">
+                      <h2 className="text-lg font-bold text-[var(--text-primary)] sm:text-xl">Trip details</h2>
+                      <Badge variant={STATUS_VARIANT[selectedTrip.status]} className="gap-2 shadow-sm">
+                        {selectedTrip.status === 'Draft' && <Clock className="h-3.5 w-3.5 shrink-0" />}
+                        {selectedTrip.status === 'Dispatched' && <Navigation className="h-3.5 w-3.5 shrink-0" />}
+                        {selectedTrip.status === 'Completed' && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                        {selectedTrip.status === 'Cancelled' && <XCircle className="h-3.5 w-3.5 shrink-0" />}
+                        {selectedTrip.status}
+                      </Badge>
+                    </div>
+                    <ClampedText
+                      as="p"
+                      lines={2}
+                      title={`${selectedTrip.source} → ${selectedTrip.destination}`}
+                      className="app-trip-detail-route"
+                    >
+                      {selectedTrip.source} → {selectedTrip.destination}
+                    </ClampedText>
+                    <ClampedText
+                      as="p"
+                      lines={1}
+                      title={selectedTrip._id}
+                      className="app-trip-detail-id"
+                    >
+                      ID: {selectedTrip._id}
+                    </ClampedText>
                   </div>
-                  <p className="text-xs font-mono font-medium text-[var(--text-muted)] bg-[var(--bg-surface-hover)] inline-block px-2 py-1 rounded-md">ID: {selectedTrip._id}</p>
-                </div>
-                
-                {/* Actions */}
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  {selectedTrip.status === 'Draft' && (user?.role?.name === 'admin' || user?.role?.name === 'driver') && (
-                    <>
-                      <Button variant="outline" onClick={() => setModalType('cancel')} disabled={actionLoading} className="shadow-sm hover:bg-[var(--color-error)]/10 hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30">Cancel</Button>
-                      <Button onClick={handleDispatch} loading={actionLoading} className="shadow-sm"><Play className="h-4 w-4 mr-2" /> Dispatch Trip</Button>
-                    </>
-                  )}
-                  {selectedTrip.status === 'Dispatched' && (user?.role?.name === 'admin' || user?.role?.name === 'driver' || user?.role?.name === 'fleet_manager') && (
-                    <Button onClick={openCompleteModal} disabled={actionLoading} className="shadow-sm"><CheckCircle2 className="h-4 w-4 mr-2" /> Complete Trip</Button>
-                  )}
-                  <button onClick={() => setSelectedTrip(null)} className="ml-2 flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-base)] text-[var(--text-muted)] bg-[var(--bg-surface)] shadow-sm transition-all hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]" title="Close Details">
-                    <XCircle className="h-5 w-5" />
-                  </button>
+
+                  <div className="app-trip-detail-actions">
+                    {selectedTrip.status === 'Draft' && (user?.role?.name === 'admin' || user?.role?.name === 'driver') && (
+                      <>
+                        <Button variant="outline" onClick={() => setModalType('cancel')} disabled={actionLoading} className="shadow-sm hover:bg-[var(--color-error)]/10 hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleDispatch} loading={actionLoading} className="shadow-sm" icon={Play}>
+                          Dispatch trip
+                        </Button>
+                      </>
+                    )}
+                    {selectedTrip.status === 'Dispatched' && (user?.role?.name === 'admin' || user?.role?.name === 'driver' || user?.role?.name === 'fleet_manager') && (
+                      <Button onClick={openCompleteModal} disabled={actionLoading} className="shadow-sm" icon={CheckCircle2}>
+                        Complete trip
+                      </Button>
+                    )}
+                    <button type="button" onClick={() => setSelectedTrip(null)} className="app-btn-icon flex items-center justify-center rounded-lg border border-[var(--border-base)] text-[var(--text-muted)] bg-[var(--bg-surface)] shadow-sm transition-all hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]" title="Close details" aria-label="Close details">
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[var(--bg-surface)]">
-                
-                {/* Route */}
-                <div>
-                  <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><MapPin className="h-4 w-4" /> Route Information</h3>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-[var(--border-base)] bg-gradient-to-br from-[var(--bg-base)] to-[var(--bg-surface)] p-5 shadow-sm">
-                    <div className="flex-1 sm:text-right flex items-center gap-3 sm:block">
-                      <div className="sm:hidden flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand-50)] text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/30"><MapPin className="h-4 w-4" /></div>
-                      <div>
-                        <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Source</p>
-                        <p className="text-base font-bold text-[var(--text-primary)] mt-1">{selectedTrip.source}</p>
+              <div className="app-trip-detail-body">
+                <section className="app-trip-detail-section">
+                  <h3 className="app-trip-detail-section-title"><MapPin className="h-4 w-4 shrink-0" /> Route</h3>
+                  <div className="app-trip-detail-route-card">
+                    <div className="app-trip-detail-route-end">
+                      <p className="app-trip-detail-route-label">Source</p>
+                      <ClampedText as="p" lines={3} text={selectedTrip.source} className="app-trip-detail-route-value" />
+                    </div>
+                    <div className="app-trip-detail-route-divider">
+                      <span className="app-trip-detail-route-distance">{selectedTrip.plannedDistance} km</span>
+                      <div className="app-trip-detail-route-line">
+                        <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-brand-500)] ring-4 ring-[var(--color-brand-100)] dark:ring-[var(--color-brand-900)]" />
+                        <div className="h-px flex-1 border-t-2 border-dashed border-[var(--color-brand-400)]/50" />
+                        <MapPin className="h-4 w-4 shrink-0 text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]" />
                       </div>
                     </div>
-                    
-                    <div className="hidden sm:flex flex-col items-center px-6">
-                      <span className="mb-1.5 px-2 py-0.5 rounded-full bg-[var(--color-brand-50)] text-xs font-bold text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/30 dark:text-[var(--color-brand-400)] border border-[var(--color-brand-200)] dark:border-[var(--color-brand-800)] shadow-sm">
-                        {selectedTrip.plannedDistance} km
-                      </span>
-                      <div className="flex w-40 items-center">
-                        <div className="h-2.5 w-2.5 rounded-full bg-[var(--color-brand-500)] ring-4 ring-[var(--color-brand-100)] dark:ring-[var(--color-brand-900)]" />
-                        <div className="h-0.5 flex-1 border-t-2 border-dashed border-[var(--color-brand-400)]/50" />
-                        <MapPin className="h-5 w-5 text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)] -ml-1" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 flex items-center gap-3 sm:block">
-                      <div className="sm:hidden flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand-50)] text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/30"><Navigation className="h-4 w-4" /></div>
-                      <div>
-                        <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Destination</p>
-                        <p className="text-base font-bold text-[var(--text-primary)] mt-1">{selectedTrip.destination}</p>
-                      </div>
+                    <div className="app-trip-detail-route-end app-trip-detail-route-end--dest">
+                      <p className="app-trip-detail-route-label">Destination</p>
+                      <ClampedText as="p" lines={3} text={selectedTrip.destination} className="app-trip-detail-route-value" />
                     </div>
                   </div>
-                </div>
+                </section>
 
-                {/* Assignments */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><Truck className="h-4 w-4" /> Assigned Vehicle</h3>
-                    <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] p-5 shadow-sm transition-colors hover:border-[var(--color-brand-300)]">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-xl font-bold text-[var(--text-primary)] tracking-tight">{selectedTrip.vehicle?.registrationNumber || 'Not Assigned'}</p>
-                          <p className="text-sm font-medium text-[var(--text-secondary)] mt-1">{selectedTrip.vehicle?.vehicleName || '—'} {selectedTrip.vehicle?.type ? `(${selectedTrip.vehicle.type})` : ''}</p>
+                <section className="app-trip-detail-section">
+                  <h3 className="app-trip-detail-section-title"><Truck className="h-4 w-4 shrink-0" /> Assignments</h3>
+                  <div className="app-trip-detail-cards">
+                    <div className="app-trip-detail-card">
+                      <div className="app-trip-detail-card-head">
+                        <div className="app-trip-detail-card-body">
+                          <ClampedText
+                            as="p"
+                            lines={2}
+                            text={selectedTrip.vehicle?.registrationNumber || 'Not assigned'}
+                            className="app-trip-detail-card-title"
+                          />
+                          <ClampedText
+                            as="p"
+                            lines={2}
+                            title={`${selectedTrip.vehicle?.vehicleName || '—'}${selectedTrip.vehicle?.type ? ` (${selectedTrip.vehicle.type})` : ''}`}
+                            className="app-trip-detail-card-sub"
+                          >
+                            {selectedTrip.vehicle?.vehicleName || '—'}
+                            {selectedTrip.vehicle?.type ? ` (${selectedTrip.vehicle.type})` : ''}
+                          </ClampedText>
                         </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                          <Truck className="h-5 w-5" />
-                        </div>
+                        <div className="app-trip-detail-card-icon"><Truck className="h-5 w-5" /></div>
                       </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-base)] pt-4">
-                        <span className="text-xs font-medium text-[var(--text-muted)] bg-[var(--bg-surface)] px-2 py-1 rounded-md border border-[var(--border-base)]">Cap: {selectedTrip.vehicle?.capacity ? `${selectedTrip.vehicle.capacity}t` : '—'}</span>
-                        <span className="text-xs font-medium text-[var(--text-muted)] bg-[var(--bg-surface)] px-2 py-1 rounded-md border border-[var(--border-base)]">Status: {selectedTrip.vehicle?.status || '—'}</span>
+                      <div className="app-trip-detail-card-foot">
+                        <span className="app-trip-detail-chip">
+                          <ClampedText lines={1} text={`Cap: ${selectedTrip.vehicle?.capacity ? `${selectedTrip.vehicle.capacity}t` : '—'}`} />
+                        </span>
+                        <span className="app-trip-detail-chip">
+                          <ClampedText lines={1} text={`Status: ${selectedTrip.vehicle?.status || '—'}`} />
+                        </span>
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><User className="h-4 w-4" /> Assigned Driver</h3>
-                    <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] p-5 shadow-sm transition-colors hover:border-[var(--color-brand-300)]">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-xl font-bold text-[var(--text-primary)] tracking-tight">{selectedTrip.driver?.name || 'Not Assigned'}</p>
-                          <p className="text-sm font-medium text-[var(--text-secondary)] mt-1 font-mono">{selectedTrip.driver?.licenseNumber || '—'}</p>
+                    <div className="app-trip-detail-card">
+                      <div className="app-trip-detail-card-head">
+                        <div className="app-trip-detail-card-body">
+                          <ClampedText
+                            as="p"
+                            lines={2}
+                            text={selectedTrip.driver?.name || 'Not assigned'}
+                            className="app-trip-detail-card-title"
+                          />
+                          <ClampedText
+                            as="p"
+                            lines={2}
+                            text={selectedTrip.driver?.licenseNumber || '—'}
+                            className="app-trip-detail-card-sub font-mono"
+                          />
                         </div>
-                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                          <User className="h-5 w-5" />
-                        </div>
+                        <div className="app-trip-detail-card-icon"><User className="h-5 w-5" /></div>
                       </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-base)] pt-4">
-                        <span className="text-xs font-medium text-[var(--text-muted)] bg-[var(--bg-surface)] px-2 py-1 rounded-md border border-[var(--border-base)]">Cat: {selectedTrip.driver?.licenseCategory || '—'}</span>
-                        <span className="text-xs font-medium text-[var(--text-muted)] bg-[var(--bg-surface)] px-2 py-1 rounded-md border border-[var(--border-base)] flex items-center gap-1">
-                          <Activity className="h-3 w-3" /> Score: {selectedTrip.driver?.safetyScore ? `${selectedTrip.driver.safetyScore}/100` : '—'}
+                      <div className="app-trip-detail-card-foot">
+                        <span className="app-trip-detail-chip">
+                          <ClampedText lines={1} text={`Cat: ${selectedTrip.driver?.licenseCategory || '—'}`} />
+                        </span>
+                        <span className="app-trip-detail-chip">
+                          <Activity className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <ClampedText
+                            lines={1}
+                            text={`Score: ${selectedTrip.driver?.safetyScore ? `${selectedTrip.driver.safetyScore}/100` : '—'}`}
+                          />
                         </span>
                       </div>
                     </div>
                   </div>
-                </div>
+                </section>
 
-                {/* Details */}
-                <div>
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><Package className="h-4 w-4" /> Payload & Data</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="rounded-xl bg-[var(--bg-base)] p-4 border border-[var(--border-base)] shadow-sm">
-                      <div className="flex items-center gap-2 text-[var(--text-muted)] mb-1">
-                        <Package className="h-4 w-4" />
-                        <p className="text-xs font-medium">Cargo</p>
+                <section className="app-trip-detail-section">
+                  <h3 className="app-trip-detail-section-title"><Package className="h-4 w-4 shrink-0" /> Payload & data</h3>
+                  <div className="app-mini-stat-grid">
+                    <div className="app-mini-stat">
+                      <div className="app-mini-stat-head">
+                        <Package className="h-4 w-4 shrink-0" />
+                        <p className="app-mini-stat-label">Cargo</p>
                       </div>
-                      <p className="mt-1 text-lg font-bold text-[var(--text-primary)]">{selectedTrip.cargoWeight} <span className="text-sm font-medium text-[var(--text-muted)]">kg</span></p>
+                      <p className="app-mini-stat-value">{selectedTrip.cargoWeight} <span className="text-sm font-medium text-[var(--text-muted)]">kg</span></p>
                     </div>
-                    <div className="rounded-xl bg-[var(--bg-base)] p-4 border border-[var(--border-base)] shadow-sm">
-                      <div className="flex items-center gap-2 text-[var(--text-muted)] mb-1">
-                        <DollarSign className="h-4 w-4" />
-                        <p className="text-xs font-medium">Revenue</p>
+                    <div className="app-mini-stat">
+                      <div className="app-mini-stat-head">
+                        <DollarSign className="h-4 w-4 shrink-0" />
+                        <p className="app-mini-stat-label">Revenue</p>
                       </div>
-                      <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">{selectedTrip.revenue ? `$${selectedTrip.revenue.toLocaleString()}` : '—'}</p>
+                      <p className="app-mini-stat-value text-emerald-600 dark:text-emerald-400">{selectedTrip.revenue ? `$${selectedTrip.revenue.toLocaleString()}` : '—'}</p>
                     </div>
-                    <div className="rounded-xl bg-[var(--bg-base)] p-4 border border-[var(--border-base)] shadow-sm">
-                      <div className="flex items-center gap-2 text-[var(--text-muted)] mb-1">
-                        <Navigation className="h-4 w-4" />
-                        <p className="text-xs font-medium">Actual Dist.</p>
+                    <div className="app-mini-stat">
+                      <div className="app-mini-stat-head">
+                        <Navigation className="h-4 w-4 shrink-0" />
+                        <p className="app-mini-stat-label">Actual dist.</p>
                       </div>
-                      <p className="mt-1 text-lg font-bold text-[var(--text-primary)]">{selectedTrip.actualDistance ? `${selectedTrip.actualDistance} km` : '—'}</p>
+                      <p className="app-mini-stat-value">{selectedTrip.actualDistance ? `${selectedTrip.actualDistance} km` : '—'}</p>
                     </div>
-                    <div className="rounded-xl bg-[var(--bg-base)] p-4 border border-[var(--border-base)] shadow-sm">
-                      <div className="flex items-center gap-2 text-[var(--text-muted)] mb-1">
-                        <Fuel className="h-4 w-4" />
-                        <p className="text-xs font-medium">Fuel Used</p>
+                    <div className="app-mini-stat">
+                      <div className="app-mini-stat-head">
+                        <Fuel className="h-4 w-4 shrink-0" />
+                        <p className="app-mini-stat-label">Fuel used</p>
                       </div>
-                      <p className="mt-1 text-lg font-bold text-[var(--text-primary)]">{selectedTrip.fuelUsed ? `${selectedTrip.fuelUsed} L` : '—'}</p>
+                      <p className="app-mini-stat-value">{formatFuelLitersDisplay(selectedTrip.fuelUsed)}</p>
                     </div>
                   </div>
-                </div>
+                </section>
 
                 {selectedTrip.notes && (
-                  <div>
-                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><FileText className="h-4 w-4" /> Notes</h3>
-                    <div className="text-sm text-[var(--text-secondary)] rounded-xl bg-yellow-50/50 dark:bg-yellow-900/10 p-4 border border-yellow-200/50 dark:border-yellow-900/30">
-                      <p className="whitespace-pre-wrap leading-relaxed">{selectedTrip.notes}</p>
+                  <section className="app-trip-detail-section">
+                    <h3 className="app-trip-detail-section-title"><FileText className="h-4 w-4 shrink-0" /> Notes</h3>
+                    <div className="app-trip-detail-notes">
+                      <p className="whitespace-pre-wrap">{selectedTrip.notes}</p>
+                    </div>
+                  </section>
+                )}
+
+                <section className="app-trip-detail-section">
+                  <h3 className="app-trip-detail-section-title"><Calendar className="h-4 w-4 shrink-0" /> Timeline</h3>
+                  <div className="app-trip-detail-timeline">
+                    <div className="app-trip-detail-timeline-list">
+                      <span className="app-trip-detail-timeline-item">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Created: {new Date(selectedTrip.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                      {selectedTrip.dispatchedAt && (
+                        <span className="app-trip-detail-timeline-item">
+                          <Play className="h-3.5 w-3.5" />
+                          Dispatched: {new Date(selectedTrip.dispatchedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                        </span>
+                      )}
+                      {selectedTrip.completedAt && (
+                        <span className="app-trip-detail-timeline-item">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Completed: {new Date(selectedTrip.completedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                        </span>
+                      )}
+                      {selectedTrip.cancelledAt && (
+                        <span className="app-trip-detail-timeline-item">
+                          <XCircle className="h-3.5 w-3.5" />
+                          Cancelled: {new Date(selectedTrip.cancelledAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                        </span>
+                      )}
                     </div>
                   </div>
-                )}
-                
-                {/* Timestamps */}
-                <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] p-4">
-                  <div className="text-xs font-medium text-[var(--text-muted)] flex flex-wrap gap-x-6 gap-y-3">
-                    <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Created: {new Date(selectedTrip.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
-                    {selectedTrip.dispatchedAt && <span className="flex items-center gap-1.5"><Play className="h-3.5 w-3.5" /> Dispatched: {new Date(selectedTrip.dispatchedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>}
-                    {selectedTrip.completedAt && <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Completed: {new Date(selectedTrip.completedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>}
-                    {selectedTrip.cancelledAt && <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5" /> Cancelled: {new Date(selectedTrip.cancelledAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>}
-                  </div>
-                </div>
-
+                </section>
               </div>
             </div>
           )}
@@ -579,19 +671,19 @@ const TripsPage = () => {
       {/* ─── Modals ───────────────────────────────────────────── */}
       {modalType === 'complete' && (
         <Modal title="Complete Trip" onClose={() => setModalType(null)}>
-          <form onSubmit={handleCompleteFormSubmit(handleComplete)} className="space-y-5">
+          <form onSubmit={handleCompleteFormSubmit(handleComplete)} className="app-form-stack">
             <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-100 dark:border-blue-800/30 mb-4">
               <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">Please verify the final metrics for this trip.</p>
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Planned distance was <span className="font-bold">{selectedTrip?.plannedDistance} km</span>.</p>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="app-form-grid app-form-grid--2">
               <Input required label="Actual Distance (km)" type="number" min="0" step="0.1" error={completeErrors.actualDistance?.message} {...registerComplete('actualDistance')} />
               <Input required label="Fuel Used (Liters)" type="number" min="0" step="0.1" error={completeErrors.fuelUsed?.message} {...registerComplete('fuelUsed')} />
               <Input label="Revenue (opt)" type="number" min="0" step="0.01" error={completeErrors.revenue?.message} {...registerComplete('revenue')} />
             </div>
             
-            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)] mt-6">
+            <div className="app-modal-footer">
               <Button variant="outline" type="button" onClick={() => setModalType(null)}>Cancel</Button>
               <Button type="submit" loading={actionLoading}><CheckCircle2 className="mr-2 h-4 w-4" /> Confirm Complete</Button>
             </div>
@@ -601,7 +693,7 @@ const TripsPage = () => {
 
       {modalType === 'cancel' && (
         <Modal title="Cancel Trip" onClose={() => setModalType(null)} maxWidth="max-w-sm">
-          <div className="space-y-5">
+          <div className="app-form-stack">
             <div className="flex items-start gap-4 rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-error)]/20">
                 <ShieldAlert className="h-5 w-5 text-[var(--color-error)]" />
@@ -614,7 +706,7 @@ const TripsPage = () => {
                 </p>
               </div>
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="app-modal-footer">
               <Button variant="outline" onClick={() => setModalType(null)}>Keep Trip</Button>
               <Button variant="danger" onClick={handleCancel} loading={actionLoading}>Cancel Trip</Button>
             </div>

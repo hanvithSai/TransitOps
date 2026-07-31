@@ -3,14 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   Wrench, 
-  Search, 
   Plus, 
-  Calendar, 
-  DollarSign, 
   Trash2, 
   AlertTriangle, 
+  AlertCircle,
   CarFront,
-  AlertCircle
+  Calendar,
+  History,
 } from 'lucide-react';
 import api from '../../services/api';
 import { Card } from '../../components/ui/Card';
@@ -19,6 +18,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchInput } from '../../components/common/SearchInput';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -54,22 +54,22 @@ const formatDateForInput = (dateStr) => {
 
 /* ─── ConfirmDeleteModal ─────────────────────────────────────── */
 const ConfirmDeleteModal = ({ log, onConfirm, onCancel, loading }) => (
-  <div className="space-y-4">
-    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
+  <div className="app-form-stack">
+    <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
         <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-sm font-semibold text-[var(--text-primary)]">Delete this record?</p>
-        <p className="text-xs text-[var(--text-muted)]">
-          {log?.vehicle?.registrationNumber} - {log?.serviceType} ({formatCost(log?.cost)})
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+          {log?.vehicle?.registrationNumber} — {log?.serviceType} ({formatCost(log?.cost)})
         </p>
       </div>
     </div>
-    <p className="text-sm text-[var(--text-secondary)]">
+    <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
       This will delete the maintenance log permanently. If the status is currently <span className="font-semibold text-amber-600 dark:text-amber-500">Active</span>, the vehicle status may automatically return to <span className="font-semibold text-emerald-600 dark:text-emerald-500">Available</span> if no other active logs exist.
     </p>
-    <div className="flex justify-end gap-3 pt-4">
+    <div className="app-modal-footer">
       <Button variant="outline" onClick={onCancel}>Cancel</Button>
       <Button variant="danger" onClick={onConfirm} loading={loading}>Delete Record</Button>
     </div>
@@ -232,7 +232,7 @@ const MaintenancePage = () => {
         resetForm();
       }
       fetchLogs();
-      fetchVehicles(); // Refresh vehicle availability status
+      fetchVehicles();
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to delete record', 'error');
     } finally {
@@ -241,45 +241,62 @@ const MaintenancePage = () => {
   };
 
   return (
-    <div className="app-page-stack max-w-7xl mx-auto">
+    <div className="app-page-stack">
       <PageHeader
         icon={Wrench}
         title="Maintenance logs"
         subtitle="Manage repairs, maintenance records, and costs to keep your fleet running"
       />
 
-      {/* Main Grid: Split Pane */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        
-        {/* Left Pane: LOG SERVICE RECORD Form */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <Card className="p-5 flex flex-col h-full border-[var(--border-base)] shadow-sm">
-            <div className="flex items-center gap-2 border-b border-[var(--border-base)] pb-4 mb-5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand-50)] text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/20 dark:text-[var(--color-brand-400)]">
-                {editingLog ? <Wrench className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              </div>
-              <h2 className="text-base font-bold text-[var(--text-primary)]">
-                {editingLog ? 'Edit Service Record' : 'Log Service Record'}
-              </h2>
-            </div>
+      <nav className="app-maintenance-section-nav" aria-label="Maintenance page sections">
+        <a href="#maintenance-log-service" className="app-maintenance-section-link">
+          <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Log service
+        </a>
+        <a href="#maintenance-schedules" className="app-maintenance-section-link">
+          <Calendar className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Recurring schedules
+        </a>
+        <a href="#maintenance-history" className="app-maintenance-section-link">
+          <History className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Service history
+        </a>
+      </nav>
 
-            <form onSubmit={handleSubmit(handleSave)} className="space-y-4 flex-1 flex flex-col">
-              {formError && (
-                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{formError}</span>
+      <div className="app-maintenance-workspace">
+        {/* Sidebar: form + schedules — always above the fold on desktop */}
+        <aside className="app-maintenance-sidebar" aria-label="Log service and recurring schedules">
+          <section id="maintenance-log-service" className="app-maintenance-section" aria-labelledby="maintenance-log-service-heading">
+            <Card noPadding className="app-maintenance-form-card">
+              <div className="app-maintenance-panel-head">
+                <div className="app-maintenance-panel-head-icon" aria-hidden="true">
+                  {editingLog ? <Wrench className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
                 </div>
-              )}
+                <h2 id="maintenance-log-service-heading" className="app-maintenance-panel-head-title">
+                  {editingLog ? 'Edit Service Record' : 'Log Service Record'}
+                </h2>
+              </div>
 
-              <div>
-                <label htmlFor="vehicle" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                  <CarFront className="h-3.5 w-3.5" /> Vehicle
-                </label>
-                <SelectField id="vehicle" error={errors.vehicle?.message} disabled={!!editingLog} required {...register('vehicle')}>
-                  <option value="" disabled>Select Vehicle...</option>
+              <form onSubmit={handleSubmit(handleSave)} className="app-maintenance-form-body app-form-stack">
+                {formError && (
+                  <div className="app-form-alert" role="alert">
+                    <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                <SelectField
+                  label="Vehicle"
+                  id="vehicle"
+                  error={errors.vehicle?.message}
+                  disabled={!!editingLog}
+                  required
+                  {...register('vehicle')}
+                >
+                  <option value="" disabled>Select vehicle…</option>
                   {vehicles.map((v) => (
                     <option key={v._id} value={v._id}>
-                      {v.registrationNumber} ({v.vehicleName}) - {v.status}
+                      {v.registrationNumber} ({v.vehicleName}) — {v.status}
                     </option>
                   ))}
                   {editingLog && editingLog.vehicle && !vehicles.find(v => v._id === editingLog.vehicle._id) && (
@@ -288,230 +305,251 @@ const MaintenancePage = () => {
                     </option>
                   )}
                 </SelectField>
-              </div>
 
-              <div>
-                <label htmlFor="serviceType" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                  <Wrench className="h-3.5 w-3.5" /> Service Type
-                </label>
-                <Input 
-                  id="serviceType" 
-                  placeholder="e.g., Oil Change, Tire Rotation" 
+                <Input
+                  label="Service type"
+                  id="serviceType"
+                  placeholder="e.g., Oil change, tire rotation"
                   error={errors.serviceType?.message}
                   {...register('serviceType')}
-                  required 
+                  required
                 />
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="cost" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <DollarSign className="h-3.5 w-3.5" /> Cost
-                  </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 z-10">
-                      <span className="text-[var(--text-muted)] sm:text-sm">$</span>
-                    </div>
-                    <Input 
-                      id="cost" 
-                      type="number" 
-                      min="0" 
-                      step="0.01"
-                      className="pl-7"
-                      placeholder="0.00" 
-                      error={errors.cost?.message}
-                      {...register('cost')}
-                      required 
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <Calendar className="h-3.5 w-3.5" /> Date
-                  </label>
-                  <Input 
-                    id="date" 
-                    type="date" 
+                <div className="app-form-grid app-form-grid--2">
+                  <Input
+                    label="Cost"
+                    id="cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    prefix="$"
+                    placeholder="0.00"
+                    error={errors.cost?.message}
+                    {...register('cost')}
+                    required
+                  />
+                  <Input
+                    label="Date"
+                    id="date"
+                    type="date"
                     error={errors.date?.message}
                     {...register('date')}
-                    required 
+                    required
                   />
                 </div>
+
+                <SelectField label="Status" id="status" error={errors.status?.message} required {...register('status')}>
+                  <option value="Active">Active (In shop)</option>
+                  <option value="Completed">Completed</option>
+                </SelectField>
+
+                <div className="app-maintenance-form-actions">
+                  <Button type="submit" loading={formLoading} className="w-full">
+                    {editingLog ? 'Update Record' : 'Save Record'}
+                  </Button>
+                  {editingLog && (
+                    <Button variant="outline" type="button" onClick={resetForm} className="w-full">
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </Card>
+          </section>
+
+          <section id="maintenance-schedules" className="app-maintenance-section" aria-labelledby="maintenance-schedules-heading">
+            <Card noPadding className="app-maintenance-schedules-card">
+              <div className="app-maintenance-panel-head">
+                <div className="app-maintenance-panel-head-icon" aria-hidden="true">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <h2 id="maintenance-schedules-heading" className="app-maintenance-panel-head-title">
+                  Recurring schedules
+                </h2>
               </div>
 
-              <SelectField label="Status" id="status" error={errors.status?.message} required {...register('status')}>
-                <option value="Active">Active (In Shop)</option>
-                <option value="Completed">Completed</option>
-              </SelectField>
+              <div className="app-maintenance-schedules-body">
+                {schedules.length === 0 ? (
+                  <p className="mb-4 text-sm leading-relaxed text-[var(--text-muted)]">
+                    No schedules yet. Add one below.
+                  </p>
+                ) : (
+                  <div className="app-maintenance-schedules-list-wrap">
+                    <ul className="app-maintenance-schedules-list" aria-label="Existing recurring schedules">
+                      {schedules.map((s) => (
+                        <li key={s._id}>
+                          <span className="font-medium text-[var(--text-primary)]">{s.vehicle?.registrationNumber}</span>
+                          {' — '}
+                          {s.serviceType}
+                          <span className="text-[var(--text-muted)]">
+                            {' '}(every {s.intervalDays || '—'} days / {s.intervalKm || '—'} km)
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3 pt-6 mt-auto">
-                <Button type="submit" loading={formLoading} className="w-full">
-                  {editingLog ? 'Update Record' : 'Save Record'}
-                </Button>
-                {editingLog && (
-                  <Button variant="outline" type="button" onClick={resetForm} className="w-full">
-                    Cancel
-                  </Button>
+                <form onSubmit={handleScheduleCreate} className="app-maintenance-schedule-form" aria-label="Add recurring schedule">
+                  <SelectField
+                    label="Vehicle"
+                    value={scheduleForm.vehicle}
+                    onChange={(e) => setScheduleForm((p) => ({ ...p, vehicle: e.target.value }))}
+                    required
+                  >
+                    <option value="">Select vehicle</option>
+                    {vehicles.map((v) => (
+                      <option key={v._id} value={v._id}>{v.registrationNumber}</option>
+                    ))}
+                  </SelectField>
+                  <Input
+                    label="Service type"
+                    value={scheduleForm.serviceType}
+                    onChange={(e) => setScheduleForm((p) => ({ ...p, serviceType: e.target.value }))}
+                    required
+                  />
+                  <Input
+                    label="Interval (days)"
+                    type="number"
+                    value={scheduleForm.intervalDays}
+                    onChange={(e) => setScheduleForm((p) => ({ ...p, intervalDays: e.target.value }))}
+                  />
+                  <Input
+                    label="Interval (km)"
+                    type="number"
+                    value={scheduleForm.intervalKm}
+                    onChange={(e) => setScheduleForm((p) => ({ ...p, intervalKm: e.target.value }))}
+                  />
+                  <div className="app-maintenance-schedule-form-submit">
+                    <Button type="submit" className="w-full">Add schedule</Button>
+                  </div>
+                </form>
+              </div>
+            </Card>
+          </section>
+        </aside>
+
+        {/* Main: searchable service history */}
+        <div className="app-maintenance-main">
+          <section id="maintenance-history" className="app-maintenance-section" aria-labelledby="maintenance-history-heading">
+            <div className="app-toolbar-card">
+              <SearchInput
+                containerClassName="app-toolbar-search w-full"
+                placeholder="Search by vehicle, service type…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search service history"
+              />
+            </div>
+
+            <div className="app-table-panel app-maintenance-history-panel">
+              <div className="app-table-panel-head">
+                <h2 id="maintenance-history-heading" className="app-table-panel-title">
+                  <History className="h-4 w-4" aria-hidden="true" /> Service History
+                </h2>
+                <Badge variant="outline" className="text-xs font-medium">
+                  {logs.length} {logs.length === 1 ? 'Record' : 'Records'}
+                </Badge>
+              </div>
+
+              <div className="app-maintenance-history-body">
+                {loading ? (
+                  <div className="app-table-panel-body-loading">
+                    <SkeletonTable rows={6} />
+                  </div>
+                ) : logs.length === 0 ? (
+                  <EmptyState
+                    icon={Wrench}
+                    title="No service logs found"
+                    description={search ? 'Try adjusting your search criteria.' : 'Service records will appear here when you log maintenance using the form.'}
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table comfortable>
+                      <TableHead>
+                        <TableHeader>Vehicle</TableHeader>
+                        <TableHeader>Service Details</TableHeader>
+                        <TableHeader align="right">Cost</TableHeader>
+                        <TableHeader>Status</TableHeader>
+                        <TableHeader align="right" className="w-16" />
+                      </TableHead>
+                      <tbody className="divide-y divide-[var(--border-base)]">
+                        {logs.map((log) => {
+                          const isSelected = editingLog && editingLog._id === log._id;
+                          return (
+                            <TableRow
+                              key={log._id}
+                              onClick={() => handleRowClick(log)}
+                              className={`cursor-pointer transition-colors group ${
+                                isSelected ? 'bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)]/10' : 'hover:bg-[var(--bg-surface-hover)]'
+                              }`}
+                              aria-selected={isSelected || undefined}
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border-base)] bg-[var(--bg-base)] transition-colors group-hover:border-[var(--color-brand-200)] dark:group-hover:border-[var(--color-brand-800)]">
+                                    <CarFront className={`h-4 w-4 ${isSelected ? 'text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]' : 'text-[var(--text-muted)]'}`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-[var(--text-primary)]">
+                                      {log.vehicle?.registrationNumber || 'Unknown'}
+                                    </p>
+                                    <p className="truncate text-xs text-[var(--text-muted)]">
+                                      {log.vehicle?.vehicleName || 'N/A'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <p className="line-clamp-2 font-medium text-[var(--text-primary)]">
+                                  {log.serviceType}
+                                </p>
+                                <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                                  <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                  {formatDate(log.date)}
+                                </div>
+                              </TableCell>
+
+                              <TableCell align="right">
+                                <span className="font-medium text-[var(--text-secondary)]">
+                                  {formatCost(log.cost)}
+                                </span>
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge variant={STATUS_VARIANT[log.status] || 'default'}>
+                                  {getStatusLabel(log.status)}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell align="right">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingLog(log);
+                                  }}
+                                  className="rounded-lg p-2 text-[var(--text-muted)] opacity-0 transition-colors hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] dark:hover:bg-red-900/20"
+                                  title="Delete log record"
+                                  aria-label={`Delete service record for ${log.vehicle?.registrationNumber || 'vehicle'}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                  </div>
                 )}
               </div>
-            </form>
-          </Card>
-        </div>
-
-        {/* Right Pane: SERVICE LOGS Table */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          
-          {/* Search bar */}
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-              <Search className="h-4 w-4" />
             </div>
-            <input
-              type="text"
-              placeholder="Search by vehicle, service type..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--border-hover)]"
-            />
-          </div>
-
-          {/* Logs Table Container */}
-          <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm flex-1 flex flex-col">
-            <div className="flex items-center justify-between bg-[var(--bg-base)] px-5 py-4 border-b border-[var(--border-base)]">
-              <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-2">
-                <Wrench className="h-3.5 w-3.5" /> Service History
-              </h3>
-              <Badge variant="outline" className="text-xs font-medium">
-                {logs.length} {logs.length === 1 ? 'Record' : 'Records'}
-              </Badge>
-            </div>
-            
-            {loading ? (
-              <div className="p-6">
-                <SkeletonTable rows={6} />
-              </div>
-            ) : logs.length === 0 ? (
-              <EmptyState
-                icon={Wrench}
-                title="No service logs found"
-                description={search ? 'Try adjusting your search criteria.' : 'Service records will appear here when you log maintenance using the form.'}
-              />
-            ) : (
-              <div className="overflow-x-auto flex-1">
-                <Table>
-                  <TableHead>
-                    <TableHeader>Vehicle</TableHeader>
-                    <TableHeader>Service Details</TableHeader>
-                    <TableHeader>Cost</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader className="text-right w-12"></TableHeader>
-                  </TableHead>
-                  <tbody className="divide-y divide-[var(--border-base)]">
-                    {logs.map((log) => {
-                      const isSelected = editingLog && editingLog._id === log._id;
-                      return (
-                        <TableRow
-                          key={log._id}
-                          onClick={() => handleRowClick(log)}
-                          className={`cursor-pointer transition-colors group ${
-                            isSelected ? 'bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)]/10' : 'hover:bg-[var(--bg-surface-hover)]'
-                          }`}
-                        >
-                          {/* VEHICLE */}
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-base)] border border-[var(--border-base)] group-hover:border-[var(--color-brand-200)] dark:group-hover:border-[var(--color-brand-800)] transition-colors">
-                                <CarFront className={`h-4 w-4 ${isSelected ? 'text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]' : 'text-[var(--text-muted)]'}`} />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-[var(--text-primary)]">
-                                  {log.vehicle?.registrationNumber || 'Unknown'}
-                                </p>
-                                <p className="text-xs text-[var(--text-muted)] truncate max-w-[120px]">
-                                  {log.vehicle?.vehicleName || 'N/A'}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          
-                          {/* SERVICE */}
-                          <TableCell>
-                            <p className="font-medium text-[var(--text-primary)] line-clamp-1">
-                              {log.serviceType}
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-[var(--text-muted)]">
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(log.date)}
-                            </div>
-                          </TableCell>
-
-                          {/* COST */}
-                          <TableCell>
-                            <span className="font-medium text-[var(--text-secondary)]">
-                              {formatCost(log.cost)}
-                            </span>
-                          </TableCell>
-
-                          {/* STATUS */}
-                          <TableCell>
-                            <Badge variant={STATUS_VARIANT[log.status] || 'default'}>
-                              {getStatusLabel(log.status)}
-                            </Badge>
-                          </TableCell>
-
-                          {/* ACTIONS */}
-                          <TableCell className="text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingLog(log);
-                              }}
-                              className="p-2 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                              title="Delete log record"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              </div>
-            )}
-          </div>
+          </section>
         </div>
-
       </div>
 
-      <Card className="mt-6 border border-[var(--border-base)] p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Recurring maintenance schedules</h3>
-        {schedules.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)] mb-4">No schedules yet. Add one below.</p>
-        ) : (
-          <ul className="mb-4 space-y-2 text-sm text-[var(--text-secondary)]">
-            {schedules.map((s) => (
-              <li key={s._id}>
-                {s.vehicle?.registrationNumber} — {s.serviceType} (every {s.intervalDays || '—'} days / {s.intervalKm || '—'} km)
-              </li>
-            ))}
-          </ul>
-        )}
-        <form onSubmit={handleScheduleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-          <SelectField label="Vehicle" value={scheduleForm.vehicle} onChange={(e) => setScheduleForm((p) => ({ ...p, vehicle: e.target.value }))} required>
-            <option value="">Select vehicle</option>
-            {vehicles.map((v) => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
-          </SelectField>
-          <Input label="Service type" value={scheduleForm.serviceType} onChange={(e) => setScheduleForm((p) => ({ ...p, serviceType: e.target.value }))} required />
-          <Input label="Interval (days)" type="number" value={scheduleForm.intervalDays} onChange={(e) => setScheduleForm((p) => ({ ...p, intervalDays: e.target.value }))} />
-          <Input label="Interval (km)" type="number" value={scheduleForm.intervalKm} onChange={(e) => setScheduleForm((p) => ({ ...p, intervalKm: e.target.value }))} />
-          <Button type="submit">Add schedule</Button>
-        </form>
-      </Card>
-
-      {/* Delete Confirmation Modal */}
       {deletingLog && (
         <Modal title="Delete Service Record" onClose={() => setDeletingLog(null)}>
           <ConfirmDeleteModal
@@ -523,7 +561,6 @@ const MaintenancePage = () => {
         </Modal>
       )}
 
-      {/* Toast Notification */}
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
     </div>
   );

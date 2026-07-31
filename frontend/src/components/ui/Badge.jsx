@@ -25,7 +25,7 @@ export const Badge = ({ children, variant = 'gray', className }) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+        'app-badge',
         VARIANTS[resolved] || VARIANTS.gray,
         className,
       )}

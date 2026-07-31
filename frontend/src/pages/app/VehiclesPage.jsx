@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, Archive, CarFront, Activity, Map, Wrench, ShieldAlert } from 'lucide-react';
+import { Plus, Filter, AlertCircle, Edit2, Trash2, Archive, CarFront, Activity, Map, Wrench, ShieldAlert } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchInput } from '../../components/common/SearchInput';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -56,30 +57,30 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onValidSubmit)} className="app-form-stack">
       {error && (
-        <div className="flex items-center gap-3 rounded-lg bg-[var(--color-error)]/10 p-4 text-sm text-[var(--color-error)] animate-in fade-in slide-in-from-top-2">
+        <div className="app-form-alert animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p className="font-medium">{error}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="app-form-grid app-form-grid--2">
         <Input label="Registration No." id="registrationNumber" className="uppercase" placeholder="AB12CD3456" error={errors.registrationNumber?.message} {...register('registrationNumber')} required />
         <Input label="Vehicle Name" id="vehicleName" placeholder="Truck 1" error={errors.vehicleName?.message} {...register('vehicleName')} required />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="app-form-grid app-form-grid--2">
         <Input label="Model" id="model" placeholder="Volvo FH16" error={errors.model?.message} {...register('model')} required />
         <Input label="Type" id="type" placeholder="Heavy Duty" error={errors.type?.message} {...register('type')} required />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="app-form-grid app-form-grid--2">
         <Input label="Capacity (kg)" id="capacity" type="number" step="0.1" min="0.1" placeholder="10.5" error={errors.capacity?.message} {...register('capacity')} required />
         <Input label="Odometer (km)" id="odometer" type="number" step="0.1" min="0" placeholder="50000" error={errors.odometer?.message} {...register('odometer')} required />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="app-form-grid app-form-grid--2">
         <Input label="Acquisition Cost" id="acquisitionCost" type="number" min="0" placeholder="1500000" error={errors.acquisitionCost?.message} {...register('acquisitionCost')} />
         <div>
           <SelectField label="Status" id="status" error={errors.status?.message} disabled={statusLocked} required {...register('status')}>
@@ -101,7 +102,7 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)] mt-6">
+      <div className="app-modal-footer">
         <Button type="submit" loading={loading} className="w-full sm:w-auto min-w-[120px]">
           {isEdit ? 'Save Changes' : 'Add Vehicle'}
         </Button>
@@ -112,7 +113,7 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
 
 /* ─── ConfirmModal ─────────────────────────────────────────── */
 const ConfirmModal = ({ vehicle, onConfirm, onCancel, onRetire, loading, deleteError }) => (
-  <div className="space-y-5">
+  <div className="app-form-stack">
     <div className="flex items-start gap-4 rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-error)]/20">
         <ShieldAlert className="h-5 w-5 text-[var(--color-error)]" />
@@ -136,7 +137,7 @@ const ConfirmModal = ({ vehicle, onConfirm, onCancel, onRetire, loading, deleteE
         </div>
       </div>
     )}
-    <div className="flex flex-wrap justify-end gap-3 pt-2">
+    <div className="app-modal-footer">
       <Button variant="outline" onClick={onCancel} disabled={loading}>Cancel</Button>
       {deleteError && vehicle.status === 'Available' && (
         <Button variant="outline" onClick={onRetire} loading={loading} icon={Archive}>Retire Instead</Button>
@@ -282,66 +283,51 @@ const VehiclesPage = () => {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+      <div className="app-stat-grid">
         {[
           { label: 'Total Fleet', value: vehicles.length, icon: CarFront, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
           { label: 'Available', value: vehicles.filter((v) => v.status === 'Available').length, icon: Activity, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
           { label: 'On Trip', value: vehicles.filter((v) => v.status === 'On Trip').length, icon: Map, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
           { label: 'In Shop/Retired', value: vehicles.filter((v) => v.status === 'In Shop' || v.status === 'Retired').length, icon: Wrench, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
         ].map((stat) => (
-          <Card key={stat.label} className="p-5 flex flex-col justify-center transition-smooth hover:shadow-md hover:-translate-y-0.5 hover:border-[var(--color-brand-200)] dark:hover:border-[var(--color-brand-800)]">
-            <div className="flex items-start justify-between mb-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{stat.label}</p>
-              <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", stat.bg, stat.color)}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-            </div>
-            <p className={cn("text-2xl font-bold tracking-tight", stat.color)}>{stat.value}</p>
-          </Card>
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            iconBg={stat.bg}
+            iconColor={stat.color}
+            valueClassName={stat.color}
+          />
         ))}
       </div>
 
       {/* Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-            <Search className="h-4 w-4" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search by registration, name, model…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full select-field py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)]"
-          />
-        </div>
-        <div className="relative min-w-[180px]">
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-            <Filter className="h-4 w-4" />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full appearance-none select-field py-2.5 pl-10 pr-10 text-sm font-medium text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-2 focus:ring-[var(--color-brand-500)]/20 hover:border-[var(--color-brand-300)] cursor-pointer"
-          >
-            <option value="">All Statuses</option>
-            <option value="Available">Available</option>
-            <option value="On Trip">On Trip</option>
-            <option value="In Shop">In Shop</option>
-            <option value="Retired">Retired</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </div>
-        </div>
+      <div className="app-toolbar-card">
+        <SearchInput
+          containerClassName="app-toolbar-search flex-1"
+          placeholder="Search by registration, name, model…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <SelectField
+          icon={Filter}
+          className="app-toolbar-filter w-full sm:w-52"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="Available">Available</option>
+          <option value="On Trip">On Trip</option>
+          <option value="In Shop">In Shop</option>
+          <option value="Retired">Retired</option>
+        </SelectField>
       </div>
 
       {/* Table Area */}
-      <Card className="overflow-hidden border border-[var(--border-base)] shadow-sm">
+      <div className="app-table-results">
         {loading ? (
-          <div className="p-6 bg-[var(--bg-surface)]">
+          <div className="app-table-results-loading">
             <SkeletonTable rows={6} />
           </div>
         ) : vehicles.length === 0 ? (
@@ -358,7 +344,7 @@ const VehiclesPage = () => {
         ) : (
           <>
           <div className="hidden md:block overflow-x-auto">
-            <Table>
+            <Table comfortable>
               <TableHead>
                 <TableHeader>Registration</TableHeader>
                 <TableHeader>Details</TableHeader>
@@ -423,7 +409,7 @@ const VehiclesPage = () => {
           </div>
           </>
         )}
-      </Card>
+      </div>
 
       {/* Modals */}
       {modal === 'create' && (
