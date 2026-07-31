@@ -20,8 +20,6 @@ export const validatePasswordStrength = (password) => {
     passed: rule.test(password),
   }));
 
-  const errors = results.filter((r) => !r.passed).map((r) => r.label.replace(/^One /, 'Must include ').replace(/^At least/, 'Must be at least').replace(/^No spaces/, 'Must not contain spaces'));
-
   return {
     valid: results.every((r) => r.passed),
     errors: results.filter((r) => !r.passed).map((r) => {

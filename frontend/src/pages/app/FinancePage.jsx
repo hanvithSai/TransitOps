@@ -89,7 +89,7 @@ const FinancePage = () => {
     defaultValues: defaultFormValues,
   });
   const activeForm = isFuelTab ? fuelForm : expenseForm;
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = activeForm;
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = activeForm;
 
   const selectedVehicle = watch('vehicle');
 
