@@ -1,10 +1,12 @@
 const driverService = require('../services/driverService');
 const { validationResult } = require('express-validator');
 const { AppError } = require('../utils/errorHandler');
+const { parsePagination } = require('../utils/pagination');
 
 exports.getAllDrivers = async (req, res, next) => {
   try {
-    const { page, limit, search, status } = req.query;
+    const { page, limit } = parsePagination(req.query);
+    const { search, status } = req.query;
     const result = await driverService.getAllDrivers(page, limit, search, status);
     res.status(200).json({
       success: true,
@@ -35,7 +37,7 @@ exports.createDriver = async (req, res, next) => {
       throw new AppError(messages, 400);
     }
 
-    const driver = await driverService.createDriver(req.body);
+    const driver = await driverService.createDriver(req.body, req.user.role.name);
     res.status(201).json({
       success: true,
       message: 'Driver created successfully',
@@ -54,7 +56,7 @@ exports.updateDriver = async (req, res, next) => {
       throw new AppError(messages, 400);
     }
 
-    const driver = await driverService.updateDriver(req.params.id, req.body);
+    const driver = await driverService.updateDriver(req.params.id, req.body, req.user.role.name);
     res.status(200).json({
       success: true,
       message: 'Driver updated successfully',

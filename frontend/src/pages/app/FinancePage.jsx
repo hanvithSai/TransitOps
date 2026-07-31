@@ -26,6 +26,8 @@ import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { fuelFormSchema, expenseFormSchema } from '../../schemas/finance';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -59,6 +61,8 @@ const FinancePage = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   
   // Dropdown data for forms
   const [vehicles, setVehicles] = useState([]);
@@ -76,10 +80,16 @@ const FinancePage = () => {
     date: new Date().toISOString().substring(0, 10),
   };
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
-    resolver: zodResolver(isFuelTab ? fuelFormSchema : expenseFormSchema),
+  const fuelForm = useForm({
+    resolver: zodResolver(fuelFormSchema),
     defaultValues: defaultFormValues,
   });
+  const expenseForm = useForm({
+    resolver: zodResolver(expenseFormSchema),
+    defaultValues: defaultFormValues,
+  });
+  const activeForm = isFuelTab ? fuelForm : expenseForm;
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = activeForm;
 
   const selectedVehicle = watch('vehicle');
 
@@ -105,7 +115,8 @@ const FinancePage = () => {
   // Load vehicles and trips when opening modal
   const handleOpenModal = async () => {
     setErrorMsg('');
-    reset(defaultFormValues);
+    fuelForm.reset(defaultFormValues);
+    expenseForm.reset(defaultFormValues);
 
     try {
       const [vehRes, tripRes] = await Promise.all([
@@ -153,15 +164,19 @@ const FinancePage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this entry?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
       const endpoint = isFuelTab ? '/fuel' : '/expenses';
-      await api.delete(`${endpoint}/${id}`);
+      await api.delete(`${endpoint}/${deleteTarget}`);
       showToast('Entry deleted successfully');
+      setDeleteTarget(null);
       fetchData();
     } catch {
       showToast('Failed to delete entry', 'error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -232,23 +247,15 @@ const FinancePage = () => {
 
         <div className="flex-1 overflow-x-auto overflow-y-auto">
           {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
+            <div className="p-6">
+              <SkeletonTable rows={5} />
             </div>
           ) : dataList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center h-full">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
-                {isFuelTab ? (
-                  <Fuel className="h-7 w-7 text-[var(--text-muted)]" />
-                ) : (
-                  <Receipt className="h-7 w-7 text-[var(--text-muted)]" />
-                )}
-              </div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">No {isFuelTab ? 'fuel logs' : 'expenses'} recorded yet.</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[250px]">
-                Click the button above to log your first {isFuelTab ? 'fuel entry' : 'expense'}.
-              </p>
-            </div>
+            <EmptyState
+              icon={isFuelTab ? Fuel : Receipt}
+              title={`No ${isFuelTab ? 'fuel logs' : 'expenses'} recorded yet.`}
+              description={`Click the button above to log your first ${isFuelTab ? 'fuel entry' : 'expense'}.`}
+            />
           ) : (
             <Table>
               <TableHead>
@@ -367,7 +374,7 @@ const FinancePage = () => {
                     <TableCell className="text-right">
                       {(user?.role?.name === 'admin' || user?.role?.name === 'fleet_manager') && (
                         <button 
-                          onClick={() => handleDelete(item._id)} 
+                          onClick={() => setDeleteTarget(item._id)} 
                           className="p-2 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                           title="Delete entry"
                         >
@@ -490,6 +497,20 @@ const FinancePage = () => {
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {deleteTarget && (
+        <Modal title="Delete entry" onClose={() => setDeleteTarget(null)} maxWidth="max-w-sm">
+          <div className="space-y-5">
+            <p className="text-sm text-[var(--text-secondary)]">
+              Are you sure you want to delete this {isFuelTab ? 'fuel log' : 'expense'}? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>Cancel</Button>
+              <Button variant="danger" onClick={confirmDelete} loading={deleteLoading}>Delete</Button>
+            </div>
+          </div>
         </Modal>
       )}
 

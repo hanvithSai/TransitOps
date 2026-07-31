@@ -28,6 +28,7 @@ const userRoutes = require('../routes/userRoutes');
 const roleRoutes = require('../routes/roleRoutes');
 const dashboardRoutes = require('../routes/dashboardRoutes');
 const reportRoutes = require('../routes/reportRoutes');
+const auditRoutes = require('../routes/auditRoutes');
 
 const app = express();
 app.use(express.json());
@@ -43,6 +44,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/audit-logs', auditRoutes);
 
 // Apply error handler
 app.use(errorHandler);
@@ -122,6 +124,10 @@ jest.mock('../controllers/dashboardController', () => ({
 jest.mock('../controllers/reportController', () => ({
     getROIReport: (req, res) => res.status(200).send(),
     downloadROICSV: (req, res) => res.status(200).send(),
+}));
+
+jest.mock('../controllers/auditController', () => ({
+    getAuditLogs: (req, res) => res.status(200).send(),
 }));
 
 // Skip validators to avoid payload errors
@@ -328,6 +334,22 @@ describe('RBAC Middleware Tests', () => {
                 await testAccess('get', '/api/reports/roi', role, 403);
                 await testAccess('get', '/api/reports/roi/download', role, 403);
             }
+        });
+    });
+
+    describe('Audit Logs Module', () => {
+        it('allows audit log read for admin only', async () => {
+            await testAccess('get', '/api/audit-logs', 'admin', 200);
+        });
+
+        it('denies audit log read for non-admin roles', async () => {
+            for (const role of ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst']) {
+                await testAccess('get', '/api/audit-logs', role, 403);
+            }
+        });
+
+        it('denies audit log read without auth', async () => {
+            await testAccess('get', '/api/audit-logs', null, 401);
         });
     });
 });

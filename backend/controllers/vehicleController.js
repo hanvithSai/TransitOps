@@ -1,10 +1,12 @@
 const vehicleService = require('../services/vehicleService');
 const { validationResult } = require('express-validator');
 const { AppError } = require('../utils/errorHandler');
+const { parsePagination } = require('../utils/pagination');
 
 exports.getAllVehicles = async (req, res, next) => {
   try {
-    const { page, limit, search, status } = req.query;
+    const { page, limit } = parsePagination(req.query);
+    const { search, status } = req.query;
     const result = await vehicleService.getAllVehicles(page, limit, search, status);
     res.status(200).json({
       success: true,

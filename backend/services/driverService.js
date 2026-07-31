@@ -42,7 +42,14 @@ exports.getDriverById = async (id) => {
   return driver;
 };
 
-exports.createDriver = async (driverData) => {
+exports.createDriver = async (driverData, requesterRole = '') => {
+  if (driverData.status === 'Suspended' && requesterRole !== 'safety_officer') {
+    throw new AppError(
+      "Driver status 'Suspended' can only be set by safety officers or automated license checks.",
+      403
+    );
+  }
+
   const existingDriver = await Driver.findOne({ licenseNumber: driverData.licenseNumber });
   if (existingDriver) {
     throw new AppError('Driver with this license number already exists', 409);
@@ -51,7 +58,21 @@ exports.createDriver = async (driverData) => {
   return driver;
 };
 
-exports.updateDriver = async (id, updateData) => {
+exports.updateDriver = async (id, updateData, requesterRole = '') => {
+  if (updateData.status === 'On Trip') {
+    throw new AppError(
+      "Driver status 'On Trip' is managed by trip dispatch and cannot be set manually.",
+      400
+    );
+  }
+
+  if (updateData.status === 'Suspended' && requesterRole !== 'safety_officer') {
+    throw new AppError(
+      "Driver status 'Suspended' can only be set by safety officers or automated license checks.",
+      403
+    );
+  }
+
   if (updateData.licenseNumber) {
     const existingDriver = await Driver.findOne({ 
       licenseNumber: updateData.licenseNumber,

@@ -35,7 +35,7 @@ The project is structured as a monorepo, clearly separating the client applicati
 ### Prerequisites
 
 *   Node.js v20.19+ or v22.12+ (required by Vite 8 / ESLint 10)
-*   MongoDB instance (local or Atlas)
+*   MongoDB instance (local or Atlas). **Trip dispatch** uses MongoDB transactions — requires a **replica set** (MongoDB Atlas works out of the box; for local dev use `docker compose up` which starts MongoDB as a single-node replica set).
 
 ### Backend Setup
 
@@ -79,6 +79,20 @@ The project is structured as a monorepo, clearly separating the client applicati
     ```
     Opens at `http://localhost:5173` by default. If that port is taken, Vite uses the next available port (e.g. 5174). The backend allows any localhost port in development.
 
+### Docker (full stack)
+
+From the repo root, with Docker installed:
+
+```bash
+docker compose up --build
+```
+
+- API: `http://localhost:5000` (health: `GET /api/health`)
+- Frontend: `http://localhost:5173`
+- MongoDB replica set on port `27017` (required for trip dispatch transactions)
+
+Set `JWT_SECRET` in the environment or `.env` before starting (Compose provides a dev default).
+
 ### Self-registration
 
 Users can register at `/register`. Password must be **at least 6 characters**. New accounts are created **inactive** until an admin activates them in the Users page. Admins can set **active/inactive** when creating users via the Users page.
@@ -99,9 +113,9 @@ See `docs/mock_data.md` for full seeded dataset details.
 
 ## Implementation Status
 
-**MVP Phases 1–8 are complete** (auth, vehicles, drivers, trips, maintenance, fuel/expenses, dashboard KPIs, ROI reports with CSV export).
+**MVP Phases 1–8 are complete.** P0–P4 hardening is shipped: mock offline mode, trip dispatch transactions, session security, test coverage (8 backend suites), Docker Compose, health endpoint, and admin audit log UI.
 
-Pending production hardening, security fixes, and future enhancements are tracked in `docs/backlog.md`. A full codebase audit lives in `docs/audit-report.md`.
+Remaining work is **P6** future product features — see `docs/backlog.md`. Audit: `docs/audit-report.md`.
 
 ## Documentation
 

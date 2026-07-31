@@ -1,6 +1,6 @@
 # Database Documentation
 
-**Last updated:** July 31, 2026
+**Last updated:** July 31, 2026 (post P0–P3 hardening)
 
 ## Collections
 

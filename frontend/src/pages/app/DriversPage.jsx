@@ -13,7 +13,10 @@ import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { driverFormSchema } from '../../schemas/driver';
+import { useDebounce } from '../../hooks/useDebounce';
 import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -156,6 +159,7 @@ const DriversPage = () => {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
   const [statusFilter, setStatusFilter] = useState('');
 
   const [modal, setModal] = useState(null); // null | 'create' | 'edit' | 'delete'
@@ -173,14 +177,14 @@ const DriversPage = () => {
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/drivers?limit=100&search=${search}&status=${statusFilter}`);
+      const { data } = await api.get(`/drivers?limit=100&search=${debouncedSearch}&status=${statusFilter}`);
       setDrivers(data.data.drivers);
     } catch {
       showToast('Failed to load drivers', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
   useEffect(() => {
     fetchDrivers();
@@ -359,27 +363,20 @@ const DriversPage = () => {
       {/* Table Area */}
       <Card className="overflow-hidden border border-[var(--border-base)] shadow-sm">
         {loading ? (
-          <div className="flex h-64 items-center justify-center bg-[var(--bg-surface)]">
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-200)] border-t-[var(--color-brand-600)] dark:border-[var(--color-brand-800)] dark:border-t-[var(--color-brand-400)]"></div>
-              <p className="text-sm font-medium text-[var(--text-muted)]">Loading drivers...</p>
-            </div>
+          <div className="p-6 bg-[var(--bg-surface)]">
+            <SkeletonTable rows={6} />
           </div>
         ) : drivers.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center bg-[var(--bg-surface)] text-center px-4">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
-              <Users className="h-6 w-6 text-[var(--text-muted)]" />
-            </div>
-            <p className="text-base font-semibold text-[var(--text-primary)]">No drivers found</p>
-            <p className="mt-1.5 text-sm text-[var(--text-secondary)] max-w-sm">
-              {search || statusFilter ? 'Try adjusting your search query or filters to find what you are looking for.' : 'Get started by adding your first driver to the team.'}
-            </p>
-            {!search && !statusFilter && canManage && (
-              <Button onClick={() => setModal('create')} className="mt-6 shadow-sm" variant="outline">
+          <EmptyState
+            icon={Users}
+            title="No drivers found"
+            description={search || statusFilter ? 'Try adjusting your search query or filters to find what you are looking for.' : 'Get started by adding your first driver to the team.'}
+            action={!search && !statusFilter && canManage ? (
+              <Button onClick={() => setModal('create')} className="mt-2 shadow-sm" variant="outline">
                 <Plus className="mr-2 h-4 w-4" /> Add Driver
               </Button>
-            )}
-          </div>
+            ) : null}
+          />
         ) : (
           <div className="overflow-x-auto">
             <Table>

@@ -13,7 +13,10 @@ import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { vehicleFormSchema } from '../../schemas/vehicle';
+import { useDebounce } from '../../hooks/useDebounce';
 import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -150,6 +153,7 @@ const VehiclesPage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
   const [statusFilter, setStatusFilter] = useState('');
 
   const [modal, setModal] = useState(null); // null | 'create' | 'edit' | 'delete'
@@ -167,14 +171,14 @@ const VehiclesPage = () => {
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/vehicles?limit=100&search=${search}&status=${statusFilter}`);
+      const { data } = await api.get(`/vehicles?limit=100&search=${debouncedSearch}&status=${statusFilter}`);
       setVehicles(data.data.vehicles);
     } catch {
       showToast('Failed to load vehicles', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
   useEffect(() => {
     fetchVehicles();
@@ -337,27 +341,20 @@ const VehiclesPage = () => {
       {/* Table Area */}
       <Card className="overflow-hidden border border-[var(--border-base)] shadow-sm">
         {loading ? (
-          <div className="flex h-64 items-center justify-center bg-[var(--bg-surface)]">
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-200)] border-t-[var(--color-brand-600)] dark:border-[var(--color-brand-800)] dark:border-t-[var(--color-brand-400)]"></div>
-              <p className="text-sm font-medium text-[var(--text-muted)]">Loading vehicles...</p>
-            </div>
+          <div className="p-6 bg-[var(--bg-surface)]">
+            <SkeletonTable rows={6} />
           </div>
         ) : vehicles.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center bg-[var(--bg-surface)] text-center px-4">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
-              <CarFront className="h-6 w-6 text-[var(--text-muted)]" />
-            </div>
-            <p className="text-base font-semibold text-[var(--text-primary)]">No vehicles found</p>
-            <p className="mt-1.5 text-sm text-[var(--text-secondary)] max-w-sm">
-              {search || statusFilter ? 'Try adjusting your search query or filters to find what you are looking for.' : 'Get started by adding your first vehicle to the fleet.'}
-            </p>
-            {!search && !statusFilter && canManage && (
-              <Button onClick={() => setModal('create')} className="mt-6 shadow-sm" variant="outline">
+          <EmptyState
+            icon={CarFront}
+            title="No vehicles found"
+            description={search || statusFilter ? 'Try adjusting your search query or filters to find what you are looking for.' : 'Get started by adding your first vehicle to the fleet.'}
+            action={!search && !statusFilter && canManage ? (
+              <Button onClick={() => setModal('create')} className="shadow-sm" variant="outline">
                 <Plus className="mr-2 h-4 w-4" /> Add Vehicle
               </Button>
-            )}
-          </div>
+            ) : null}
+          />
         ) : (
           <div className="overflow-x-auto">
             <Table>

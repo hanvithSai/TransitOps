@@ -16,7 +16,9 @@ import {
   ShieldCheck,
   Clock,
   KeyRound,
-  AlertCircle
+  AlertCircle,
+  ScrollText,
+  Activity
 } from 'lucide-react';
 import api from '../../services/api';
 import { getApiErrorMessage } from '../../lib/apiErrors';
@@ -30,6 +32,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/ui/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const ROLE_BADGE = {
@@ -214,8 +217,13 @@ const ConfirmModal = ({ user, onConfirm, onCancel, loading }) => (
 
 /* ─── UsersPage ────────────────────────────────────────────── */
 const UsersPage = () => {
+  const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers]     = useState([]);
   const [roles, setRoles]     = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditAction, setAuditAction] = useState('');
+  const [auditResource, setAuditResource] = useState('');
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -257,6 +265,27 @@ const UsersPage = () => {
     };
     init();
   }, []);
+
+  const fetchAuditLogs = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: '50' });
+      if (auditAction) params.set('action', auditAction);
+      if (auditResource) params.set('resource', auditResource);
+      const { data } = await api.get(`/audit-logs?${params}`);
+      setAuditLogs(data.data.logs);
+    } catch {
+      showToast('Failed to load audit logs', 'error');
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [auditAction, auditResource]);
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      fetchAuditLogs();
+    }
+  }, [activeTab, fetchAuditLogs]);
 
   /* filtered list */
   const filtered = users.filter((u) => {
@@ -346,14 +375,117 @@ const UsersPage = () => {
       <PageHeader
         icon={ShieldCheck}
         title="User management"
-        subtitle="Manage system accounts, roles, and access permissions"
-        action={(
+        subtitle="Manage system accounts, roles, and audit trail"
+        action={activeTab === 'users' ? (
           <Button onClick={() => { setFormError(''); setModal('create'); }} icon={UserPlus}>
             Add user
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={fetchAuditLogs} icon={Activity}>
+            Refresh logs
           </Button>
         )}
       />
 
+      <div className="flex gap-2 border-b border-[var(--border-base)] pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('users')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'users'
+              ? 'text-[var(--color-brand-600)] border-b-2 border-[var(--color-brand-600)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" /> Users</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('audit')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'audit'
+              ? 'text-[var(--color-brand-600)] border-b-2 border-[var(--color-brand-600)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2"><ScrollText className="h-4 w-4" /> Audit log</span>
+        </button>
+      </div>
+
+      {activeTab === 'audit' ? (
+        <>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={auditAction}
+              onChange={(e) => setAuditAction(e.target.value)}
+              className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            >
+              <option value="">All actions</option>
+              <option value="CREATE">Create</option>
+              <option value="UPDATE">Update</option>
+              <option value="DELETE">Delete</option>
+            </select>
+            <select
+              value={auditResource}
+              onChange={(e) => setAuditResource(e.target.value)}
+              className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            >
+              <option value="">All resources</option>
+              <option value="vehicles">Vehicles</option>
+              <option value="drivers">Drivers</option>
+              <option value="trips">Trips</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="fuel">Fuel</option>
+              <option value="expenses">Expenses</option>
+              <option value="users">Users</option>
+            </select>
+            <Button variant="outline" onClick={fetchAuditLogs}>Apply filters</Button>
+          </div>
+
+          <Card className="overflow-hidden border border-[var(--border-base)]">
+            {auditLoading ? (
+              <div className="p-6"><SkeletonTable rows={8} /></div>
+            ) : auditLogs.length === 0 ? (
+              <div className="py-16 text-center text-sm text-[var(--text-muted)]">No audit entries found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHead>
+                    <TableHeader>When</TableHeader>
+                    <TableHeader>User</TableHeader>
+                    <TableHeader>Action</TableHeader>
+                    <TableHeader>Resource</TableHeader>
+                    <TableHeader>Details</TableHeader>
+                  </TableHead>
+                  <tbody className="divide-y divide-[var(--border-base)]">
+                    {auditLogs.map((log) => (
+                      <TableRow key={log._id}>
+                        <TableCell className="text-xs text-[var(--text-muted)] whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm font-medium text-[var(--text-primary)]">{log.user?.name || '—'}</div>
+                          <div className="text-xs text-[var(--text-muted)]">{log.user?.email || ''}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={log.action === 'DELETE' ? 'danger' : log.action === 'CREATE' ? 'success' : 'info'}>
+                            {log.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="capitalize text-sm">{log.resource}</TableCell>
+                        <TableCell className="text-xs text-[var(--text-muted)] max-w-xs truncate">
+                          {log.details?.path || '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </Card>
+        </>
+      ) : (
+        <>
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="p-5 flex items-center gap-4">
@@ -534,6 +666,8 @@ const UsersPage = () => {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Modals */}
       {modal === 'create' && (

@@ -179,6 +179,12 @@ const seed = async () => {
         const createdTrips = await Trip.insertMany(trips);
         console.log("✅ Trips seeded.");
 
+        // Sync vehicle/driver statuses for active dispatched trips
+        for (const trip of createdTrips.filter((t) => t.status === 'Dispatched')) {
+            await Vehicle.findByIdAndUpdate(trip.vehicle, { status: 'On Trip' });
+            await Driver.findByIdAndUpdate(trip.driver, { status: 'On Trip' });
+        }
+
         const expenses = [];
         for (let i = 0; i < 100; i++) {
             expenses.push({

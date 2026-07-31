@@ -1,12 +1,12 @@
 # TransitOps – Technical Implementation Reference
 
-> **Status:** ✅ Phases 1–8 Complete  
+> **Status:** ✅ Phases 1–8 Complete · P0–P3 hardening shipped on `minorFixes`  
 > **Stack:** MERN (MongoDB · Express 5 · React 19 · Node.js)  
-> **Last Updated:** 2026-07-31
+> **Last Updated:** 2026-07-31 (post P0–P3 hardening)
 
 **Phases:** 1 Auth · 2 Vehicles · 3 Drivers · 4 Trips · 5 Maintenance · 6 Fuel/Expenses · 7 Dashboard · 8 Reports/CSV
 
-Pending bugs and production items: see `backlog.md`.
+Pending work (tests, Docker, polish): see `backlog.md`.
 
 ---
 
@@ -70,7 +70,9 @@ TransitOps/
 │   ├── utils/
 │   │   ├── errorHandler.js               # AppError class + global handler
 │   │   ├── cronJobs.js                   # Daily license expiry suspension
-│   │   └── sendEmail.js                  # Nodemailer helper
+│   │   ├── sendEmail.js                  # Nodemailer helper
+│   │   ├── escapeRegex.js                # Safe regex escaping for search
+│   │   └── pagination.js                 # parsePagination() for list endpoints
 │   ├── validators/
 │   │   ├── authValidator.js              # express-validator rule sets
 │   │   ├── vehicleValidator.js           # Vehicle field rules
@@ -438,18 +440,14 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 
 | Method | Endpoint | Auth | Response |
 |---|---|---|---|
-| `GET` | `/api/dashboard/stats` | Any authenticated user ⚠️ | KPI counts, fleet utilization, 6-month trend data for charts |
-
-> **Note:** RBAC restriction to operational roles is pending — see `backlog.md` #4.
+| `GET` | `/api/dashboard/stats` | admin, fleet_manager, driver, safety_officer, financial_analyst | KPI counts, fleet utilization, 6-month trend data for charts |
 
 ### 5.11 Report Routes — `/api/reports`
 
 | Method | Endpoint | Auth | Response |
 |---|---|---|---|
-| `GET` | `/api/reports/roi` | Any authenticated user ⚠️ | Per-vehicle ROI (revenue, fuel, expenses, maintenance, net ROI) + fleet metrics |
-| `GET` | `/api/reports/roi/download` | Any authenticated user ⚠️ | CSV file download |
-
-> **Note:** RBAC restriction to admin/financial_analyst is pending — see `backlog.md` #4.
+| `GET` | `/api/reports/roi` | admin, financial_analyst, fleet_manager | Per-vehicle ROI (revenue, fuel, expenses, maintenance, net ROI) + fleet metrics |
+| `GET` | `/api/reports/roi/download` | admin, financial_analyst, fleet_manager | CSV file download |
 
 CSV is generated in `reportService.generateCSV()` (hand-rolled, not `json2csv`).
 
@@ -474,18 +472,18 @@ HTTP status codes used: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`
 ```
 Login
   → Server issues:
-      accessToken  (JWT, 1 day,  stored in localStorage)
+      accessToken  (JWT, 1 day, includes `pwdAt` claim, stored in localStorage)
       refreshToken (64-byte hex, 7 days, stored in httpOnly cookie)
 
 Access Protected Route
   → Client sends: Authorization: Bearer <accessToken>
-  → Server: jwt.verify() → populates req.user
+  → Server: jwt.verify() → checks pwdAt vs user.passwordUpdatedAt → populates req.user
 
 Token Expiry / 401
   → Axios interceptor intercepts 401 (except /login, /refresh)
   → Queues pending requests
   → Calls POST /api/auth/refresh (sends cookie automatically)
-  → Issues new accessToken
+  → Rotates refresh token (old revoked, new cookie set), issues new accessToken
   → Replays all queued requests
   → If refresh fails → clear localStorage → redirect to /login
 
@@ -505,7 +503,8 @@ Route → authenticate → authorize("role1", "role2") → controller
 1. Extracts `Authorization: Bearer <token>`
 2. `jwt.verify(token, JWT_SECRET)`
 3. `User.findById(decoded.id).populate('role')` — checks user still exists and `isActive === true`
-4. Attaches `req.user` for downstream use
+4. Compares JWT `pwdAt` claim to `user.passwordUpdatedAt` — rejects stale tokens after password reset
+5. Attaches `req.user` for downstream use
 
 **authorize.js:**
 - Factory: `authorize(...roles)` returns middleware
@@ -570,7 +569,7 @@ Uses `express-validator` across all modules.
 | `createDriverValidator` | `POST /api/drivers` | name, licenseNumber, licenseCategory, expiryDate (ISO8601), contact, safetyScore (0–100) |
 | `updateDriverValidator` | `PUT /api/drivers/:id` | All optional — same rules |
 | `createTripValidator` | `POST /api/trips` | source, destination, vehicle (MongoId), driver (MongoId), cargoWeight (>=0), plannedDistance (>=0) |
-| `completeTripValidator` | `PUT /api/trips/:id/complete` | actualDistance (>=0), fuelUsed (>=0) |
+| `completeTripValidator` | `PUT /api/trips/:id/complete` | actualDistance (>=0), fuelUsed (>=0), revenue (>=0, optional) |
 | `createMaintenanceValidator` | `POST /api/maintenance` | vehicle (MongoId), serviceType, cost (>=0), date (ISO8601) |
 | `updateMaintenanceValidator` | `PUT /api/maintenance/:id` | All optional — same rules |
 | `createFuelValidator` | `POST /api/fuel` | vehicle (MongoId), trip (MongoId, opt), liters (>0), cost (>0), odometer (>=0) |
@@ -612,9 +611,9 @@ Stack traces included only in `NODE_ENV=development`.
 | Function | Description |
 |---|---|
 | `login(email, password)` | Finds user (with `+password`), verifies bcrypt, updates `lastLogin`, issues both tokens |
-| `generateAccessToken(userId)` | `jwt.sign({ id }, JWT_SECRET, { expiresIn: '1d' })` |
+| `generateAccessToken(user)` | `jwt.sign({ id, pwdAt }, JWT_SECRET, { expiresIn: '1d' })` |
 | `generateRefreshToken(userId)` | 64-byte hex via `crypto.randomBytes`, persists to `RefreshToken` collection |
-| `refreshAccessToken(token)` | Validates stored token (not revoked, not expired), issues new access token |
+| `refreshAccessToken(token)` | Validates stored token, revokes it, issues new access + refresh tokens (rotation) |
 | `logout(token)` | Sets `isRevoked: true` on the stored refresh token |
 | `getUserById(id)` | Returns user with role populated, no password |
 
@@ -645,7 +644,7 @@ Stack traces included only in `NODE_ENV=development`.
 | `getAllDrivers(page, limit, search, status)` | Paginated, regex search on name/licenseNumber/licenseCategory, status filter |
 | `getDriverById(id)` | Returns single driver; 404 if not found |
 | `createDriver(data)` | Checks license number uniqueness (409 on collision), creates |
-| `updateDriver(id, data)` | Checks license number uniqueness excluding current; updates |
+| `updateDriver(id, data)` | Checks license number uniqueness excluding current; blocks manual `On Trip` status |
 | `deleteDriver(id)` | Hard deletes driver |
 
 ### 9.5 tripService.js
@@ -654,9 +653,9 @@ Stack traces included only in `NODE_ENV=development`.
 |---|---|
 | `getAllTrips({ page, limit, status, search })` | Paginated, regex search on source/destination, status filter; fully populated |
 | `getTripById(id)` | Returns single fully-populated trip; 404 if not found |
-| `createTrip(data, userId)` | Creates a `Draft` trip with `createdBy` set |
-| `dispatchTrip(tripId)` | Enforces 9 PRD business rules (vehicle/driver availability, license validity, cargo capacity), transitions to `Dispatched`, sets vehicle → `On Trip`, driver → `On Trip` |
-| `completeTrip(tripId, { actualDistance, fuelUsed })` | Transitions `Dispatched` → `Completed`, restores vehicle and driver to `Available` |
+| `createTrip(data, userId)` | Validates vehicle/driver exist, creates a `Draft` trip with `createdBy` set |
+| `dispatchTrip(tripId)` | Runs `applyDispatchRules()` inside MongoDB transaction; enforces 9 PRD business rules; sets vehicle/driver → `On Trip` |
+| `completeTrip(tripId, { actualDistance, fuelUsed, revenue })` | Transitions `Dispatched` → `Completed`, rolls vehicle odometer forward, optional revenue, restores vehicle/driver → `Available` |
 | `cancelTrip(tripId)` | Transitions `Draft` → `Cancelled` only |
 
 **Dispatch business rules enforced sequentially:**
@@ -677,7 +676,7 @@ Stack traces included only in `NODE_ENV=development`.
 | `getAllLogs({ page, limit, search, status })` | Paginated, regex search on serviceType and vehicle reg/name; populated |
 | `getLogById(id)` | Returns single populated log; 404 if not found |
 | `createLog(data)` | Validates vehicle is not `Retired` or `On Trip`, creates log, sets vehicle → `In Shop` |
-| `updateLog(id, data)` | Handles status transitions: `Active → Completed` restores vehicle to `Available` if no other active logs; `Completed → Active` puts vehicle back `In Shop` |
+| `updateLog(id, data)` | Handles status transitions; sets/clears `closeDate` on Complete/Re-open; syncs vehicle status |
 | `deleteLog(id)` | Deletes log; if `Active`, restores vehicle to `Available` if no other active logs exist |
 
 ### 9.7 fuelService.js & 9.8 expenseService.js
@@ -727,7 +726,7 @@ Stack traces included only in `NODE_ENV=development`.
 /login                → LoginPage (public)
 /register             → RegisterPage (public)
 /forgot-password      → ForgotPasswordPage (public)
-/reset-password/:token → ResetPasswordPage (public) ⚠️ PUT/POST mismatch — see backlog #1
+/reset-password/:token → ResetPasswordPage (public)
 /unauthorized         → UnauthorizedPage (public)
 /*                    → NotFoundPage (public)
 /dev/components       → DevComponentsPage (development only — remove before production)
@@ -905,15 +904,14 @@ Protected (ProtectedRoute wrapping AppLayout):
 
 | Feature | Implementation |
 |---|---|
-| Dual Tab Navigation | A single page rendering either Fuel Logs or Expenses depending on URL (`/fuel` vs `/expenses`) |
+| Dual Tab Navigation | Separate `fuelForm` and `expenseForm` (RHF + Zod) per tab — `/fuel` vs `/expenses` |
 | Dynamic Data Table | Table columns swap based on the active tab (Liters/Odometer vs Category/Notes) |
 | Shared Action Modal | Modal form swaps inputs based on active tab; fetches active Vehicles and Trips for dropdowns |
+| Delete confirmation | Modal prompt before deleting fuel/expense records |
 | Relational Validation | UI alerts user if the selected trip doesn't belong to the selected vehicle |
 | Category Badges | Unique color styling for Expense categories (`Toll`, `Repair`, `Parking`, etc.) |
 | RBAC UI | Creation restricted to `admin` and `fleet_manager`; `driver` has read-only access |
-| Form validation | React Hook Form + Zod in create modal |
-
-### 11.13 DashboardPage — Fleet KPIs
+| Form validation | React Hook Form + Zod — separate form instances per tab |
 
 **File:** `frontend/src/pages/app/DashboardPage.jsx`
 

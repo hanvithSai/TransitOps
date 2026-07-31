@@ -1,6 +1,6 @@
 # Engineering Documentation
 
-**Last updated:** July 31, 2026
+**Last updated:** July 31, 2026 (post P0–P3 hardening)
 
 ## Engineering Decisions
 
@@ -12,7 +12,10 @@
 * **Layered backend:** `routes → controllers → services → models` with `express-validator` at the route layer.
 * **Client form validation:** React Hook Form + Zod schemas in `frontend/src/schemas/` mirror backend validators.
 * **Background jobs:** `node-cron` runs daily license-expiry suspension (midnight IST), skipping drivers on active dispatched trips.
-* **Demo fallback:** Frontend `api.js` can serve mock data when the backend is unreachable (see `docs/backlog.md` for known mock-mode issues).
+* **Security middleware:** `helmet()` on all responses; `express-rate-limit` on `/api/auth/*`; user search input escaped via `utils/escapeRegex.js`.
+* **Session security:** JWT access tokens include `pwdAt` (password change timestamp); invalidated in `authenticate` after reset. Refresh tokens rotate on each `/auth/refresh`.
+* **Trip dispatch:** MongoDB transactions in `tripService.dispatchTrip` (requires replica-set MongoDB).
+* **Demo fallback:** Frontend `api.js` serves aligned `mockData.js` on network error or 5xx only (auth endpoints excluded).
 
 ## Tech Stack
 
@@ -41,7 +44,9 @@
 | express-validator | Request validation |
 | node-cron | Scheduled jobs |
 | nodemailer | Password-reset emails |
-| Jest + Supertest | API tests (RBAC suite in CI) |
+| helmet | HTTP security headers |
+| express-rate-limit | Auth endpoint rate limiting |
+| Jest + Supertest | API tests — 8 suites: `rbac`, `authRegister`, `authForgotPassword`, `escapeRegex`, `tripDispatch`, `trip`, `report`, `driver` |
 
 ## Key Directories
 
@@ -52,7 +57,7 @@ backend/
   models/        # Mongoose schemas
   routes/        # Route definitions + RBAC
   validators/    # express-validator rules
-  utils/         # cronJobs, errorHandler, sendEmail
+  utils/         # cronJobs, errorHandler, sendEmail, escapeRegex, pagination
   seeders/       # Demo data seeder
   tests/         # Jest tests
 
@@ -63,6 +68,7 @@ frontend/src/
   components/common/  # Shared Modal, Toast, SelectField
   schemas/       # Zod validation schemas
   contexts/      # AuthContext
+  hooks/         # useDebounce (search)
   services/      # api.js, mockData.js
 ```
 
@@ -81,8 +87,8 @@ frontend/src/
 
 GitHub Actions (`.github/workflows/ci.yml`):
 
-* Backend: `npm test` (RBAC integration tests)
-* Frontend: `npm run lint` + `npm run build`
+* Backend: `npm test` (8 suites; `jest --watchman=false`)
+* Frontend: `npm test` + `npm run lint` + `npm run build`
 
 ## Related Docs
 

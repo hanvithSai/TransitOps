@@ -46,7 +46,7 @@
 | Empty states exist but vary in quality | Medium |
 | Loading uses spinners only — no skeletons | Medium |
 | Remember-me checkbox is decorative (not wired) | Low |
-| 404 redirects to dashboard (may confuse) | Low |
+| 404 redirects to dashboard (may confuse) | ✅ Fixed — `NotFoundPage` |
 
 ### Responsiveness
 
@@ -81,8 +81,8 @@
 |---------|----------|
 | No frontend tests; CI only lint + build | Medium |
 | Mock login returns admin regardless of credentials | **High** |
-| RBAC nav mismatch: Trips allows `safety_officer` at route but not in nav | **High** |
-| Dashboard/reports lack backend RBAC enforcement | Medium (backend) |
+| RBAC nav mismatch: Trips allows `safety_officer` at route but not in nav | ✅ Fixed — nav aligned |
+| Dashboard/reports lack backend RBAC enforcement | ✅ Fixed — `authorize()` on routes + frontend |
 | Node pinned at 20.20.2 in `.nvmrc` | Low |
 
 ---
@@ -180,14 +180,18 @@ See git diff for full file list. Key changes:
 - Pages updated with PageHeader, Skeleton, EmptyState where applicable
 - Badge aliases: `success`→`emerald`, `info`→`blue`, `warning`→`amber`, `danger`→`red`, `default`→`gray`
 
-### Known Follow-ups (Jul 31, 2026)
+### Known Follow-ups (Jul 31, 2026 — post P0–P3)
 
 - ✅ React Hook Form + Zod on CRUD forms — **Done**
 - ✅ Retire / Set Off Duty delete alternatives — **Done**
+- ✅ Backend RBAC on dashboard/reports — **Done**
+- ✅ NotFoundPage, post-login redirect, dev-only `/dev/components` — **Done**
+- ✅ Mock data schema alignment — **Done**
+- ✅ FinancePage dual-form tab validation — **Done**
+- ✅ Modal focus trap and `aria-labelledby` — **Done**
+- ✅ Search debouncing, SkeletonTable, EmptyState (Vehicles/Finance) — **Done**
+- Adopt `EmptyState` on Drivers and Maintenance — see `backlog.md` #1
 - Extract shared CRUD hooks to reduce page duplication
 - Add Vitest + RTL for auth redirect tests
 - Mobile card fallback for tables
 - Wire remember-me or remove checkbox
-- Backend RBAC for dashboard/reports endpoints — see `backlog.md` #4
-- Fix mock data schema alignment — see `backlog.md` #2
-- Modal focus trap and `aria-labelledby`

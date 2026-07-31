@@ -1,10 +1,12 @@
 const fuelService = require('../services/fuelService');
 const { validationResult } = require('express-validator');
 const { AppError } = require('../utils/errorHandler');
+const { parsePagination } = require('../utils/pagination');
 
 exports.getAllFuelLogs = async (req, res, next) => {
     try {
-        const { page, limit, vehicleId, tripId } = req.query;
+        const { page, limit } = parsePagination(req.query);
+        const { vehicleId, tripId } = req.query;
         const result = await fuelService.getAllFuelLogs({ page, limit, vehicleId, tripId });
         res.status(200).json({ success: true, data: result });
     } catch (error) {

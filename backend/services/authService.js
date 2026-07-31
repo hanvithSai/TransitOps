@@ -13,10 +13,15 @@ const {
 } = require("../utils/passwordPolicy");
 
 /**
- * Generate access token (1 day)
+ * Generate access token (1 day). Includes passwordUpdatedAt so tokens invalidate after reset.
  */
-const generateAccessToken = (userId) => {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+const generateAccessToken = (user) => {
+    const userId = user._id || user.id;
+    const pwdAt = user.passwordUpdatedAt
+        ? new Date(user.passwordUpdatedAt).getTime()
+        : Date.now();
+
+    return jwt.sign({ id: userId, pwdAt }, process.env.JWT_SECRET, {
         expiresIn: "1d",
     });
 };
@@ -67,7 +72,7 @@ const login = async (email, password) => {
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    const accessToken = generateAccessToken(user._id);
+    const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user._id);
 
     // Return user without password
@@ -129,7 +134,7 @@ const register = async (name, email, password, roleName) => {
 };
 
 /**
- * Refresh: validate refresh token, issue new access token
+ * Refresh: validate refresh token, rotate refresh token, issue new access token
  */
 const refreshAccessToken = async (token) => {
     if (!token) throw new AppError("Refresh token required.", 401);
@@ -154,8 +159,13 @@ const refreshAccessToken = async (token) => {
         throw new AppError("User account is inactive.", 401);
     }
 
-    const accessToken = generateAccessToken(user._id);
-    return { accessToken, user };
+    storedToken.isRevoked = true;
+    await storedToken.save();
+
+    const newRefreshToken = await generateRefreshToken(user._id);
+    const accessToken = generateAccessToken(user);
+
+    return { accessToken, refreshToken: newRefreshToken, user };
 };
 
 /**
