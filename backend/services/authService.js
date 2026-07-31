@@ -26,12 +26,35 @@ const generateAccessToken = (user) => {
     });
 };
 
+const MAX_REFRESH_TOKENS = 5;
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+
 /**
  * Generate refresh token (7 days) and persist to DB
  */
 const generateRefreshToken = async (userId) => {
     const token = crypto.randomBytes(64).toString("hex");
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const activeCount = await RefreshToken.countDocuments({
+        user: userId,
+        isRevoked: false,
+        expiresAt: { $gt: new Date() },
+    });
+
+    if (activeCount >= MAX_REFRESH_TOKENS) {
+        const oldest = await RefreshToken.findOne({
+            user: userId,
+            isRevoked: false,
+            expiresAt: { $gt: new Date() },
+        }).sort({ createdAt: 1 });
+
+        if (oldest) {
+            oldest.isRevoked = true;
+            await oldest.save();
+        }
+    }
 
     await RefreshToken.create({ token, user: userId, expiresAt });
     return token;
@@ -50,14 +73,28 @@ const login = async (email, password) => {
         throw new AppError("Invalid email or password.", 401);
     }
 
+    if (user.lockUntil && user.lockUntil > new Date()) {
+        const mins = Math.ceil((user.lockUntil - Date.now()) / 60000);
+        throw new AppError(`Account locked. Try again in ${mins} minute(s).`, 429);
+    }
+
     if (!user.isActive) {
         throw new AppError("Your account is pending admin approval or has been deactivated.", 401);
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+        user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+        if (user.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+            user.lockUntil = new Date(Date.now() + LOCKOUT_MS);
+            user.failedLoginAttempts = 0;
+        }
+        await user.save({ validateBeforeSave: false });
         throw new AppError("Invalid email or password.", 401);
     }
+
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
 
     let requiresPasswordChange = false;
     if (isPolicyEnforcementEnabled()) {

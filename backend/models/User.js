@@ -49,6 +49,19 @@ const userSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        driver: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Driver",
+            default: null,
+        },
+        failedLoginAttempts: {
+            type: Number,
+            default: 0,
+        },
+        lockUntil: {
+            type: Date,
+            default: null,
+        },
     },
     { timestamps: true }
 );

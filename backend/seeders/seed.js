@@ -23,19 +23,19 @@ const roles = [
         name: "fleet_manager",
         displayName: "Fleet Manager",
         description: "Manage vehicles.",
-        permissions: ["vehicles:read", "vehicles:write", "maintenance:read", "maintenance:write", "dashboard:read"],
+        permissions: ["vehicles:read", "vehicles:write", "maintenance:read", "maintenance:write", "trips:read", "trips:write", "dashboard:read", "reports:read", "fuel:read", "expenses:read"],
     },
     {
         name: "driver",
         displayName: "Driver",
         description: "Driver access.",
-        permissions: ["trips:read", "trips:write", "vehicles:read", "drivers:read", "dashboard:read"],
+        permissions: ["trips:read", "trips:write", "vehicles:read", "drivers:read", "dashboard:read", "fuel:read", "expenses:read"],
     },
     {
         name: "safety_officer",
         displayName: "Safety Officer",
         description: "Safety compliance.",
-        permissions: ["drivers:read", "drivers:write", "dashboard:read"],
+        permissions: ["drivers:read", "drivers:write", "dashboard:read", "trips:read"],
     },
     {
         name: "financial_analyst",
@@ -130,6 +130,11 @@ const seed = async () => {
         }
         const createdDrivers = await Driver.insertMany(drivers);
         console.log("✅ Drivers seeded.");
+
+        const driverUser = createdUsers.find((u) => u.email === "driver@transitops.com");
+        if (driverUser && createdDrivers[0]) {
+            await User.findByIdAndUpdate(driverUser._id, { driver: createdDrivers[0]._id });
+        }
 
         const trips = [];
         for (let i = 0; i < 60; i++) {

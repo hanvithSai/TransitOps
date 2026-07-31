@@ -9,7 +9,7 @@ jest.mock('../middlewares/authenticate', () => {
             const { AppError } = require('../utils/errorHandler');
             return next(new AppError("No token provided. Access denied.", 401));
         }
-        req.user = { role: { name: role }, isActive: true, mustChangePassword: false };
+        req.user = { role: { name: role, permissions: role === 'admin' ? ['*'] : [] }, isActive: true, mustChangePassword: false };
         next();
     };
 });
@@ -124,6 +124,7 @@ jest.mock('../controllers/dashboardController', () => ({
 jest.mock('../controllers/reportController', () => ({
     getROIReport: (req, res) => res.status(200).send(),
     downloadROICSV: (req, res) => res.status(200).send(),
+    downloadROIPDF: (req, res) => res.status(200).send(),
 }));
 
 jest.mock('../controllers/auditController', () => ({

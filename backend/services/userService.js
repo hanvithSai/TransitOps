@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Role = require("../models/Role");
+const Driver = require("../models/Driver");
 const RefreshToken = require("../models/RefreshToken");
 const { AppError } = require("../utils/errorHandler");
 const {
@@ -16,7 +17,8 @@ const getAllUsers = async (page = 1, limit = 20) => {
     const [users, total] = await Promise.all([
         User.find()
             .select("-password")
-            .populate("role", "name displayName")
+            .populate("role", "name displayName permissions")
+            .populate("driver", "name licenseNumber status")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit),
@@ -29,7 +31,22 @@ const getAllUsers = async (page = 1, limit = 20) => {
 /**
  * Create a new user
  */
-const createUser = async ({ name, email, password, roleId, isActive = true }) => {
+const validateDriverLink = async (roleId, driverId, excludeUserId = null) => {
+    if (!driverId) return null;
+    const role = await Role.findById(roleId);
+    if (!role || role.name !== "driver") {
+        throw new AppError("Only driver-role users can be linked to a driver profile.", 400);
+    }
+    const driver = await Driver.findById(driverId);
+    if (!driver) throw new AppError("Driver profile not found.", 404);
+    const query = { driver: driverId };
+    if (excludeUserId) query._id = { $ne: excludeUserId };
+    const existing = await User.findOne(query);
+    if (existing) throw new AppError("Driver profile is already linked to another user.", 409);
+    return driverId;
+};
+
+const createUser = async ({ name, email, password, roleId, isActive = true, driverId = null }) => {
     const role = await Role.findById(roleId);
     if (!role) throw new AppError("Role not found.", 404);
 
@@ -41,16 +58,19 @@ const createUser = async ({ name, email, password, roleId, isActive = true }) =>
         if (!valid) throw new AppError(errors.join(" "), 400);
     }
 
+    const linkedDriver = await validateDriverLink(roleId, driverId);
+
     const user = await User.create({
         name,
         email,
         password,
         role: roleId,
         isActive: Boolean(isActive),
+        driver: linkedDriver,
         mustChangePassword: false,
         passwordPolicyVersion: isPolicyEnforcementEnabled() ? CURRENT_POLICY_VERSION : 0,
     });
-    return User.findById(user._id).select("-password").populate("role", "name displayName");
+    return User.findById(user._id).select("-password").populate("role", "name displayName permissions").populate("driver", "name licenseNumber status");
 };
 
 /**
@@ -91,6 +111,12 @@ const updateUser = async (id, updates) => {
         const role = await Role.findById(updates.roleId);
         if (!role) throw new AppError("Role not found.", 404);
         user.role = updates.roleId;
+        if (role.name !== "driver") user.driver = null;
+    }
+    if (updates.driverId !== undefined) {
+        user.driver = updates.driverId
+            ? await validateDriverLink(updates.roleId || user.role, updates.driverId, id)
+            : null;
     }
     if (typeof updates.isActive === "boolean") {
         user.isActive = updates.isActive;
@@ -100,7 +126,7 @@ const updateUser = async (id, updates) => {
     }
 
     await user.save();
-    return User.findById(id).select("-password").populate("role", "name displayName");
+    return User.findById(id).select("-password").populate("role", "name displayName permissions").populate("driver", "name licenseNumber status");
 };
 
 /**
@@ -131,7 +157,7 @@ const deleteUser = async (id, requestingUserId) => {
  * Get user by ID
  */
 const getUserById = async (id) => {
-    const user = await User.findById(id).select("-password").populate("role", "name displayName permissions");
+    const user = await User.findById(id).select("-password").populate("role", "name displayName permissions").populate("driver", "name licenseNumber status");
     if (!user) throw new AppError("User not found.", 404);
     return user;
 };

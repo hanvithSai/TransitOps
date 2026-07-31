@@ -17,6 +17,9 @@ const expenseRoutes = require('./routes/expenseRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const maintenanceScheduleRoutes = require('./routes/maintenanceScheduleRoutes');
+const { apiLimiter } = require('./middlewares/rateLimiter');
 const { errorHandler } = require('./utils/errorHandler');
 
 const app = express();
@@ -40,7 +43,6 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(auditLogger);
 
 app.get('/', (req, res) => res.json({ message: 'TransitOps API is running' }));
 
@@ -61,6 +63,9 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+app.use('/api', apiLimiter);
+app.use(auditLogger);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
@@ -73,6 +78,8 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/maintenance-schedules', maintenanceScheduleRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ success: false, message: 'Route not found' });

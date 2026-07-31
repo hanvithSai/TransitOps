@@ -41,8 +41,8 @@ const createUser = async (req, res, next) => {
             });
         }
 
-        const { name, email, password, roleId, isActive } = req.body;
-        const user = await userService.createUser({ name, email, password, roleId, isActive });
+        const { name, email, password, roleId, isActive, driverId } = req.body;
+        const user = await userService.createUser({ name, email, password, roleId, isActive, driverId });
         res.status(201).json({ success: true, message: "User created", data: { user } });
     } catch (err) {
         next(err);

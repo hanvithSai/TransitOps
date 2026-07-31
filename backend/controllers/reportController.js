@@ -29,3 +29,16 @@ exports.downloadROICSV = async (req, res, next) => {
         next(new AppError('Failed to generate CSV download', 500));
     }
 };
+
+exports.downloadROIPDF = async (req, res, next) => {
+    try {
+        const data = await reportService.getVehicleROI();
+        const pdf = await reportService.generatePDF(data);
+
+        res.header('Content-Type', 'application/pdf');
+        res.attachment('vehicle-roi-report.pdf');
+        return res.send(pdf);
+    } catch (error) {
+        next(new AppError('Failed to generate PDF download', 500));
+    }
+};

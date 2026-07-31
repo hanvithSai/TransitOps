@@ -91,3 +91,33 @@ exports.generateCSV = (data) => {
     });
     return [headers, ...rows].join('\n');
 };
+
+exports.generatePDF = (data) => {
+    const PDFDocument = require('pdfkit');
+    return new Promise((resolve, reject) => {
+        const doc = new PDFDocument({ margin: 40, size: 'A4' });
+        const chunks = [];
+
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        doc.fontSize(16).text('TransitOps — Vehicle ROI Report', { underline: true });
+        doc.moveDown();
+        doc.fontSize(10);
+
+        if (!data?.length) {
+            doc.text('No ROI data available.');
+            doc.end();
+            return;
+        }
+
+        data.forEach((row, index) => {
+            doc.text(`${index + 1}. ${row.registrationNumber} (${row.vehicleName})`);
+            doc.text(`   Revenue: ₹${row.revenue} | Op. cost: ₹${row.operationalCost} | ROI: ₹${row.roi}`);
+            doc.moveDown(0.5);
+        });
+
+        doc.end();
+    });
+};

@@ -10,15 +10,15 @@ const { createVehicleValidator, updateVehicleValidator } = require('../validator
 router.use(authenticate, requirePasswordUpdated);
 
 // GET /api/vehicles (Accessible by admin, fleet_manager, driver)
-router.get('/', authorize('admin', 'fleet_manager', 'driver'), vehicleController.getAllVehicles);
+router.get('/', authorize('admin', 'fleet_manager', 'driver', 'vehicles:read'), vehicleController.getAllVehicles);
 
 // GET /api/vehicles/:id (Accessible by admin, fleet_manager, driver)
-router.get('/:id', authorize('admin', 'fleet_manager', 'driver'), vehicleController.getVehicleById);
+router.get('/:id', authorize('admin', 'fleet_manager', 'driver', 'vehicles:read'), vehicleController.getVehicleById);
 
 // POST /api/vehicles (Accessible by admin, fleet_manager)
 router.post(
   '/',
-  authorize('admin', 'fleet_manager'),
+  authorize('admin', 'fleet_manager', 'vehicles:write'),
   createVehicleValidator,
   vehicleController.createVehicle
 );
@@ -26,12 +26,12 @@ router.post(
 // PUT /api/vehicles/:id (Accessible by admin, fleet_manager)
 router.put(
   '/:id',
-  authorize('admin', 'fleet_manager'),
+  authorize('admin', 'fleet_manager', 'vehicles:write'),
   updateVehicleValidator,
   vehicleController.updateVehicle
 );
 
 // DELETE /api/vehicles/:id (Accessible by admin, fleet_manager as requested)
-router.delete('/:id', authorize('admin', 'fleet_manager'), vehicleController.deleteVehicle);
+router.delete('/:id', authorize('admin', 'fleet_manager', 'vehicles:write'), vehicleController.deleteVehicle);
 
 module.exports = router;
