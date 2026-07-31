@@ -1,7 +1,7 @@
 # Product Documentation
 
-**Last updated:** July 31, 2026  
-**MVP status:** Phases 1–8 complete
+**Last updated:** July 31, 2026 (post P0–P3 hardening)  
+**MVP status:** Phases 1–8 complete · demo-ready
 
 ## Product Features
 
@@ -9,8 +9,8 @@
 |---------|--------|-------|
 | Driver Management | ✅ | CRUD, expiry warnings, daily cron suspension |
 | Vehicle Management | ✅ | CRUD, Retire action, delete protection |
-| Trip Dispatch & Tracking | ✅ | Draft → Dispatched → Completed/Cancelled with 9+ business rules |
-| Maintenance Workflow | ✅ | Auto-syncs vehicle to In Shop / Available |
+| Trip Dispatch & Tracking | ✅ | Draft → Dispatched → Completed/Cancelled; MongoDB transactions on dispatch; odometer + revenue on completion |
+| Maintenance Workflow | ✅ | Auto-syncs vehicle to In Shop / Available; `closeDate` set on completion |
 | Fuel & Expenses | ✅ | Tabbed Finance page, linked to vehicles/trips |
 | Dashboard & Analytics | ✅ | Live KPIs + Recharts trend charts |
 | Reports & CSV Export | ✅ | Per-vehicle ROI including fuel, expenses, and maintenance |
@@ -27,11 +27,13 @@
 ## User Experience (UX)
 
 * **Design system v2.1:** Tokens, UI primitives, dark mode, marketing landing page
-* **Role-based views:** Nav and routes filtered by role; some backend endpoints still need RBAC hardening (see `backlog.md`)
+* **Role-based views:** Nav, `ProtectedRoute`, and backend `authorize()` aligned per role; `Role.permissions` array not yet enforced programmatically
 * **Interactive analytics:** Recharts on dashboard; ROI summary cards on reports
 * **Defensive deletion:** Delete blocked when history exists; Retire (vehicles) and Set Off Duty (drivers) offered as alternatives
 * **Form validation:** React Hook Form + Zod on all major CRUD forms
-* **Feedback patterns:** Toast notifications, confirm modals for destructive actions
+* **Feedback patterns:** Toast notifications, confirm modals for destructive actions; Modal focus trap
+* **Offline demo mode:** Aligned `mockData.js` fallback for network/5xx errors (auth never mocked)
+* **Search UX:** Debounced search on list pages; skeleton loading states
 
 ## Future Enhancements
 

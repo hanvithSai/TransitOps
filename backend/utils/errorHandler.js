@@ -32,6 +32,12 @@ const errorHandler = (err, req, res, next) => {
         statusCode = 400;
     }
 
+    // Mongoose CastError (invalid ObjectId)
+    if (err.name === "CastError") {
+        message = "Invalid ID format";
+        statusCode = 400;
+    }
+
     // JWT errors
     if (err.name === "JsonWebTokenError") {
         message = "Invalid token. Please log in again.";

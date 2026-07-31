@@ -1,10 +1,12 @@
 const tripService = require('../services/tripService');
 const { validationResult } = require('express-validator');
 const { AppError } = require('../utils/errorHandler');
+const { parsePagination } = require('../utils/pagination');
 
 exports.getAllTrips = async (req, res, next) => {
     try {
-        const { page, limit, status, search } = req.query;
+        const { page, limit } = parsePagination(req.query);
+        const { status, search } = req.query;
         const result = await tripService.getAllTrips({ page, limit, status, search });
         res.status(200).json({ success: true, data: result });
     } catch (error) {

@@ -1,10 +1,12 @@
 const expenseService = require('../services/expenseService');
 const { validationResult } = require('express-validator');
 const { AppError } = require('../utils/errorHandler');
+const { parsePagination } = require('../utils/pagination');
 
 exports.getAllExpenses = async (req, res, next) => {
     try {
-        const { page, limit, vehicleId, tripId, category } = req.query;
+        const { page, limit } = parsePagination(req.query);
+        const { vehicleId, tripId, category } = req.query;
         const result = await expenseService.getAllExpenses({ page, limit, vehicleId, tripId, category });
         res.status(200).json({ success: true, data: result });
     } catch (error) {

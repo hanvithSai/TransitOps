@@ -1,24 +1,14 @@
-import { Button } from './Button';
-
-export const EmptyState = ({
-  icon: Icon,
-  title,
-  description,
-  actionLabel,
-  onAction,
-}) => (
-  <div className="app-empty-state">
+export const EmptyState = ({ icon: Icon, title, description, action }) => (
+  <div className="flex flex-col items-center justify-center py-24 text-center h-full">
     {Icon && (
-      <div className="app-empty-state-icon" aria-hidden="true">
-        <Icon className="h-8 w-8 text-[var(--text-muted)]" />
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
+        <Icon className="h-7 w-7 text-[var(--text-muted)]" />
       </div>
     )}
-    <h3 className="text-h3">{title}</h3>
-    {description && <p className="text-body max-w-sm">{description}</p>}
-    {actionLabel && onAction && (
-      <Button onClick={onAction} className="mt-2">
-        {actionLabel}
-      </Button>
+    <p className="text-sm font-semibold text-[var(--text-primary)]">{title}</p>
+    {description && (
+      <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[280px]">{description}</p>
     )}
+    {action && <div className="mt-6">{action}</div>}
   </div>
 );

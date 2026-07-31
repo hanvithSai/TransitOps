@@ -28,6 +28,14 @@ const authenticate = async (req, res, next) => {
             return next(new AppError("Your account has been deactivated.", 401));
         }
 
+        const tokenPwdAt = decoded.pwdAt || 0;
+        const userPwdAt = user.passwordUpdatedAt
+            ? new Date(user.passwordUpdatedAt).getTime()
+            : 0;
+        if (tokenPwdAt < userPwdAt) {
+            return next(new AppError("Session expired. Please log in again.", 401));
+        }
+
         // 4. Attach user to request
         req.user = user;
         next();

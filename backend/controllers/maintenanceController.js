@@ -1,10 +1,12 @@
 const maintenanceService = require('../services/maintenanceService');
 const { validationResult } = require('express-validator');
 const { AppError } = require('../utils/errorHandler');
+const { parsePagination } = require('../utils/pagination');
 
 exports.getAllLogs = async (req, res, next) => {
   try {
-    const { page, limit, search, status } = req.query;
+    const { page, limit } = parsePagination(req.query);
+    const { search, status } = req.query;
     const result = await maintenanceService.getAllLogs({ page, limit, search, status });
     res.status(200).json({
       success: true,

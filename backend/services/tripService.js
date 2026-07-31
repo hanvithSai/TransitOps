@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Trip = require('../models/Trip');
 const Vehicle = require('../models/Vehicle');
 const Driver = require('../models/Driver');
@@ -6,31 +7,118 @@ const escapeRegex = require('../utils/escapeRegex');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Check if a vehicle is currently locked in a Dispatched trip.
- * Uses the compound index {vehicle, status} for efficient lookup.
- */
-const isVehicleInActiveTrip = async (vehicleId, excludeTripId = null) => {
+const isVehicleInActiveTrip = async (vehicleId, excludeTripId = null, session = null) => {
     const query = { vehicle: vehicleId, status: 'Dispatched' };
     if (excludeTripId) query._id = { $ne: excludeTripId };
-    return Trip.exists(query);
+    return Trip.exists(query).session(session);
+};
+
+const isDriverInActiveTrip = async (driverId, excludeTripId = null, session = null) => {
+    const query = { driver: driverId, status: 'Dispatched' };
+    if (excludeTripId) query._id = { $ne: excludeTripId };
+    return Trip.exists(query).session(session);
 };
 
 /**
- * Check if a driver is currently locked in a Dispatched trip.
- * Uses the compound index {driver, status} for efficient lookup.
+ * Core dispatch validation + state transitions (optionally within a transaction session).
  */
-const isDriverInActiveTrip = async (driverId, excludeTripId = null) => {
-    const query = { driver: driverId, status: 'Dispatched' };
-    if (excludeTripId) query._id = { $ne: excludeTripId };
-    return Trip.exists(query);
+const applyDispatchRules = async (tripId, session = null) => {
+    const trip = await Trip.findById(tripId).session(session);
+    if (!trip) throw new AppError('Trip not found', 404);
+
+    if (trip.status !== 'Draft') {
+        throw new AppError(
+            `Cannot dispatch a trip that is already "${trip.status}". Only Draft trips can be dispatched.`,
+            400
+        );
+    }
+
+    const vehicle = await Vehicle.findById(trip.vehicle).session(session);
+    if (!vehicle) throw new AppError('Assigned vehicle not found', 404);
+
+    if (vehicle.status === 'Retired') {
+        throw new AppError(
+            `Vehicle "${vehicle.registrationNumber}" is Retired and cannot be dispatched.`,
+            400
+        );
+    }
+
+    if (vehicle.status === 'In Shop') {
+        throw new AppError(
+            `Vehicle "${vehicle.registrationNumber}" is currently In Shop for maintenance and cannot be dispatched.`,
+            400
+        );
+    }
+
+    if (vehicle.status !== 'Available') {
+        throw new AppError(
+            `Vehicle "${vehicle.registrationNumber}" is currently "${vehicle.status}" and is not available for dispatch.`,
+            400
+        );
+    }
+
+    if (await isVehicleInActiveTrip(trip.vehicle, tripId, session)) {
+        throw new AppError(
+            `Vehicle "${vehicle.registrationNumber}" is already assigned to another active trip.`,
+            400
+        );
+    }
+
+    const driver = await Driver.findById(trip.driver).session(session);
+    if (!driver) throw new AppError('Assigned driver not found', 404);
+
+    if (driver.status === 'Suspended') {
+        throw new AppError(
+            `Driver "${driver.name}" is Suspended and cannot be assigned to a trip.`,
+            400
+        );
+    }
+
+    if (driver.status !== 'Available') {
+        throw new AppError(
+            `Driver "${driver.name}" is currently "${driver.status}" and is not available for dispatch.`,
+            400
+        );
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(driver.expiryDate) < today) {
+        throw new AppError(
+            `Driver "${driver.name}" has an expired license (expired ${new Date(driver.expiryDate).toDateString()}). Cannot dispatch.`,
+            400
+        );
+    }
+
+    if (await isDriverInActiveTrip(trip.driver, tripId, session)) {
+        throw new AppError(
+            `Driver "${driver.name}" is already assigned to another active trip.`,
+            400
+        );
+    }
+
+    if (trip.cargoWeight > vehicle.capacity) {
+        throw new AppError(
+            `Cargo weight (${trip.cargoWeight} kg) exceeds vehicle capacity (${vehicle.capacity} kg) for "${vehicle.registrationNumber}".`,
+            400
+        );
+    }
+
+    vehicle.status = 'On Trip';
+    await vehicle.save({ session });
+
+    driver.status = 'On Trip';
+    await driver.save({ session });
+
+    trip.status = 'Dispatched';
+    trip.dispatchedAt = new Date();
+    await trip.save({ session });
+
+    return trip;
 };
 
 // ─── Service Methods ──────────────────────────────────────────────────────────
 
-/**
- * GET all trips — paginated + filtered
- */
 exports.getAllTrips = async ({
     page = 1,
     limit = 20,
@@ -72,9 +160,6 @@ exports.getAllTrips = async ({
     };
 };
 
-/**
- * GET single trip by ID — fully populated
- */
 exports.getTripById = async (id) => {
     const trip = await Trip.findById(id)
         .populate('vehicle', 'registrationNumber vehicleName model type capacity status odometer')
@@ -85,11 +170,13 @@ exports.getTripById = async (id) => {
     return trip;
 };
 
-/**
- * CREATE trip — status starts as Draft.
- * No business rule checks here; eligibility is enforced at dispatch time.
- */
 exports.createTrip = async (data, userId) => {
+    const vehicle = await Vehicle.findById(data.vehicle);
+    if (!vehicle) throw new AppError('Vehicle not found', 404);
+
+    const driver = await Driver.findById(data.driver);
+    if (!driver) throw new AppError('Driver not found', 404);
+
     const trip = await Trip.create({ ...data, createdBy: userId });
 
     return Trip.findById(trip._id)
@@ -97,126 +184,23 @@ exports.createTrip = async (data, userId) => {
         .populate('driver', 'name licenseNumber status');
 };
 
-/**
- * DISPATCH trip: Draft → Dispatched
- * Enforces all 10 PRD §8 mandatory business rules sequentially.
- */
 exports.dispatchTrip = async (tripId) => {
-    // ── 0. Fetch trip ────────────────────────────────────────────────────────
-    const trip = await Trip.findById(tripId);
-    if (!trip) throw new AppError('Trip not found', 404);
+    const session = await mongoose.startSession();
 
-    // ── Rule 0: Trip must be in Draft state ──────────────────────────────────
-    if (trip.status !== 'Draft') {
-        throw new AppError(
-            `Cannot dispatch a trip that is already "${trip.status}". Only Draft trips can be dispatched.`,
-            400
-        );
+    try {
+        await session.withTransaction(async () => {
+            await exports._applyDispatchRules(tripId, session);
+        });
+
+        return Trip.findById(tripId)
+            .populate('vehicle', 'registrationNumber vehicleName status capacity')
+            .populate('driver', 'name licenseNumber status');
+    } finally {
+        await session.endSession();
     }
-
-    // ── Fetch vehicle ────────────────────────────────────────────────────────
-    const vehicle = await Vehicle.findById(trip.vehicle);
-    if (!vehicle) throw new AppError('Assigned vehicle not found', 404);
-
-    // ── Rule 1: Vehicle must not be Retired ──────────────────────────────────
-    if (vehicle.status === 'Retired') {
-        throw new AppError(
-            `Vehicle "${vehicle.registrationNumber}" is Retired and cannot be dispatched.`,
-            400
-        );
-    }
-
-    // ── Rule 2: Vehicle must not be In Shop (maintenance block) ──────────────
-    if (vehicle.status === 'In Shop') {
-        throw new AppError(
-            `Vehicle "${vehicle.registrationNumber}" is currently In Shop for maintenance and cannot be dispatched.`,
-            400
-        );
-    }
-
-    // ── Rule 3: Vehicle must be Available ────────────────────────────────────
-    if (vehicle.status !== 'Available') {
-        throw new AppError(
-            `Vehicle "${vehicle.registrationNumber}" is currently "${vehicle.status}" and is not available for dispatch.`,
-            400
-        );
-    }
-
-    // ── Rule 4: Vehicle must not be in another active trip ───────────────────
-    if (await isVehicleInActiveTrip(trip.vehicle, tripId)) {
-        throw new AppError(
-            `Vehicle "${vehicle.registrationNumber}" is already assigned to another active trip.`,
-            400
-        );
-    }
-
-    // ── Fetch driver ─────────────────────────────────────────────────────────
-    const driver = await Driver.findById(trip.driver);
-    if (!driver) throw new AppError('Assigned driver not found', 404);
-
-    // ── Rule 5: Driver must not be Suspended ─────────────────────────────────
-    if (driver.status === 'Suspended') {
-        throw new AppError(
-            `Driver "${driver.name}" is Suspended and cannot be assigned to a trip.`,
-            400
-        );
-    }
-
-    // ── Rule 6: Driver must be Available ─────────────────────────────────────
-    if (driver.status !== 'Available') {
-        throw new AppError(
-            `Driver "${driver.name}" is currently "${driver.status}" and is not available for dispatch.`,
-            400
-        );
-    }
-
-    // ── Rule 7: Driver license must not be expired ───────────────────────────
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (new Date(driver.expiryDate) < today) {
-        throw new AppError(
-            `Driver "${driver.name}" has an expired license (expired ${new Date(driver.expiryDate).toDateString()}). Cannot dispatch.`,
-            400
-        );
-    }
-
-    // ── Rule 8: Driver must not be in another active trip ────────────────────
-    if (await isDriverInActiveTrip(trip.driver, tripId)) {
-        throw new AppError(
-            `Driver "${driver.name}" is already assigned to another active trip.`,
-            400
-        );
-    }
-
-    // ── Rule 9: Cargo weight must not exceed vehicle capacity ────────────────
-    if (trip.cargoWeight > vehicle.capacity) {
-        throw new AppError(
-            `Cargo weight (${trip.cargoWeight} tons) exceeds vehicle capacity (${vehicle.capacity} tons) for "${vehicle.registrationNumber}".`,
-            400
-        );
-    }
-
-    // ── All rules passed — commit state transitions ───────────────────────────
-    vehicle.status = 'On Trip';
-    await vehicle.save();
-
-    driver.status = 'On Trip';
-    await driver.save();
-
-    trip.status = 'Dispatched';
-    trip.dispatchedAt = new Date();
-    await trip.save();
-
-    return Trip.findById(tripId)
-        .populate('vehicle', 'registrationNumber vehicleName status capacity')
-        .populate('driver', 'name licenseNumber status');
 };
 
-/**
- * COMPLETE trip: Dispatched → Completed
- * Restores vehicle and driver to Available.
- */
-exports.completeTrip = async (tripId, { actualDistance, fuelUsed }) => {
+exports.completeTrip = async (tripId, { actualDistance, fuelUsed, revenue }) => {
     const trip = await Trip.findById(tripId);
     if (!trip) throw new AppError('Trip not found', 404);
 
@@ -227,36 +211,39 @@ exports.completeTrip = async (tripId, { actualDistance, fuelUsed }) => {
         );
     }
 
-    // Restore vehicle
     const vehicle = await Vehicle.findById(trip.vehicle);
     if (vehicle) {
+        if (actualDistance > 0) {
+            const newOdometer = vehicle.odometer + actualDistance;
+            if (newOdometer < vehicle.odometer) {
+                throw new AppError('Completing this trip would decrease the vehicle odometer.', 400);
+            }
+            vehicle.odometer = newOdometer;
+        }
         vehicle.status = 'Available';
         await vehicle.save();
     }
 
-    // Restore driver
     const driver = await Driver.findById(trip.driver);
     if (driver) {
         driver.status = 'Available';
         await driver.save();
     }
 
-    // Update trip
     trip.status = 'Completed';
     trip.completedAt = new Date();
     trip.actualDistance = actualDistance;
     trip.fuelUsed = fuelUsed;
+    if (revenue !== undefined && revenue !== null) {
+        trip.revenue = revenue;
+    }
     await trip.save();
 
     return Trip.findById(tripId)
-        .populate('vehicle', 'registrationNumber vehicleName status capacity')
+        .populate('vehicle', 'registrationNumber vehicleName status capacity odometer')
         .populate('driver', 'name licenseNumber status');
 };
 
-/**
- * CANCEL trip: Draft → Cancelled (PRD lifecycle)
- * Only Draft trips can be cancelled — dispatched trips must be completed.
- */
 exports.cancelTrip = async (tripId) => {
     const trip = await Trip.findById(tripId);
     if (!trip) throw new AppError('Trip not found', 404);
@@ -274,3 +261,6 @@ exports.cancelTrip = async (tripId) => {
 
     return trip;
 };
+
+// Exported for tests
+exports._applyDispatchRules = applyDispatchRules;

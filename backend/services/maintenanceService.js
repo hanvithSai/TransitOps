@@ -97,6 +97,7 @@ exports.updateLog = async (id, updateData) => {
   // Handle status transitions
   if (newStatus && oldStatus !== newStatus) {
     if (newStatus === 'Completed') {
+      updateData.closeDate = new Date();
       // Transitioning Active -> Completed
       // Check if vehicle has any OTHER Active logs
       const otherActiveLogs = await MaintenanceLog.exists({
@@ -110,6 +111,9 @@ exports.updateLog = async (id, updateData) => {
         await vehicle.save();
       }
     } else if (newStatus === 'Active') {
+      if (oldStatus === 'Completed') {
+        updateData.closeDate = null;
+      }
       // Transitioning Completed -> Active (Re-opening)
       if (vehicle.status === 'Retired') {
         throw new AppError(`Cannot re-open maintenance log: Vehicle ${vehicle.registrationNumber} is Retired.`, 400);

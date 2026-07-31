@@ -38,4 +38,8 @@ exports.completeTripValidator = [
     body('fuelUsed')
         .isFloat({ min: 0 })
         .withMessage('Fuel used must be a non-negative number'),
+    body('revenue')
+        .optional()
+        .isFloat({ min: 0 })
+        .withMessage('Revenue must be a non-negative number'),
 ];

@@ -22,7 +22,10 @@ import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { maintenanceFormSchema } from '../../schemas/maintenance';
+import { useDebounce } from '../../hooks/useDebounce';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -81,6 +84,7 @@ const MaintenancePage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
   
   // Form States
   const getTodayDateStr = () => new Date().toISOString().split('T')[0];
@@ -123,14 +127,14 @@ const MaintenancePage = () => {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/maintenance?limit=100&search=${search}`);
+      const { data } = await api.get(`/maintenance?limit=100&search=${debouncedSearch}`);
       setLogs(data.data.logs);
     } catch {
       showToast('Failed to load maintenance logs', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     fetchVehicles();
@@ -355,19 +359,15 @@ const MaintenancePage = () => {
             </div>
             
             {loading ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
+              <div className="p-6">
+                <SkeletonTable rows={6} />
               </div>
             ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
-                  <Wrench className="h-7 w-7 text-[var(--text-muted)]" />
-                </div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">No service logs found</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[250px]">
-                  {search ? 'Try adjusting your search criteria.' : 'Service records will appear here when you log maintenance.'}
-                </p>
-              </div>
+              <EmptyState
+                icon={Wrench}
+                title="No service logs found"
+                description={search ? 'Try adjusting your search criteria.' : 'Service records will appear here when you log maintenance using the form.'}
+              />
             ) : (
               <div className="overflow-x-auto flex-1">
                 <Table>

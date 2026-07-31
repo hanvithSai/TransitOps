@@ -17,4 +17,8 @@ export const createTripSchema = z.object({
 export const completeTripSchema = z.object({
   actualDistance: z.coerce.number().min(0, 'Actual distance must be non-negative'),
   fuelUsed: z.coerce.number().min(0, 'Fuel used must be non-negative'),
+  revenue: z
+    .union([z.literal(''), z.coerce.number().min(0)])
+    .optional()
+    .transform((v) => (v === '' || v === undefined ? undefined : v)),
 });

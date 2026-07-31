@@ -1,8 +1,8 @@
 # TransitOps Production Readiness Validation Checklist
 
-**Last updated:** July 31, 2026
+**Last updated:** July 31, 2026 (post P0–P3 hardening)
 
-This checklist tracks production readiness. ✅ = implemented and verified · ⚠️ = partial or known issue · ☐ = not yet done.
+This checklist tracks production readiness. ✅ = implemented · ⚠️ = partial · ☐ = not done.
 
 For prioritized fix list see `backlog.md`. For audit details see `audit-report.md`.
 
@@ -12,11 +12,14 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 
 ## Feature / Functionality
 ### Current Implementation
-- ✅ JWT login, RBAC (role names), `ProtectedRoute.jsx`, token refresh queue
-- ✅ Password reset flow (`POST /auth/forgot-password`, `POST /auth/reset-password/:token`); dev without SMTP returns Ethereal preview URL
-- ⚠️ Mock login fallback on 401 masks wrong-password errors
-- ☐ Account lockout on failed attempts
-- ☐ Rate limiting on auth endpoints (broader coverage beyond auth routes)
+- ✅ JWT login, RBAC on all route modules, `ProtectedRoute`, token refresh with rotation
+- ✅ JWT `pwdAt` claim invalidates access tokens after password change
+- ✅ Password reset flow; dev without SMTP returns Ethereal preview URL
+- ✅ Auth endpoints excluded from mock fallback
+- ✅ Auth rate limiting + `helmet()` security headers
+- ✅ Admin self-registration blocked; forgot-password enumeration-safe
+- ⚠️ No account lockout; no rate limiting on non-auth routes
+- ☐ `Role.permissions` array enforcement
 
 ### Business Logic Validation
 - □ User cannot access endpoints outside their assigned role permissions.
@@ -134,8 +137,8 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 
 ## Feature / Functionality
 ### Current Implementation
-- **Complete**: Complex dispatch logic (10 rules), trip completion, status enums, related entity status syncing.
-- **Partial**: Revenue and actual distance calculations.
+- **Complete**: Complex dispatch logic (10 rules), MongoDB transaction on dispatch, trip completion with odometer roll-forward and optional revenue, status enums, related entity status syncing.
+- **Partial**: Automated test coverage for dispatch rule matrix.
 - **Missing**: Multi-stop routing, live GPS tracking.
 
 ### Business Logic Validation
@@ -170,8 +173,8 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - □ Required fields (source, destination, vehicle, driver, cargoWeight, plannedDistance).
 - □ Business validation across related collections (Vehicle capacity, Driver license).
 - □ Status transition enforcement (Draft -> Dispatched -> Completed).
-- □ Server-side transaction safety for dispatch and completion (to prevent race conditions).
-- □ Valid ObjectIds for vehicle and driver references.
+- ✅ Server-side transaction safety for dispatch (`session.withTransaction` in `dispatchTrip`).
+- □ Valid ObjectIds for vehicle and driver references (createTrip validates existence; CastError → 400 globally).
 
 ---
 
@@ -179,8 +182,7 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 
 ## Feature / Functionality
 ### Current Implementation
-- **Complete**: CRUD, vehicle association, cost tracking.
-- **Partial**: Automated vehicle status toggling (In Shop / Available).
+- **Complete**: CRUD, vehicle association, cost tracking, automated vehicle status toggling (In Shop / Available), `closeDate` on completion.
 - **Missing**: Recurring maintenance schedules based on odometer.
 
 ### Business Logic Validation
@@ -247,7 +249,7 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - □ **Validation Errors**: Clear, field-specific Mongoose validation messages returned to the client.
 - □ **Invalid Payload**: Rejecting unexpected fields or malformed JSON.
 - □ **Missing Payload**: Graceful handling of empty request bodies.
-- □ **Invalid ObjectId**: Catching cast errors before they crash the server.
+- ✅ **Invalid ObjectId**: CastError mapped to 400 in global error handler.
 - □ **Resource Not Found**: 404s for querying deleted or non-existent IDs.
 
 ---
@@ -274,7 +276,7 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - □ **Unique Indexes**: Created for `registrationNumber`, `licenseNumber`, `email`.
 - □ **References**: `ref` properties correctly pointing to valid collections.
 - □ **Cascading Behaviour**: Handled via application logic (preventing deletes if children exist).
-- □ **Transactions**: (High Priority) Dispatching a trip touches 3 collections; must use MongoDB transactions to prevent partial updates.
+- ✅ **Transactions**: Dispatch uses MongoDB transactions (requires replica-set MongoDB in production).
 - □ **Audit History**: `timestamps: true` is on all schemas; `createdBy` is tracked for Trips/Expenses/Fuel.
 
 ---
@@ -297,7 +299,7 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 # 11. Performance Checklist
 
 ## Verify
-- □ **Pagination**: Implemented on all list endpoints (Vehicles, Drivers, Trips).
+- ✅ **Pagination**: `parsePagination()` on all list endpoints with safe defaults.
 - □ **Search & Filters**: Offloaded to MongoDB queries, not filtered in-memory on the client.
 - □ **Indexed Queries**: Compound indexes exist for frequent lookups (e.g., `Trip: {vehicle: 1, status: 1}`).
 - □ **Aggregation Performance**: Use `$match` early in pipelines for dashboard stats.
@@ -334,11 +336,10 @@ Follow this workflow in a staging environment to guarantee end-to-end functional
 
 # 14. Technical Debt & Improvements
 
-See `docs/backlog.md` for the current prioritized backlog. Key open items:
+See `docs/backlog.md` for the current prioritized backlog. Key open items (Jul 31, 2026):
 
-- **MongoDB transactions** on trip dispatch (race condition)
-- **RBAC** on dashboard/reports endpoints
-- **Mock data schema alignment** for offline demo mode
-- **Vehicle odometer roll-forward** on trip completion
-- **Expand Jest coverage** beyond RBAC mocks
-- **React Query** adoption for server-state caching (optional)
+- **Expand Jest coverage** — dispatch rules, ROI math, concurrency (P4)
+- **Docker / health endpoint / replica-set MongoDB** — required for dispatch transactions in prod (P4)
+- **Audit log read API + admin UI** (P4)
+- **EmptyState on Drivers/Maintenance**; restrict manual driver `Suspended` (P3)
+- **React Query** adoption (optional, P6)

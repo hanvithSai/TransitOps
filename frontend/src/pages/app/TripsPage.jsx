@@ -12,7 +12,9 @@ import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SkeletonTable } from '../../components/ui/Skeleton';
 import { createTripSchema, completeTripSchema } from '../../schemas/trip';
+import { useDebounce } from '../../hooks/useDebounce';
 import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -37,6 +39,7 @@ const TripsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
   
   // Detail panel state
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -72,7 +75,7 @@ const TripsPage = () => {
     formState: { errors: completeErrors },
   } = useForm({
     resolver: zodResolver(completeTripSchema),
-    defaultValues: { actualDistance: '', fuelUsed: '' },
+    defaultValues: { actualDistance: '', fuelUsed: '', revenue: '' },
   });
 
   const showToast = (message, type = 'success') => setToast({ message, type });
@@ -81,7 +84,7 @@ const TripsPage = () => {
     try {
       let url = '/trips?limit=100';
       if (activeTab) url += `&status=${activeTab}`;
-      if (search) url += `&search=${search}`;
+      if (debouncedSearch) url += `&search=${debouncedSearch}`;
       const { data } = await api.get(url);
       setTrips(data.data.trips);
       
@@ -96,7 +99,7 @@ const TripsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, search]);
+  }, [activeTab, debouncedSearch]);
 
   useEffect(() => {
     setLoading(true);
@@ -172,6 +175,7 @@ const TripsPage = () => {
     resetCompleteForm({
       actualDistance: selectedTrip.plannedDistance,
       fuelUsed: '',
+      revenue: selectedTrip?.revenue ?? '',
     });
     setModalType('complete');
   };
@@ -261,9 +265,8 @@ const TripsPage = () => {
           
           <div className="flex-1 overflow-y-auto bg-[var(--bg-surface)]">
             {loading ? (
-              <div className="flex h-32 flex-col items-center justify-center gap-3">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-brand-200)] border-t-[var(--color-brand-600)] dark:border-[var(--color-brand-800)] dark:border-t-[var(--color-brand-400)]"></div>
-                <p className="text-xs font-medium text-[var(--text-muted)]">Loading trips...</p>
+              <div className="p-4">
+                <SkeletonTable rows={5} />
               </div>
             ) : trips.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center px-4">
@@ -584,6 +587,7 @@ const TripsPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input required label="Actual Distance (km)" type="number" min="0" step="0.1" error={completeErrors.actualDistance?.message} {...registerComplete('actualDistance')} />
               <Input required label="Fuel Used (Liters)" type="number" min="0" step="0.1" error={completeErrors.fuelUsed?.message} {...registerComplete('fuelUsed')} />
+              <Input label="Revenue (opt)" type="number" min="0" step="0.01" error={completeErrors.revenue?.message} {...registerComplete('revenue')} />
             </div>
             
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)] mt-6">

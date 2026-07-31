@@ -6,10 +6,12 @@ const VARIANT_ALIASES = {
   info: 'blue',
   warning: 'amber',
   danger: 'red',
+  outline: 'outline',
 };
 
 const VARIANTS = {
   gray: 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border-[var(--border-base)]',
+  outline: 'bg-transparent text-[var(--text-secondary)] border-[var(--border-base)]',
   blue: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)] border-[var(--color-brand-200)] dark:border-[var(--color-brand-800)]',
   emerald: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)] border-emerald-200 dark:border-emerald-800',
   red: 'bg-[var(--color-error-bg)] text-[var(--color-error-text)] border-red-200 dark:border-red-800',

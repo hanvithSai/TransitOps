@@ -74,7 +74,14 @@ const loginUser = async (req, res, next) => {
 const refreshToken = async (req, res, next) => {
     try {
         const token = req.cookies?.refreshToken;
-        const { accessToken, user } = await authService.refreshAccessToken(token);
+        const { accessToken, refreshToken, user } = await authService.refreshAccessToken(token);
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
 
         res.status(200).json({
             success: true,
