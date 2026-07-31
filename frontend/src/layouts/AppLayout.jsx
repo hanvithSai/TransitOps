@@ -147,7 +147,7 @@ const AppLayout = () => {
         <DemoModeBanner />
         <header className="app-header">
           <div className="flex min-w-0 items-center gap-3">
-            <button type="button" onClick={() => setMobileOpen(true)} className="app-header-icon-btn md:hidden" aria-label="Open menu">
+            <button type="button" onClick={() => setMobileOpen(true)} className="app-header-icon-btn app-header-menu-btn" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </button>
             <nav className="app-breadcrumb hidden sm:flex" aria-label="Breadcrumb">

@@ -103,30 +103,34 @@ const ReportsPage = () => {
       />
 
       {metrics && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card className="p-5 flex flex-col justify-center relative overflow-hidden group">
+        <div className="app-stat-grid app-stat-grid--3">
+          <Card noPadding className="app-stat-card app-stat-card--metric group">
             <div className="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--color-brand-500)] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center gap-2 mb-2 text-[var(--text-muted)]">
-              <TrendingUp className="h-4 w-4" />
-              <p className="text-[11px] font-bold uppercase tracking-wider">Fleet Utilization</p>
+            <div className="app-stat-card-metric-head">
+              <TrendingUp className="h-5 w-5 shrink-0" />
+              <p className="app-stat-card-label">Fleet Utilization</p>
             </div>
-            <p className="text-3xl font-extrabold tracking-tight text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">{metrics.fleetUtilization}%</p>
+            <p className="app-stat-card-value text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">{metrics.fleetUtilization}%</p>
           </Card>
-          <Card className="p-5 flex flex-col justify-center relative overflow-hidden group">
+          <Card noPadding className="app-stat-card app-stat-card--metric group">
             <div className="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-emerald-500 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center gap-2 mb-2 text-[var(--text-muted)]">
-              <Droplet className="h-4 w-4 text-emerald-500/70" />
-              <p className="text-[11px] font-bold uppercase tracking-wider">Fuel Efficiency</p>
+            <div className="app-stat-card-metric-head">
+              <Droplet className="h-5 w-5 shrink-0 text-emerald-500/70" />
+              <p className="app-stat-card-label">Fuel Efficiency</p>
             </div>
-            <p className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">{metrics.fuelEfficiency} <span className="text-sm font-medium text-emerald-600/70 dark:text-emerald-400/70">km/L</span></p>
+            <p className="app-stat-card-value text-emerald-600 dark:text-emerald-400">
+              {metrics.fuelEfficiency} <span className="text-sm font-medium text-emerald-600/70 dark:text-emerald-400/70">km/L</span>
+            </p>
           </Card>
-          <Card className="p-5 flex flex-col justify-center relative overflow-hidden group">
+          <Card noPadding className="app-stat-card app-stat-card--metric group">
             <div className="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-amber-500 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center gap-2 mb-2 text-[var(--text-muted)]">
-              <DollarSign className="h-4 w-4 text-amber-500/70" />
-              <p className="text-[11px] font-bold uppercase tracking-wider">Operational Cost</p>
+            <div className="app-stat-card-metric-head">
+              <DollarSign className="h-5 w-5 shrink-0 text-amber-500/70" />
+              <p className="app-stat-card-label">Operational Cost</p>
             </div>
-            <p className="text-3xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400"><span className="text-xl font-bold opacity-75 mr-1">$</span>{metrics.operationalCost.toLocaleString()}</p>
+            <p className="app-stat-card-value text-amber-600 dark:text-amber-400">
+              <span className="text-xl font-bold opacity-75 mr-1">$</span>{metrics.operationalCost.toLocaleString()}
+            </p>
           </Card>
         </div>
       )}
@@ -142,7 +146,7 @@ const ReportsPage = () => {
                <p className="mt-1 text-sm text-[var(--text-secondary)] max-w-sm mx-auto">There is currently no report data generated for this period.</p>
              </div>
           ) : (
-            <Table>
+            <Table comfortable>
               <TableHead>
                 <TableHeader>Vehicle</TableHeader>
                 <TableHeader>Revenue</TableHeader>

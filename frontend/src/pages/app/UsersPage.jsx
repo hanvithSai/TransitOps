@@ -1,15 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Users, 
-  Search, 
   Shield, 
   Trash2, 
   Edit2, 
   CheckCircle2, 
   XCircle, 
   UserPlus, 
-  Eye, 
-  EyeOff,
   AlertTriangle,
   UserCheck,
   UserX,
@@ -25,14 +22,20 @@ import { getApiErrorMessage } from '../../lib/apiErrors';
 import { validatePasswordStrength, generateSecurePassword } from '../../lib/passwordPolicy';
 import PasswordChecklist from '../../components/auth/PasswordChecklist';
 import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { SelectField } from '../../components/common/SelectField';
+import { SearchableSelectField } from '../../components/common/SearchableSelectField';
+import { driverOptions, withPlaceholder } from '../../lib/selectOptions';
+import { SearchInput } from '../../components/common/SearchInput';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/ui/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SkeletonTable } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const ROLE_BADGE = {
@@ -49,7 +52,6 @@ const EMPTY_FORM = { name: '', email: '', password: '', roleId: '', driverId: ''
 
 const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) => {
   const [form, setForm] = useState(initial || EMPTY_FORM);
-  const [showPass, setShowPass] = useState(false);
   const [localError, setLocalError] = useState('');
   const isEdit = !!initial;
 
@@ -81,8 +83,13 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
   const selectedRole = roles.find((r) => r._id === form.roleId);
   const isDriverRole = selectedRole?.name === 'driver';
 
+  const linkedDriverOptions = useMemo(
+    () => withPlaceholder(driverOptions(drivers), '— None —', { disabled: false }),
+    [drivers],
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="app-form-stack">
       {displayError && (
         <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -90,42 +97,29 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="app-form-grid app-form-grid--2">
         <Input id="name" label="Full Name" placeholder="Jane Smith" value={form.name} onChange={set('name')} required />
         <Input id="email" type="email" label="Email Address" placeholder="jane@company.com" value={form.email} onChange={set('email')} required />
       </div>
 
       {!isEdit ? (
-        <div className="space-y-1.5">
-          <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" /> Password
-          </label>
-          <div className="relative">
-            <input
-              id="password"
-              type={showPass ? 'text' : 'password'}
-              className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 pr-10 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]"
-              placeholder="Min 6 chars, upper, lower, number, special"
-              value={form.password}
-              onChange={set('password')}
-              required
-              minLength={6}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPass(!showPass)}
-              className="absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-            >
-              {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <PasswordChecklist password={form.password} className="pt-1" />
+        <div className="space-y-2">
+          <Input
+            id="password"
+            label="Password"
+            type="password"
+            showPasswordToggle
+            placeholder="Min 6 chars, upper, lower, number, special"
+            value={form.password}
+            onChange={set('password')}
+            required
+            minLength={6}
+          />
+          <PasswordChecklist password={form.password} className="mt-1" />
         </div>
       ) : (
-        <div className="space-y-2 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" /> Password Reset
-          </label>
+        <div className="space-y-3 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4">
+          <p className="text-sm font-medium text-[var(--text-primary)]">Password reset</p>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <Button
               variant="outline"
@@ -142,50 +136,26 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
               </span>
             )}
           </div>
-          {form.password && <PasswordChecklist password={form.password} className="pt-1" />}
+          {form.password && <PasswordChecklist password={form.password} className="mt-1" />}
         </div>
       )}
 
-      <div className="space-y-1.5">
-        <label htmlFor="roleId" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-          <Shield className="h-3.5 w-3.5" /> Role
-        </label>
-        <div className="relative">
-          <select 
-            id="roleId" 
-            className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
-            value={form.roleId} 
-            onChange={set('roleId')} 
-            required
-          >
-            <option value="" disabled>— Select a role —</option>
-            {roles.map((r) => (
-              <option key={r._id} value={r._id}>{r.displayName}</option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-          </div>
-        </div>
-      </div>
+      <SelectField label="Role" id="roleId" value={form.roleId} onChange={set('roleId')} required>
+        <option value="" disabled>— Select a role —</option>
+        {roles.map((r) => (
+          <option key={r._id} value={r._id}>{r.displayName}</option>
+        ))}
+      </SelectField>
 
       {isDriverRole && (
-        <div className="space-y-1.5">
-          <label htmlFor="driverId" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Linked driver profile
-          </label>
-          <select
-            id="driverId"
-            className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none"
-            value={form.driverId || ''}
-            onChange={set('driverId')}
-          >
-            <option value="">— None —</option>
-            {drivers.map((d) => (
-              <option key={d._id} value={d._id}>{d.name} ({d.licenseNumber})</option>
-            ))}
-          </select>
-        </div>
+        <SearchableSelectField
+          label="Linked driver profile"
+          id="driverId"
+          value={form.driverId || ''}
+          onChange={set('driverId')}
+          options={linkedDriverOptions}
+          placeholder="Search drivers…"
+        />
       )}
 
       <div className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] p-4 flex items-center justify-between">
@@ -204,7 +174,7 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
         </label>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-[var(--border-base)]">
+      <div className="app-modal-footer">
         <Button type="submit" loading={loading} className="w-full sm:w-auto">
           {isEdit ? 'Save Changes' : 'Create User'}
         </Button>
@@ -215,7 +185,7 @@ const UserForm = ({ initial, roles, drivers = [], onSubmit, loading, error }) =>
 
 /* ─── ConfirmModal ─────────────────────────────────────────── */
 const ConfirmModal = ({ user, onConfirm, onCancel, loading }) => (
-  <div className="space-y-4">
+  <div className="app-form-stack">
     <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
         <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -395,7 +365,7 @@ const UsersPage = () => {
 
   /* ── render ── */
   return (
-    <div className="app-page-stack max-w-7xl mx-auto">
+    <div className="app-page-stack">
 
       <PageHeader
         icon={ShieldCheck}
@@ -416,44 +386,46 @@ const UsersPage = () => {
         <button
           type="button"
           onClick={() => setActiveTab('users')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+          className={`app-tab-btn rounded-t-lg rounded-b-none px-5 py-2.5 ${
             activeTab === 'users'
               ? 'text-[var(--color-brand-600)] border-b-2 border-[var(--color-brand-600)]'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" /> Users</span>
+          <span className="inline-flex items-center gap-2.5"><Users className="h-4 w-4 shrink-0" /> Users</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('audit')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+          className={`app-tab-btn rounded-t-lg rounded-b-none px-5 py-2.5 ${
             activeTab === 'audit'
               ? 'text-[var(--color-brand-600)] border-b-2 border-[var(--color-brand-600)]'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <span className="inline-flex items-center gap-2"><ScrollText className="h-4 w-4" /> Audit log</span>
+          <span className="inline-flex items-center gap-2.5"><ScrollText className="h-4 w-4 shrink-0" /> Audit log</span>
         </button>
       </div>
 
       {activeTab === 'audit' ? (
         <>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select
+          <div className="app-filter-bar">
+            <SelectField
+              label="Action"
+              className="app-filter-bar-field"
               value={auditAction}
               onChange={(e) => setAuditAction(e.target.value)}
-              className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)]"
             >
               <option value="">All actions</option>
               <option value="CREATE">Create</option>
               <option value="UPDATE">Update</option>
               <option value="DELETE">Delete</option>
-            </select>
-            <select
+            </SelectField>
+            <SelectField
+              label="Resource"
+              className="app-filter-bar-field"
               value={auditResource}
               onChange={(e) => setAuditResource(e.target.value)}
-              className="rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)]"
             >
               <option value="">All resources</option>
               <option value="vehicles">Vehicles</option>
@@ -463,18 +435,20 @@ const UsersPage = () => {
               <option value="fuel">Fuel</option>
               <option value="expenses">Expenses</option>
               <option value="users">Users</option>
-            </select>
-            <Button variant="outline" onClick={fetchAuditLogs}>Apply filters</Button>
+            </SelectField>
+            <div className="app-filter-bar-action">
+              <Button variant="outline" onClick={fetchAuditLogs}>Apply filters</Button>
+            </div>
           </div>
 
-          <Card className="overflow-hidden border border-[var(--border-base)]">
+          <div className="app-table-results">
             {auditLoading ? (
-              <div className="p-6"><SkeletonTable rows={8} /></div>
+              <div className="app-table-results-loading"><SkeletonTable rows={8} /></div>
             ) : auditLogs.length === 0 ? (
-              <div className="py-16 text-center text-sm text-[var(--text-muted)]">No audit entries found.</div>
+              <EmptyState title="No audit entries found." description="Try adjusting the filters above." icon={ScrollText} />
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table comfortable>
                   <TableHead>
                     <TableHeader>When</TableHeader>
                     <TableHeader>User</TableHeader>
@@ -507,106 +481,82 @@ const UsersPage = () => {
                 </Table>
               </div>
             )}
-          </Card>
+          </div>
         </>
       ) : (
         <>
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card className="p-5 flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-brand-50)] text-[var(--color-brand-600)] dark:bg-[var(--color-brand-900)]/20 dark:text-[var(--color-brand-400)]">
-            <Users className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total Users</p>
-            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{users.length}</p>
-          </div>
-        </Card>
-        
-        <Card className="p-5 flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
-            <UserCheck className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Active</p>
-            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{users.filter(u => u.isActive).length}</p>
-          </div>
-        </Card>
-        
-        <Card className="p-5 flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
-            <UserX className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Inactive</p>
-            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{users.filter(u => !u.isActive).length}</p>
-          </div>
-        </Card>
-        
-        <Card className="p-5 flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Roles</p>
-            <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{roles.length}</p>
-          </div>
-        </Card>
+      <div className="app-stat-grid">
+        <StatCard
+          layout="row"
+          label="Total Users"
+          value={users.length}
+          icon={Users}
+          iconBg="bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)]/20"
+          iconColor="text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]"
+        />
+        <StatCard
+          layout="row"
+          label="Active"
+          value={users.filter(u => u.isActive).length}
+          icon={UserCheck}
+          iconBg="bg-emerald-50 dark:bg-emerald-900/20"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
+        <StatCard
+          layout="row"
+          label="Inactive"
+          value={users.filter(u => !u.isActive).length}
+          icon={UserX}
+          iconBg="bg-red-50 dark:bg-red-900/20"
+          iconColor="text-red-600 dark:text-red-400"
+        />
+        <StatCard
+          layout="row"
+          label="Roles"
+          value={roles.length}
+          icon={ShieldCheck}
+          iconBg="bg-purple-50 dark:bg-purple-900/20"
+          iconColor="text-purple-600 dark:text-purple-400"
+        />
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-            <Search className="h-4 w-4" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search users by name or email…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--border-hover)]"
-          />
-        </div>
-        <div className="relative w-full sm:w-64">
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-            <Shield className="h-4 w-4" />
-          </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--border-hover)]"
-          >
-            <option value="">All Roles</option>
-            {roles.map((r) => (
-              <option key={r._id} value={r.name}>{r.displayName}</option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-          </div>
-        </div>
+      <div className="app-toolbar-card">
+        <SearchInput
+          containerClassName="app-toolbar-search flex-1"
+          placeholder="Search users by name or email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <SelectField
+          icon={Shield}
+          className="app-toolbar-filter w-full sm:w-64"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+        >
+          <option value="">All roles</option>
+          {roles.map((r) => (
+            <option key={r._id} value={r.name}>{r.displayName}</option>
+          ))}
+        </SelectField>
       </div>
 
       {/* Table Container */}
-      <div className="overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm">
+      <div className="app-table-results">
         {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent"></div>
+          <div className="app-table-results-loading flex h-64 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-brand-500)] border-t-transparent" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-base)] border border-[var(--border-base)] shadow-sm">
-              <Users className="h-7 w-7 text-[var(--text-muted)]" />
-            </div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">No users found</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)] max-w-[250px]">
-              {search || roleFilter ? 'Try adjusting your search or role filters.' : 'Add a user to get started.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No users found"
+            description={search || roleFilter ? 'Try adjusting your search or role filters.' : 'Add a user to get started.'}
+          />
         ) : (
           <div className="overflow-x-auto">
-            <Table>
+            <Table comfortable>
               <TableHead>
                 <TableHeader>User</TableHeader>
                 <TableHeader>Role</TableHeader>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -8,13 +8,11 @@ import {
   Receipt, 
   Plus, 
   Trash2, 
-  CarFront, 
-  Map, 
-  Calendar, 
-  DollarSign, 
-  Hash, 
+  AlertCircle,
+  CarFront,
+  Calendar,
+  Hash,
   FileText,
-  AlertCircle
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,12 +21,15 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/common/Modal';
 import { SelectField } from '../../components/common/SelectField';
+import { SearchableSelectField } from '../../components/common/SearchableSelectField';
+import { tripOptions, vehicleOptions, withPlaceholder } from '../../lib/selectOptions';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { fuelFormSchema, expenseFormSchema } from '../../schemas/finance';
+import { formatFuelLitersDisplay } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const CATEGORY_COLORS = {
@@ -183,11 +184,21 @@ const FinancePage = () => {
   // Filter trips in the dropdown based on selected vehicle
   const filteredTrips = trips.filter((t) => !selectedVehicle || t.vehicle?._id === selectedVehicle);
 
+  const financeVehicleOptions = useMemo(
+    () => withPlaceholder(vehicleOptions(vehicles), '— Select vehicle —'),
+    [vehicles],
+  );
+
+  const financeTripOptions = useMemo(
+    () => withPlaceholder(tripOptions(filteredTrips), '— Select associated trip —', { disabled: false }),
+    [filteredTrips],
+  );
+
   // Compute total for the current view
   const currentTotal = dataList.reduce((sum, item) => sum + (isFuelTab ? (item.cost || 0) : (item.amount || 0)), 0);
 
   return (
-    <div className="app-page-stack flex h-[calc(100vh-8rem)] max-w-7xl flex-col mx-auto">
+    <div className="app-page-stack">
       <PageHeader
         icon={Wallet}
         title="Finance management"
@@ -208,36 +219,36 @@ const FinancePage = () => {
       />
 
       {/* ─── Tabs ───────────────────────────────────────────── */}
-      <div className="flex gap-2 border-b border-[var(--border-base)] pb-4">
+      <div className="app-tab-bar">
         <button
           onClick={() => navigate('/fuel')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+          className={`app-tab-btn ${
             isFuelTab 
               ? 'bg-[var(--color-brand-500)] text-white shadow-md shadow-[var(--color-brand-500)]/20' 
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <Fuel className="h-4 w-4" />
+          <Fuel className="h-4 w-4 shrink-0" />
           Fuel Logs
         </button>
         <button
           onClick={() => navigate('/expenses')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+          className={`app-tab-btn ${
             !isFuelTab 
               ? 'bg-[var(--color-brand-500)] text-white shadow-md shadow-[var(--color-brand-500)]/20' 
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <Receipt className="h-4 w-4" />
+          <Receipt className="h-4 w-4 shrink-0" />
           General Expenses
         </button>
       </div>
 
       {/* ─── Data Table ─────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-sm flex flex-col">
-        <div className="flex items-center justify-between bg-[var(--bg-base)] px-5 py-4 border-b border-[var(--border-base)]">
-          <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-2">
-            {isFuelTab ? <Fuel className="h-3.5 w-3.5" /> : <Receipt className="h-3.5 w-3.5" />}
+      <div className="app-table-panel">
+        <div className="app-table-panel-head">
+          <h3 className="app-table-panel-title">
+            {isFuelTab ? <Fuel className="h-4 w-4" aria-hidden="true" /> : <Receipt className="h-4 w-4" aria-hidden="true" />}
             {isFuelTab ? 'Recent Fuel Records' : 'Recent Expenses'}
           </h3>
           <Badge variant="outline" className="text-xs font-medium">
@@ -245,7 +256,7 @@ const FinancePage = () => {
           </Badge>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-auto">
+        <div className="overflow-x-auto">
           {loading ? (
             <div className="p-6">
               <SkeletonTable rows={5} />
@@ -257,7 +268,7 @@ const FinancePage = () => {
               description={`Click the button above to log your first ${isFuelTab ? 'fuel entry' : 'expense'}.`}
             />
           ) : (
-            <Table>
+            <Table comfortable>
               <TableHead>
                 <TableHeader>Date</TableHeader>
                 <TableHeader>Vehicle</TableHeader>
@@ -266,16 +277,16 @@ const FinancePage = () => {
                   <>
                     <TableHeader>Liters</TableHeader>
                     <TableHeader>Odometer</TableHeader>
-                    <TableHeader>Total Cost</TableHeader>
+                    <TableHeader align="right">Total Cost</TableHeader>
                   </>
                 ) : (
                   <>
                     <TableHeader>Category</TableHeader>
                     <TableHeader>Notes</TableHeader>
-                    <TableHeader>Amount</TableHeader>
+                    <TableHeader align="right">Amount</TableHeader>
                   </>
                 )}
-                <TableHeader className="text-right w-16"></TableHeader>
+                <TableHeader align="right" className="w-16"></TableHeader>
               </TableHead>
               <tbody className="divide-y divide-[var(--border-base)]">
                 {dataList.map((item) => (
@@ -323,7 +334,7 @@ const FinancePage = () => {
                         <TableCell>
                           <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--text-secondary)]">
                             <Fuel className="h-3 w-3 text-[var(--text-muted)]" />
-                            {item.liters} L
+                            {formatFuelLitersDisplay(item.liters)}
                           </span>
                         </TableCell>
 
@@ -331,12 +342,12 @@ const FinancePage = () => {
                         <TableCell>
                           <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                             <Hash className="h-3 w-3" />
-                            {item.odometer.toLocaleString()} km
+                            {item.odometer != null ? `${Number(item.odometer).toLocaleString()} km` : '—'}
                           </span>
                         </TableCell>
 
                         {/* COST */}
-                        <TableCell>
+                        <TableCell align="right">
                           <span className="font-bold text-[var(--text-primary)]">
                             {formatCurrency(item.cost)}
                           </span>
@@ -362,7 +373,7 @@ const FinancePage = () => {
                         </TableCell>
 
                         {/* AMOUNT */}
-                        <TableCell>
+                        <TableCell align="right">
                           <span className="font-bold text-[var(--text-primary)]">
                             {formatCurrency(item.amount)}
                           </span>
@@ -393,104 +404,66 @@ const FinancePage = () => {
       {/* ─── Log Modal ────────────────────────────────────────── */}
       {showModal && (
         <Modal title={`Log ${isFuelTab ? 'Fuel Entry' : 'Expense'}`} onClose={() => setShowModal(false)}>
-          <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onFormSubmit)} className="app-form-stack">
             {errorMsg && (
-              <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
+              <div className="app-form-alert">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                  <CarFront className="h-3.5 w-3.5" /> Vehicle <span className="text-red-500">*</span>
-                </label>
-                <SelectField error={errors.vehicle?.message} required {...register('vehicle', {
-                  onChange: () => setValue('trip', ''),
-                })}>
-                  <option value="" disabled>— Select Vehicle —</option>
-                  {vehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
-                </SelectField>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                  <Map className="h-3.5 w-3.5" /> Trip (Optional)
-                </label>
-                <SelectField disabled={!selectedVehicle} {...register('trip')}>
-                  <option value="">— Select Associated Trip —</option>
-                  {filteredTrips.map(t => <option key={t._id} value={t._id}>{t.source} → {t.destination}</option>)}
-                </SelectField>
-              </div>
+            <div className="app-form-grid app-form-grid--2">
+              <SearchableSelectField
+                label="Vehicle"
+                error={errors.vehicle?.message}
+                required
+                options={financeVehicleOptions}
+                placeholder="Search vehicles…"
+                {...register('vehicle', {
+                  onChange: (e) => {
+                    setValue('vehicle', e.target.value, { shouldValidate: true, shouldDirty: true });
+                    setValue('trip', '');
+                  },
+                })}
+              />
+
+              <SearchableSelectField
+                label="Trip (optional)"
+                disabled={!selectedVehicle}
+                options={financeTripOptions}
+                placeholder="Search trips…"
+                {...register('trip')}
+              />
             </div>
 
             {isFuelTab ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <Fuel className="h-3.5 w-3.5" /> Liters <span className="text-red-500">*</span>
-                  </label>
-                  <Input required type="number" step="0.1" min="0" placeholder="0.0" error={errors.liters?.message} {...register('liters')} />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <DollarSign className="h-3.5 w-3.5" /> Total Cost <span className="text-red-500">*</span>
-                  </label>
-                  <Input required type="number" step="0.01" min="0" placeholder="0.00" error={errors.cost?.message} {...register('cost')} />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <Hash className="h-3.5 w-3.5" /> Odometer <span className="text-red-500">*</span>
-                  </label>
-                  <Input required type="number" min="0" placeholder="e.g. 15000" error={errors.odometer?.message} {...register('odometer')} />
-                </div>
+              <div className="app-form-grid app-form-grid--3">
+                <Input label="Liters" required type="number" step="0.1" min="0" placeholder="0.0" error={errors.liters?.message} {...register('liters')} />
+                <Input label="Total cost" required type="number" step="0.01" min="0" prefix="$" placeholder="0.00" error={errors.cost?.message} {...register('cost')} />
+                <Input label="Odometer" required type="number" min="0" placeholder="e.g. 15000" error={errors.odometer?.message} {...register('odometer')} />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <Receipt className="h-3.5 w-3.5" /> Category <span className="text-red-500">*</span>
-                  </label>
-                  <SelectField error={errors.category?.message} required {...register('category')}>
-                    <option value="Toll">Toll</option>
-                    <option value="Repair">Repair</option>
-                    <option value="Parking">Parking</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Miscellaneous">Miscellaneous</option>
-                  </SelectField>
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <DollarSign className="h-3.5 w-3.5" /> Amount <span className="text-red-500">*</span>
-                  </label>
-                  <Input required type="number" step="0.01" min="0" placeholder="0.00" error={errors.amount?.message} {...register('amount')} />
-                </div>
+              <div className="app-form-grid app-form-grid--2">
+                <SelectField label="Category" error={errors.category?.message} required {...register('category')}>
+                  <option value="Toll">Toll</option>
+                  <option value="Repair">Repair</option>
+                  <option value="Parking">Parking</option>
+                  <option value="Insurance">Insurance</option>
+                  <option value="Miscellaneous">Miscellaneous</option>
+                </SelectField>
+                <Input label="Amount" required type="number" step="0.01" min="0" prefix="$" placeholder="0.00" error={errors.amount?.message} {...register('amount')} />
               </div>
             )}
 
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                  <Calendar className="h-3.5 w-3.5" /> Date <span className="text-red-500">*</span>
-                </label>
-                <Input required type="date" error={errors.date?.message} {...register('date')} />
-              </div>
+              <Input label="Date" required type="date" error={errors.date?.message} {...register('date')} />
               
               {!isFuelTab && (
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
-                    <FileText className="h-3.5 w-3.5" /> Notes
-                  </label>
-                  <Input placeholder="Optional details about this expense..." {...register('notes')} />
-                </div>
+                <Input label="Notes" placeholder="Optional details about this expense…" {...register('notes')} />
               )}
             </div>
 
-            <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-[var(--border-base)]">
+            <div className="app-modal-footer">
               <Button variant="outline" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
               <Button type="submit" loading={modalLoading}>
                 {isFuelTab ? 'Save Fuel Log' : 'Save Expense'}
@@ -502,11 +475,11 @@ const FinancePage = () => {
 
       {deleteTarget && (
         <Modal title="Delete entry" onClose={() => setDeleteTarget(null)} maxWidth="max-w-sm">
-          <div className="space-y-5">
-            <p className="text-sm text-[var(--text-secondary)]">
+          <div className="app-form-stack">
+            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
               Are you sure you want to delete this {isFuelTab ? 'fuel log' : 'expense'}? This action cannot be undone.
             </p>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="app-modal-footer">
               <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>Cancel</Button>
               <Button variant="danger" onClick={confirmDelete} loading={deleteLoading}>Delete</Button>
             </div>

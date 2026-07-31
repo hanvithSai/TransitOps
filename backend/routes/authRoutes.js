@@ -21,12 +21,10 @@ const {
 const authenticate = require("../middlewares/authenticate");
 const { authLimiter } = require("../middlewares/rateLimiter");
 
-// Rate-limit all auth endpoints
-router.use(authLimiter);
-router.post("/register", registerValidator, enforcePasswordPolicy("password"), registerUser);
+router.post("/register", authLimiter, registerValidator, enforcePasswordPolicy("password"), registerUser);
 
 // POST /api/auth/login
-router.post("/login", loginValidator, loginUser);
+router.post("/login", authLimiter, loginValidator, loginUser);
 
 // POST /api/auth/refresh
 router.post("/refresh", refreshToken);
@@ -47,11 +45,12 @@ router.post(
 );
 
 // POST /api/auth/forgot-password
-router.post("/forgot-password", forgotPasswordValidator, forgotPassword);
+router.post("/forgot-password", authLimiter, forgotPasswordValidator, forgotPassword);
 
 // POST /api/auth/reset-password/:token
 router.post(
     "/reset-password/:token",
+    authLimiter,
     resetPasswordValidator,
     enforcePasswordPolicy("password"),
     resetPassword

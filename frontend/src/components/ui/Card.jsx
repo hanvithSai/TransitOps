@@ -5,7 +5,7 @@ export const Card = ({ children, className, noPadding = false, hover = false, ..
     className={cn(
       'surface-card transition-smooth',
       hover && 'hover:shadow-[var(--shadow-md)] hover:border-[var(--color-brand-200)] dark:hover:border-[var(--color-brand-800)]',
-      !noPadding && 'p-5 sm:p-6',
+      !noPadding && 'p-6 sm:p-7',
       className,
     )}
     {...props}

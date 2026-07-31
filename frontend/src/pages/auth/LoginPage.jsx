@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPostLoginPath } from '../../lib/passwordPolicy';
 import AuthLayout from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { cn } from '../../lib/utils';
 
 const LoginPage = () => {
   const { login, isAuthenticated, loading: authLoading, requiresPasswordChange } = useAuth();
@@ -15,7 +14,6 @@ const LoginPage = () => {
   const fromPath = location.state?.from?.pathname;
 
   const [form, setForm] = useState({ email: '', password: '' });
-  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
@@ -83,38 +81,19 @@ const LoginPage = () => {
           autoComplete="email"
         />
 
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-label !normal-case !tracking-normal !text-[var(--text-primary)]">
-            Password
-          </label>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[var(--text-muted)]">
-              <Lock className="h-4 w-4" aria-hidden="true" />
-            </div>
-            <input
-              id="password"
-              name="password"
-              type={showPass ? 'text' : 'password'}
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              required
-              autoComplete="current-password"
-              className={cn(
-                'flex h-11 w-full rounded-[var(--radius-md)] border border-[var(--border-base)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-10 text-sm text-[var(--text-primary)] transition-smooth',
-                'placeholder:text-[var(--text-muted)] focus-visible:border-[var(--color-brand-500)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]',
-              )}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPass(!showPass)}
-              className="absolute inset-y-0 right-0 flex items-center px-3.5 text-[var(--text-muted)] transition-smooth hover:text-[var(--text-primary)]"
-              aria-label={showPass ? 'Hide password' : 'Show password'}
-            >
-              {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
+        <Input
+          label="Password"
+          id="password"
+          name="password"
+          type="password"
+          icon={Lock}
+          showPasswordToggle
+          value={form.password}
+          onChange={handleChange}
+          placeholder="••••••••"
+          required
+          autoComplete="current-password"
+        />
 
         <div className="auth-form-row">
           <Link to="/forgot-password" className="auth-link ml-auto">
