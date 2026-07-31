@@ -216,10 +216,10 @@ const TripsPage = () => {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-9rem)] max-h-[calc(100dvh-9rem)] flex-col gap-4 overflow-hidden sm:gap-5">
-      
-      {/* ─── Header & Stats (compact, fixed height) ─────────── */}
-      <div className="shrink-0">
+    <div className="app-trips-page app-trips-page--fixed h-[calc(100dvh-9rem)] max-h-[calc(100dvh-9rem)] overflow-hidden">
+
+      {/* ─── Header & Stats — same vertical rhythm as app-page-stack ─── */}
+      <div className="app-trips-page-intro shrink-0">
         <PageHeader
           icon={Map}
           title="Trip dispatcher"
@@ -229,7 +229,7 @@ const TripsPage = () => {
           ) : null}
         />
 
-        <div className="app-stat-grid app-stat-grid--5 mt-4 sm:mt-5">
+        <div className="app-stat-grid app-stat-grid--5">
           {[
             { label: 'Total Trips', value: total, icon: Map, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
             { label: 'Dispatched', value: dispatched, icon: Navigation, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
@@ -245,14 +245,13 @@ const TripsPage = () => {
               iconBg={s.bg}
               iconColor={s.color}
               valueClassName={s.color}
-              layout="row"
             />
           ))}
         </div>
       </div>
 
       {/* ─── Master / Detail — equal split, always visible ─── */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-4 lg:grid-cols-2 lg:grid-rows-1 lg:gap-6">
+      <div className="app-trips-master-detail app-trips-master-detail--equal min-h-0 flex-1">
         
         {/* LEFT PANEL: Trip List */}
         <Card noPadding className="flex min-h-0 flex-col overflow-hidden border border-[var(--border-base)] shadow-sm">

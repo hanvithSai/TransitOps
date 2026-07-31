@@ -2369,6 +2369,17 @@ h6 {
   background: var(--bg-surface-hover);
 }
 
+/* Hamburger — only when sidebar is off-canvas (< md) */
+.app-header-menu-btn {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .app-header-menu-btn {
+    display: none;
+  }
+}
+
 .app-header-logout:hover {
   color: var(--color-error-text);
   background: var(--color-error-bg);
@@ -2895,13 +2906,25 @@ h6 {
 .app-trips-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
   min-height: calc(100vh - 8rem);
 }
 
 @media (min-width: 1024px) {
   .app-trips-page {
-    gap: 1.75rem;
+    gap: 2.5rem;
+  }
+}
+
+.app-trips-page-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .app-trips-page-intro {
+    gap: 2.5rem;
   }
 }
 
@@ -2917,11 +2940,21 @@ h6 {
   gap: 1.25rem;
 }
 
+.app-trips-master-detail--equal {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
 @media (min-width: 1024px) {
   .app-trips-master-detail {
     grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
     gap: 1.5rem;
     align-items: stretch;
+  }
+
+  .app-trips-master-detail--equal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    gap: 1.5rem;
   }
 }
 
