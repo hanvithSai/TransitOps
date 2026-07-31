@@ -25,13 +25,27 @@ const { errorHandler } = require('./utils/errorHandler');
 const app = express();
 const isDev = process.env.NODE_ENV !== 'production';
 
+const getAllowedOrigins = () => {
+    const origins = new Set(['http://localhost:5173']);
+    for (const key of ['CLIENT_URL', 'FRONTEND_URL']) {
+        const value = process.env[key];
+        if (!value) continue;
+        value.split(',').forEach((entry) => {
+            const trimmed = entry.trim();
+            if (trimmed) origins.add(trimmed);
+        });
+    }
+    return origins;
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(helmet());
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
 
-        const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
-        if (origin === allowedOrigin) return callback(null, true);
+        if (allowedOrigins.has(origin)) return callback(null, true);
 
         if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
             return callback(null, true);

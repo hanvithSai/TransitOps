@@ -2,6 +2,21 @@ const { validationResult } = require("express-validator");
 const authService = require("../services/authService");
 const { AppError } = require("../utils/errorHandler");
 
+const isProd = process.env.NODE_ENV === "production";
+
+const refreshCookieOptions = (maxAge = 7 * 24 * 60 * 60 * 1000) => ({
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "strict",
+    maxAge,
+});
+
+const clearRefreshCookieOptions = () => ({
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "strict",
+});
+
 /**
  * POST /api/auth/register
  */
@@ -48,13 +63,7 @@ const loginUser = async (req, res, next) => {
         email = email.trim();
         const { user, accessToken, refreshToken, requiresPasswordChange } = await authService.login(email, password);
 
-        // Set refresh token as httpOnly cookie
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
+        res.cookie("refreshToken", refreshToken, refreshCookieOptions());
 
         res.status(200).json({
             success: true,
@@ -76,12 +85,7 @@ const refreshToken = async (req, res, next) => {
         const token = req.cookies?.refreshToken;
         const { accessToken, refreshToken, user } = await authService.refreshAccessToken(token);
 
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie("refreshToken", refreshToken, refreshCookieOptions());
 
         res.status(200).json({
             success: true,
@@ -101,11 +105,7 @@ const logoutUser = async (req, res, next) => {
         const token = req.cookies?.refreshToken;
         await authService.logout(token);
 
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-        });
+        res.clearCookie("refreshToken", clearRefreshCookieOptions());
 
         res.status(200).json({ success: true, message: "Logged out successfully" });
     } catch (err) {

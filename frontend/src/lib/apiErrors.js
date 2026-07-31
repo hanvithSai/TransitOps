@@ -11,7 +11,10 @@ export const getApiErrorMessage = (err, fallback = 'Something went wrong. Please
   if (data?.message) return data.message;
 
   if (err?.request && !err?.response) {
-    return 'Cannot reach the server. Make sure the backend is running on port 5000.';
+    if (import.meta.env.DEV) {
+      return 'Cannot reach the server. Make sure the backend is running on port 5000.';
+    }
+    return 'Cannot reach the server. Please try again in a moment.';
   }
 
   return fallback;
