@@ -91,6 +91,9 @@ tripSchema.index({ driver: 1, status: 1 });
 // Fast list queries filtered by status, sorted by createdAt
 tripSchema.index({ status: 1, createdAt: -1 });
 
+// ROI aggregation by vehicle
+tripSchema.index({ vehicle: 1, status: 1, revenue: 1 });
+
 const Trip = mongoose.model('Trip', tripSchema);
 
 module.exports = Trip;

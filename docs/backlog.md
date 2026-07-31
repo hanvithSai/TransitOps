@@ -1,238 +1,647 @@
-# 1 Driver Management
+# TransitOps Backlog
 
-## License Expiry Enforcement
+**Last updated:** July 31, 2026  
+**Scope:** Pending work only — original MVP phases (1–8) are complete.
+
+This backlog is derived from `docs/audit-report.md`, `docs/prd.md`, and a live codebase review. Items already shipped recently (license cron mid-trip guard, ROI maintenance costs, Retire/Off Duty UX, React Hook Form + Zod) are **not** repeated here.
+
+---
+
+## Priority Legend
+
+| Priority | Meaning |
+|----------|---------|
+| **P0** | Broken user flows — fix before any demo or deploy |
+| **P1** | Security / authorization — fix before production |
+| **P2** | Data integrity & business logic correctness |
+| **P3** | UX, accessibility, and frontend polish |
+| **P4** | Testing, CI, and infrastructure |
+| **P5** | Documentation alignment |
+| **P6** | Future product enhancements (PRD Phase 9+) |
+
+---
+
+# P0 — Critical Bugs
+
+## 1. Fix Password Reset HTTP Method Mismatch
 
 ### Priority
-High
-
-### Current Status
-Driver CRUD is implemented. `expiryDate` is collected, but no background checks enforce license expiration proactively. Runtime checks exist during Trip Dispatch, but the driver remains marked as "Available".
+P0
 
 ### Problem
-Drivers with expired licenses might still show as 'Available' and could be manually missed by the Safety Officer, violating business rules and reporting accuracy.
+Frontend sends `PUT` to reset password; backend expects `POST`. Password reset is completely broken against a live API.
 
 ### Required Implementation
-- Add a mechanism (cron job or scheduled task) to automatically flag or suspend drivers when their license expires.
-
-### Implementation Plan
-1. Install `node-cron`.
-2. Create `utils/cronJobs.js`.
-3. Implement a daily cron job to find all drivers where `expiryDate` < `new Date()` and `status` != 'Suspended'.
-4. Update their status to 'Suspended'.
-5. Import and start the cron job in `server.js`.
+- Change `ResetPasswordPage.jsx` to use `api.post('/auth/reset-password/:token', ...)`
+- Verify end-to-end with a real reset token
 
 ### Files Likely To Change
-Backend
-- server.js
-- utils/cronJobs.js
-
-### Dependencies
-- Driver Management
+- `frontend/src/pages/auth/ResetPasswordPage.jsx`
 
 ### Acceptance Criteria
-- Drivers with expired licenses are automatically suspended on a daily basis.
+- User can set a new password via email link and log in with it
 
 ### Estimated Complexity
 Small
 
-### Notes
-- Ensure the cron job timezone aligns with the business operating timezone.
-
 ---
 
-# 2 Vehicle Management
-
-## Prevent Unsafe Vehicle and Driver Deletion
+## 2. Fix Demo / Mock Mode
 
 ### Priority
-High
-
-### Current Status
-Vehicle and Driver CRUD is implemented. Deletion is allowed unconditionally in `vehicleService.js` and `driverService.js` despite having relational links to Trips, Maintenance Logs, Fuel Logs, and Expenses.
+P0
 
 ### Problem
-Entities can currently be hard-deleted even if they have associated trips or maintenance logs. This will cause orphaned records and data integrity issues across the platform.
+Two issues make offline demo mode unreliable:
+1. Failed login (wrong password, 401) falls back to mock admin — masks real auth errors
+2. `mockData.js` field names don't match API schemas — breaks Drivers, Maintenance, Finance, and Reports pages
 
 ### Required Implementation
-- Prevent hard deletion of vehicles if they have associated trips, maintenance logs, fuel logs, or expenses.
-- Prevent hard deletion of drivers if they have associated trips.
-- Provide a "Retire" action as a soft-delete alternative for vehicles with historical data.
-
-### Implementation Plan
-1. Update `vehicleService.deleteVehicle` to check `Trip`, `MaintenanceLog`, `FuelLog`, and `Expense` collections for existing records referencing the vehicle.
-2. If records exist, throw an `AppError` suggesting the vehicle be "Retired" instead.
-3. Update `driverService.deleteDriver` to check `Trip` collection for referencing records.
-4. If records exist, throw an `AppError` suggesting the driver be set to 'Off Duty' or another inactive state.
-5. Ensure frontend UI handles the error gracefully.
+1. Restrict mock fallback to network errors only (not 401/403/404)
+2. Align mock schemas with real API responses:
+   - `licenseExpiry` → `expiryDate`
+   - `records` → `logs`; `type`/`estimatedCost` → `serviceType`/`cost`/`date`
+   - `quantity` → `liters`; `description` → `notes`
+   - Populate `trip` as object (not string ID)
+   - Flatten Reports response shape to match `response.data.data`
 
 ### Files Likely To Change
-Backend
-- services/vehicleService.js
-- services/driverService.js
-
-### Dependencies
-- Trip Engine
-- Maintenance Workflow
-- Fuel & Expenses
+- `frontend/src/services/api.js`
+- `frontend/src/services/mockData.js`
 
 ### Acceptance Criteria
-- Cannot hard-delete a vehicle or driver with associated records.
-- Proper error message returned advising retirement or status change.
+- Wrong password shows an error, not mock login
+- All app pages render correctly when backend is unreachable
 
 ### Estimated Complexity
 Medium
 
-### Notes
-- This is a proactive fix to ensure relational data integrity.
-
 ---
 
-# 3 Dashboard
-
-## Dashboard Analytics API & UI Integration
+## 3. Transaction-Wrap Trip Dispatch
 
 ### Priority
-Medium
-
-### Current Status
-`DashboardPage.jsx` exists but uses hardcoded placeholder data and indicates "Coming in Phase 2+". No backend API for dashboard KPIs exists.
+P0
 
 ### Problem
-Users have no high-level overview of fleet operations, utilization, or active trips.
+Vehicle/driver availability checks and status updates are not atomic. Concurrent dispatches can double-book the same vehicle or driver.
 
 ### Required Implementation
-- Create `/api/dashboard/stats` endpoint using MongoDB aggregations.
-- Fetch real KPI counts (Total Vehicles, Available, On Trip, In Shop, Active Trips, Drivers on Duty).
-- Integrate API into frontend `DashboardPage.jsx`.
-
-### Implementation Plan
-1. Create `controllers/dashboardController.js` and `routes/dashboardRoutes.js`.
-2. Write MongoDB aggregation queries to count documents across Vehicles, Drivers, and Trips collections.
-3. Calculate Fleet Utilization percentage.
-4. Update `server.js` to mount `/api/dashboard`.
-5. Update `DashboardPage.jsx` to fetch and display this data on mount.
+1. Use MongoDB session/transaction in `tripService.dispatchTrip`
+2. Re-check vehicle and driver availability inside the transaction before updating statuses
+3. Add integration test for concurrent dispatch attempts
 
 ### Files Likely To Change
-Backend
-- controllers/dashboardController.js
-- routes/dashboardRoutes.js
-- server.js
-
-Frontend
-- src/pages/DashboardPage.jsx
-- src/services/api.js
-
-### Dependencies
-- Vehicle, Driver, Trip, and Maintenance Modules
+- `backend/services/tripService.js`
+- `backend/tests/` (new trip dispatch test)
 
 ### Acceptance Criteria
-- Dashboard displays real-time data from the database.
-- Dashboard updates on refresh.
-- Fleet Utilization is calculated correctly.
+- Two simultaneous dispatch requests for the same vehicle: one succeeds, one fails with a clear error
 
 ### Estimated Complexity
 Medium
 
-### Notes
-- Aggregation queries should be optimized. Caching (e.g., Redis) could be considered for future scalability if the dataset grows large.
+---
+
+# P1 — Security & Authorization
+
+## 4. RBAC on Dashboard and Reports
+
+### Priority
+P1
+
+### Problem
+Any authenticated user (including drivers) can access financial ROI data and fleet-wide KPIs.
+
+### Required Implementation
+- `GET /api/dashboard/stats` — restrict to `admin`, `fleet_manager`, `financial_analyst`
+- `GET /api/reports/roi` and `/roi/download` — restrict to `admin`, `financial_analyst`
+- Hide `/reports` nav item for unauthorized roles on frontend
+
+### Files Likely To Change
+- `backend/routes/dashboardRoutes.js`
+- `backend/routes/reportRoutes.js`
+- `frontend/src/layouts/AppLayout.jsx`
+
+### Acceptance Criteria
+- Driver role receives 403 on reports endpoints
+- Dashboard accessible only to roles with operational oversight
+
+### Estimated Complexity
+Small
 
 ---
 
-# 4 Reports
-
-## Operational Cost & ROI Reports with CSV Export
+## 5. Block Admin Self-Registration
 
 ### Priority
-Medium
-
-### Current Status
-Missing entirely. Frontend `App.jsx` points to a `ComingSoon` component for `/reports`.
+P1
 
 ### Problem
-No way to export data for financial analysis or view aggregate return on investment per vehicle.
+`/api/auth/register` accepts `"admin"` as a role name. An attacker can queue admin accounts pending approval.
 
 ### Required Implementation
-- Aggregation endpoints to calculate total expenses, fuel costs, and revenue per vehicle.
-- CSV Export functionality for reports.
-- Create Reports frontend page.
-
-### Implementation Plan
-1. Create `services/reportService.js` with aggregation pipelines to calculate costs and revenue.
-2. Create `controllers/reportController.js` and `routes/reportRoutes.js`.
-3. Use a library like `json2csv` on the backend to generate CSV files.
-4. Build `ReportsPage.jsx` frontend with data tables and download buttons.
-5. Update `App.jsx` to route to `ReportsPage`.
+- Reject `admin` role in `authService.register` and/or `authValidator`
+- Ensure register UI cannot submit admin role
 
 ### Files Likely To Change
-Backend
-- services/reportService.js
-- controllers/reportController.js
-- routes/reportRoutes.js
-- server.js
-
-Frontend
-- src/pages/ReportsPage.jsx
-- src/App.jsx
-
-### Dependencies
-- Trips, Fuel, and Expenses modules
+- `backend/services/authService.js`
+- `backend/validators/authValidator.js`
 
 ### Acceptance Criteria
-- Users can view aggregate cost vs revenue data.
-- Users can download reports as CSV.
+- Registering with role `admin` returns 400 regardless of client
+
+### Estimated Complexity
+Small
+
+---
+
+## 6. Security Hardening Bundle
+
+### Priority
+P1
+
+### Problem
+Multiple medium-severity gaps: no rate limiting, no security headers, ReDoS via unescaped regex search, user enumeration on forgot-password, debug email logging.
+
+### Required Implementation
+1. Add `helmet` middleware
+2. Add `express-rate-limit` on auth routes (login, register, forgot/reset password)
+3. Escape special regex characters in search filters (vehicles, drivers, trips, maintenance)
+4. Return generic 200 for forgot-password regardless of email existence
+5. Remove debug logs from `authController.forgotPassword`
+6. Add `FRONTEND_URL` to `.env.example` (auth uses it; example only has `CLIENT_URL`)
+
+### Files Likely To Change
+- `backend/server.js`
+- `backend/controllers/authController.js`
+- `backend/services/*Service.js` (search queries)
+- `backend/.env.example`
+
+### Acceptance Criteria
+- Security headers present on API responses
+- Auth endpoints rate-limited
+- Regex search with `.*` does not hang the server
+- Forgot-password response identical for valid and invalid emails
 
 ### Estimated Complexity
 Medium
 
-### Notes
-- Data aggregation can be heavy; ensure proper indexing on date and vehicle references.
+---
+
+## 7. Session Invalidation on Password Reset
+
+### Priority
+P1
+
+### Problem
+`passwordUpdatedAt` exists on User but is not checked during authentication. Resetting a password does not invalidate existing sessions.
+
+### Required Implementation
+- On password reset, delete all refresh tokens for the user
+- During `authenticate` middleware, reject tokens issued before `passwordUpdatedAt`
+
+### Files Likely To Change
+- `backend/services/authService.js`
+- `backend/middlewares/authenticate.js`
+
+### Acceptance Criteria
+- After password reset, existing refresh tokens no longer work
+
+### Estimated Complexity
+Small
 
 ---
 
-# 5 Technical Debt
+# P2 — Data Integrity & Business Logic
 
-## Reusable UI Components Extraction
+## 8. Roll Forward Vehicle Odometer on Trip Completion
 
 ### Priority
-Low
-
-### Current Status
-Pages like `VehiclesPage.jsx`, `DriversPage.jsx`, `TripsPage.jsx`, `MaintenancePage.jsx`, and `FinancePage.jsx` contain duplicated implementations of `Modal` and `Toast` components. Forms are built using standard React state instead of a robust form library.
+P2
 
 ### Problem
-Violates the DRY principle. Makes future UI updates error-prone and time-consuming. Raw forms lack advanced validation and error handling on the client side, leading to massive file sizes (e.g., `TripsPage.jsx` is over 34KB).
+`completeTrip` records `actualDistance` on the trip but never updates `vehicle.odometer`.
 
 ### Required Implementation
-- Extract `Modal` and `Toast` into a `src/components/common/` directory.
-- Refactor existing pages to import and use these shared components.
-- Refactor forms to use React Hook Form for state management and Zod for validation.
-
-### Implementation Plan
-1. Create `src/components/common/Modal.jsx` and `src/components/common/Toast.jsx`.
-2. Refactor all pages to remove inline component definitions.
-3. Install `react-hook-form` and `@hookform/resolvers/zod`.
-4. Rewrite form logic across all pages to use schemas that mirror backend validation.
+- In `tripService.completeTrip`, add `actualDistance` to vehicle odometer (or set to completion reading if fuel log provides it)
+- Validate odometer doesn't decrease
 
 ### Files Likely To Change
-Frontend
-- src/components/common/Modal.jsx
-- src/components/common/Toast.jsx
-- src/pages/VehiclesPage.jsx
-- src/pages/DriversPage.jsx
-- src/pages/TripsPage.jsx
-- src/pages/MaintenancePage.jsx
-- src/pages/FinancePage.jsx
-
-### Dependencies
-- None
+- `backend/services/tripService.js`
 
 ### Acceptance Criteria
-- No duplicate `Modal` or `Toast` definitions in page files.
-- Forms use React Hook Form for state and Zod for validation.
-- Behavior and styling remain identical.
+- Completing a trip updates the vehicle's odometer reading
+
+### Estimated Complexity
+Small
+
+---
+
+## 9. Capture Revenue on Trip Completion
+
+### Priority
+P2
+
+### Problem
+ROI report only counts trips where `revenue` was set at creation. Trips completed without upfront revenue are excluded from financial reports.
+
+### Required Implementation
+- Option A: Add optional `revenue` field to complete-trip payload
+- Option B: Prompt for revenue in the Complete Trip modal on frontend
+- Update ROI aggregation to include completed-trip revenue regardless of when it was set
+
+### Files Likely To Change
+- `backend/services/tripService.js`
+- `backend/validators/tripValidator.js`
+- `frontend/src/pages/app/TripsPage.jsx`
+- `backend/services/reportService.js`
+
+### Acceptance Criteria
+- Revenue entered at completion appears in ROI report
+
+### Estimated Complexity
+Medium
+
+---
+
+## 10. Set `closeDate` on Maintenance Completion
+
+### Priority
+P2
+
+### Problem
+`MaintenanceLog.closeDate` exists in schema but is never populated when status changes to Completed.
+
+### Required Implementation
+- Set `closeDate = new Date()` when maintenance log status transitions to Completed
+- Clear or preserve on re-open if business rules allow
+
+### Files Likely To Change
+- `backend/services/maintenanceService.js`
+
+### Acceptance Criteria
+- Completed maintenance logs have a populated `closeDate`
+
+### Estimated Complexity
+Small
+
+---
+
+## 11. Validate Entity References on Trip Create
+
+### Priority
+P2
+
+### Problem
+Creating a trip with invalid vehicle/driver IDs succeeds but fails later at dispatch with confusing errors.
+
+### Required Implementation
+- Verify vehicle and driver exist and are in valid states at trip creation (or at minimum, that IDs exist)
+- Return 404/400 with clear messages
+
+### Files Likely To Change
+- `backend/services/tripService.js`
+
+### Acceptance Criteria
+- Invalid vehicle/driver ID on create returns immediate validation error
+
+### Estimated Complexity
+Small
+
+---
+
+## 12. Prevent Manual Driver Status Override
+
+### Priority
+P2
+
+### Problem
+`PUT /api/drivers/:id` allows manually setting `status: "On Trip"` without an associated dispatched trip.
+
+### Required Implementation
+- Mirror vehicle status rules: block manual override of `On Trip` and `Suspended` (when set by cron)
+- Only allow Safety Officer to set `Suspended` explicitly; system manages `On Trip`
+
+### Files Likely To Change
+- `backend/services/driverService.js`
+
+### Acceptance Criteria
+- Cannot manually set driver to On Trip via API
+
+### Estimated Complexity
+Small
+
+---
+
+## 13. Fix Pagination and ObjectId Error Handling
+
+### Priority
+P2
+
+### Problem
+- Vehicles/drivers pass raw query strings to `limit()` → NaN pagination
+- Invalid MongoDB ObjectIds in `:id` params throw unhandled CastError → generic 500
+
+### Required Implementation
+1. Parse and validate `page`/`limit` with defaults in all list endpoints
+2. Add CastError handler in `errorHandler.js` → return 400 Bad Request
+
+### Files Likely To Change
+- `backend/services/vehicleService.js`
+- `backend/services/driverService.js`
+- `backend/utils/errorHandler.js`
+
+### Acceptance Criteria
+- `?limit=abc` falls back to default limit, not NaN
+- `GET /api/vehicles/notanid` returns 400, not 500
+
+### Estimated Complexity
+Small
+
+---
+
+## 14. Fix Seed Data Status Consistency
+
+### Priority
+P2
+
+### Problem
+Seeder creates trips with Dispatched/On Trip statuses without syncing linked vehicle and driver statuses.
+
+### Required Implementation
+- After seeding trips, update vehicle/driver statuses to match active trip assignments
+- Align capacity unit messaging (dispatch says "tons", model uses kg)
+
+### Files Likely To Change
+- `backend/seeders/seed.js`
+- `backend/services/tripService.js` (error message only)
+
+### Acceptance Criteria
+- Fresh seed: no vehicle marked Available while on a Dispatched trip
+
+### Estimated Complexity
+Small
+
+---
+
+# P3 — UX, Accessibility & Frontend Polish
+
+## 15. Auth Flow UX Fixes
+
+### Priority
+P3
+
+### Problem
+- Post-login always redirects to `/dashboard` — ignores `state.from` saved by ProtectedRoute
+- Register success doesn't mention pending admin approval
+- 404 catch-all redirects to `/dashboard` — loses URL context
+
+### Required Implementation
+1. LoginPage: redirect to `location.state?.from?.pathname || '/dashboard'`
+2. RegisterPage: show "Pending admin approval" success message
+3. Add dedicated 404 page or preserve attempted URL in redirect
+
+### Files Likely To Change
+- `frontend/src/pages/auth/LoginPage.jsx`
+- `frontend/src/pages/auth/RegisterPage.jsx`
+- `frontend/src/App.jsx`
+
+### Acceptance Criteria
+- Deep-link to `/trips` → login → lands on `/trips`
+- Register shows approval-pending messaging
+
+### Estimated Complexity
+Small
+
+---
+
+## 16. Modal Accessibility & Focus Trap
+
+### Priority
+P3
+
+### Problem
+Modal component lacks focus trap and `aria-labelledby` — flagged in redesign docs as high priority a11y gap.
+
+### Required Implementation
+- Trap focus inside open modal
+- Return focus to trigger on close
+- Wire `aria-labelledby` to modal title
+
+### Files Likely To Change
+- `frontend/src/components/ui/Modal.jsx`
+
+### Acceptance Criteria
+- Tab key cycles within modal only
+- Screen reader announces modal title
+
+### Estimated Complexity
+Medium
+
+---
+
+## 17. Frontend Consistency Pass
+
+### Priority
+P3
+
+### Problem
+Multiple UI inconsistencies across app pages.
+
+### Required Implementation
+1. Add search debouncing (300ms) on Vehicles, Drivers, Trips, Maintenance
+2. Replace `window.confirm` delete in FinancePage with confirm Modal
+3. Fix invalid `Badge variant="outline"` — add variant or use existing
+4. Adopt shared `EmptyState` component instead of inline empty states
+5. Extend Skeleton loading to list pages (currently spinners only)
+6. Remove hardcoded default password display on UsersPage edit UI
+
+### Files Likely To Change
+- `frontend/src/pages/app/*.jsx`
+- `frontend/src/components/ui/Badge.jsx`
+- `frontend/src/hooks/useDebounce.js` (new)
+
+### Acceptance Criteria
+- Search doesn't refetch on every keystroke
+- Finance delete uses same modal pattern as other pages
+
+### Estimated Complexity
+Medium
+
+---
+
+## 18. Remove Dev-Only Routes Before Production
+
+### Priority
+P3
+
+### Problem
+`/dev/components` is publicly accessible. `PlaceholderPage.jsx` is dead code.
+
+### Required Implementation
+- Gate `/dev/components` behind `import.meta.env.DEV` or remove route
+- Delete unused `PlaceholderPage.jsx`
+
+### Files Likely To Change
+- `frontend/src/App.jsx`
+- Delete `frontend/src/components/PlaceholderPage.jsx`
+
+### Acceptance Criteria
+- Dev components page unreachable in production build
+
+### Estimated Complexity
+Small
+
+---
+
+# P4 — Testing, CI & Infrastructure
+
+## 19. Expand Backend Test Coverage
+
+### Priority
+P4
+
+### Problem
+Only `rbac.test.js` exists with mocked controllers. Trip business rules, ROI math, auth flows, and pagination are untested.
+
+### Required Implementation
+1. Integration tests for trip dispatch rules (9+ validations)
+2. Unit tests for ROI calculation in `reportService`
+3. Auth flow tests (register, login, refresh, reset password)
+4. Transaction/concurrency test for dispatch
+
+### Files Likely To Change
+- `backend/tests/trip.test.js` (new)
+- `backend/tests/report.test.js` (new)
+- `backend/tests/auth.test.js` (new)
+
+### Acceptance Criteria
+- CI runs ≥3 test suites covering core business logic
 
 ### Estimated Complexity
 Large
 
-### Notes
-- Refactoring will significantly improve code maintainability and reduce bundle size.
+---
+
+## 20. Production Infrastructure
+
+### Priority
+P4
+
+### Problem
+No deployment config, health checks, graceful shutdown, or startup env validation.
+
+### Required Implementation
+1. `docker-compose.yml` for MongoDB + backend + frontend
+2. `GET /api/health` readiness endpoint (DB ping)
+3. SIGTERM handler for graceful shutdown
+4. Startup validation: fail fast if `JWT_SECRET` is placeholder or `MONGO_URI` missing
+5. Frontend test setup (Vitest + React Testing Library) with smoke tests for auth and routing
+
+### Files Likely To Change
+- `docker-compose.yml` (new)
+- `backend/Dockerfile` (new)
+- `backend/server.js`
+- `frontend/vite.config.js`
+- `.github/workflows/ci.yml`
+
+### Acceptance Criteria
+- `docker compose up` starts full stack locally
+- Health endpoint returns 503 when DB is down
+
+### Estimated Complexity
+Large
+
+---
+
+## 21. Audit Log Read API & Admin UI
+
+### Priority
+P4
+
+### Problem
+Audit logs are written on mutations but there is no API or UI to query them.
+
+### Required Implementation
+1. `GET /api/audit-logs` with pagination, filter by user/action/date (admin only)
+2. Admin audit log viewer page or section in UsersPage
+
+### Files Likely To Change
+- `backend/controllers/auditController.js` (new)
+- `backend/routes/auditRoutes.js` (new)
+- `frontend/src/pages/app/` (new or extend UsersPage)
+
+### Acceptance Criteria
+- Admin can view recent mutation audit trail
+
+### Estimated Complexity
+Medium
+
+---
+
+# 5. Documentation Sync
+
+## 22. Align Stale Documentation
+
+### Priority
+P5
+
+### Status
+**Complete** (July 31, 2026)
+
+### What was synced
+- `readme.md` — credentials, stack versions, doc index, MVP status
+- `technical.md` — Phases 1–8, routing, API routes, RHF/Zod, env vars
+- `Engineering.md`, `Product.md`, `Database.md` — rewritten to current state
+- `validation.md`, `mock_data.md`, `audit-report.md`, `frontend-redesign.md`, `prd.md`
+- `backend/.env.example` — added `FRONTEND_URL`
+
+---
+
+# P6 — Future Enhancements (PRD Phase 9+)
+
+These are product expansions, not blockers for MVP/demo readiness.
+
+| # | Feature | Notes |
+|---|---------|-------|
+| 23 | **PDF export** for reports | PRD Phase 8 bonus |
+| 24 | **License expiry email reminders** | Cron suspends; no proactive notification |
+| 25 | **Notifications collection & in-app alerts** | Expiring licenses, maintenance due, trip delays |
+| 26 | **User ↔ Driver record linking** | Connect auth users to driver profiles |
+| 27 | **Vehicle document uploads** | Registration, insurance, inspection certs |
+| 28 | **Recurring maintenance schedules** | Odometer/time-based service reminders |
+| 29 | **Receipt image uploads** | Fuel and expense attachments |
+| 30 | **Refresh token rotation** | Security enhancement beyond MVP |
+| 31 | **RBAC permissions array enforcement** | Use `Role.permissions` instead of hardcoded role names |
+| 32 | **Live GPS / route optimization** | PRD future |
+| 33 | **Mobile driver app** | PRD future |
+| 34 | **AI cost forecasting** | PRD future |
+
+---
+
+## Recommended Sprint Order
+
+| Sprint | Items | Goal |
+|--------|-------|------|
+| **Sprint 1** | #1, #2, #4, #5, #6 | Demo-ready: auth works, security baseline |
+| **Sprint 2** | #3, #8, #9, #10, #13 | Data integrity: trips and reports trustworthy |
+| **Sprint 3** | #11, #12, #14, #15, #17 | Polish and consistency |
+| **Sprint 4** | #19, #20, #21, #22 | Production path: tests, Docker, docs |
+| **Backlog** | #6–7, #16, #18, P6 items | As capacity allows |
+
+---
+
+## Summary
+
+| Area | Open Items | Highest Priority |
+|------|------------|------------------|
+| Critical bugs | 3 | Password reset, mock mode, dispatch race |
+| Security | 4 | RBAC on financial endpoints, registration hardening |
+| Data integrity | 7 | Odometer, revenue, validation gaps |
+| UX / Frontend | 4 | Auth redirects, a11y, consistency |
+| Testing / DevOps | 3 | Test coverage, Docker, health checks |
+| Documentation | 0 | ✅ Synced Jul 31, 2026 |
+| Future product | 12 | Post-MVP enhancements |
+
+**Bottom line:** MVP features are done. The path to demo-ready is Sprint 1 (P0 + core P1). The path to production-ready adds Sprints 2–4.

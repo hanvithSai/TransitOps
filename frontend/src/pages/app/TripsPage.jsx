@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Search, MapPin, Navigation, Map, ShieldAlert, CheckCircle2, Clock, Truck, User, Calendar, FileText, XCircle, AlertCircle, Play, Package, DollarSign, Fuel, Activity } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,9 +8,11 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
-import { Toast } from '../../components/ui/Toast';
+import { Modal } from '../../components/common/Modal';
+import { SelectField } from '../../components/common/SelectField';
+import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { createTripSchema, completeTripSchema } from '../../schemas/trip';
 import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -48,9 +52,27 @@ const TripsPage = () => {
   const [toast, setToast] = useState(null);
   
   const [modalType, setModalType] = useState(null); // 'complete' | 'cancel'
-  const [completeForm, setCompleteForm] = useState({ actualDistance: '', fuelUsed: '' });
-  const [createForm, setCreateForm] = useState({
-    source: '', destination: '', vehicle: '', driver: '', cargoWeight: '', plannedDistance: '', revenue: '', notes: ''
+
+  const {
+    register: registerCreate,
+    handleSubmit: handleCreateFormSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors },
+  } = useForm({
+    resolver: zodResolver(createTripSchema),
+    defaultValues: {
+      source: '', destination: '', vehicle: '', driver: '', cargoWeight: '', plannedDistance: '', revenue: '', notes: '',
+    },
+  });
+
+  const {
+    register: registerComplete,
+    handleSubmit: handleCompleteFormSubmit,
+    reset: resetCompleteForm,
+    formState: { errors: completeErrors },
+  } = useForm({
+    resolver: zodResolver(completeTripSchema),
+    defaultValues: { actualDistance: '', fuelUsed: '' },
   });
 
   const showToast = (message, type = 'success') => setToast({ message, type });
@@ -97,18 +119,18 @@ const TripsPage = () => {
   const handleNewTripClick = () => {
     setSelectedTrip(null);
     setFormError('');
-    setCreateForm({ source: '', destination: '', vehicle: '', driver: '', cargoWeight: '', plannedDistance: '', revenue: '', notes: '' });
+    resetCreateForm({
+      source: '', destination: '', vehicle: '', driver: '', cargoWeight: '', plannedDistance: '', revenue: '', notes: '',
+    });
     setIsCreating(true);
     loadCreateData();
   };
 
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
+  const handleCreateSubmit = async (formData) => {
     setActionLoading(true);
     setFormError('');
     try {
-      const payload = { ...createForm, revenue: createForm.revenue || undefined };
-      await api.post('/trips', payload);
+      await api.post('/trips', formData);
       showToast('Trip created successfully');
       setIsCreating(false);
       fetchTrips();
@@ -132,11 +154,10 @@ const TripsPage = () => {
     }
   };
 
-  const handleComplete = async (e) => {
-    e.preventDefault();
+  const handleComplete = async (formData) => {
     setActionLoading(true);
     try {
-      await api.put(`/trips/${selectedTrip._id}/complete`, completeForm);
+      await api.put(`/trips/${selectedTrip._id}/complete`, formData);
       showToast('Trip marked as completed');
       setModalType(null);
       fetchTrips();
@@ -145,6 +166,14 @@ const TripsPage = () => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const openCompleteModal = () => {
+    resetCompleteForm({
+      actualDistance: selectedTrip.plannedDistance,
+      fuelUsed: '',
+    });
+    setModalType('complete');
   };
 
   const handleCancel = async () => {
@@ -319,7 +348,7 @@ const TripsPage = () => {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-6 bg-[var(--bg-surface)]">
-                <form id="create-trip-form" onSubmit={handleCreateSubmit} className="space-y-6 max-w-2xl mx-auto">
+                <form id="create-trip-form" onSubmit={handleCreateFormSubmit(handleCreateSubmit)} className="space-y-6 max-w-2xl mx-auto">
                   {formError && (
                     <div className="flex items-center gap-3 rounded-lg bg-[var(--color-error)]/10 p-4 text-sm text-[var(--color-error)] animate-in fade-in slide-in-from-top-2">
                       <AlertCircle className="h-5 w-5 shrink-0" />
@@ -330,57 +359,37 @@ const TripsPage = () => {
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><MapPin className="h-4 w-4" /> Route Configuration</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] shadow-sm">
-                      <Input required label="Source Location" className="w-full" value={createForm.source} onChange={e => setCreateForm({...createForm, source: e.target.value})} placeholder="e.g. Warehouse A" />
-                      <Input required label="Destination" className="w-full" value={createForm.destination} onChange={e => setCreateForm({...createForm, destination: e.target.value})} placeholder="e.g. City Hub" />
+                      <Input required label="Source Location" className="w-full" error={createErrors.source?.message} {...registerCreate('source')} placeholder="e.g. Warehouse A" />
+                      <Input required label="Destination" className="w-full" error={createErrors.destination?.message} {...registerCreate('destination')} placeholder="e.g. City Hub" />
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><Truck className="h-4 w-4" /> Assignments</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] shadow-sm">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-[var(--text-secondary)]">Assign Vehicle</label>
-                        <div className="relative">
-                          <select required className="w-full appearance-none select-field px-4 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--color-brand-300)]" value={createForm.vehicle} onChange={e => setCreateForm({...createForm, vehicle: e.target.value})}>
-                            <option value="">— Select Available Vehicle —</option>
-                            {availableVehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber} ({v.vehicleName} - {v.capacity}t)</option>)}
-                          </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-[var(--text-secondary)]">Assign Driver</label>
-                        <div className="relative">
-                          <select required className="w-full appearance-none select-field px-4 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] shadow-sm hover:border-[var(--color-brand-300)]" value={createForm.driver} onChange={e => setCreateForm({...createForm, driver: e.target.value})}>
-                            <option value="">— Select Available Driver —</option>
-                            {availableDrivers.map(d => <option key={d._id} value={d._id}>{d.name} ({d.licenseCategory})</option>)}
-                          </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
+                      <SelectField label="Assign Vehicle" error={createErrors.vehicle?.message} required {...registerCreate('vehicle')}>
+                        <option value="">— Select Available Vehicle —</option>
+                        {availableVehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber} ({v.vehicleName} - {v.capacity}t)</option>)}
+                      </SelectField>
+                      <SelectField label="Assign Driver" error={createErrors.driver?.message} required {...registerCreate('driver')}>
+                        <option value="">— Select Available Driver —</option>
+                        {availableDrivers.map(d => <option key={d._id} value={d._id}>{d.name} ({d.licenseCategory})</option>)}
+                      </SelectField>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2"><Package className="h-4 w-4" /> Payload & Metrics</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] shadow-sm">
-                      <Input required label="Cargo (kg)" type="number" min="0" step="0.1" value={createForm.cargoWeight} onChange={e => setCreateForm({...createForm, cargoWeight: e.target.value})} />
-                      <Input required label="Distance (km)" type="number" min="0" value={createForm.plannedDistance} onChange={e => setCreateForm({...createForm, plannedDistance: e.target.value})} />
-                      <Input label="Revenue (opt)" type="number" min="0" value={createForm.revenue} onChange={e => setCreateForm({...createForm, revenue: e.target.value})} />
+                      <Input required label="Cargo (kg)" type="number" min="0" step="0.1" error={createErrors.cargoWeight?.message} {...registerCreate('cargoWeight')} />
+                      <Input required label="Distance (km)" type="number" min="0" error={createErrors.plannedDistance?.message} {...registerCreate('plannedDistance')} />
+                      <Input label="Revenue (opt)" type="number" min="0" error={createErrors.revenue?.message} {...registerCreate('revenue')} />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-[var(--text-secondary)]">Notes (optional)</label>
-                    <textarea rows="3" className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] resize-none" value={createForm.notes} onChange={e => setCreateForm({...createForm, notes: e.target.value})} placeholder="Add any special instructions or notes..." />
+                    <textarea rows="3" className="w-full rounded-[10px] border border-[var(--border-base)] bg-[var(--bg-base)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none shadow-sm transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] resize-none" {...registerCreate('notes')} placeholder="Add any special instructions or notes..." />
                   </div>
                 </form>
               </div>
@@ -418,7 +427,7 @@ const TripsPage = () => {
                     </>
                   )}
                   {selectedTrip.status === 'Dispatched' && (user?.role?.name === 'admin' || user?.role?.name === 'driver' || user?.role?.name === 'fleet_manager') && (
-                    <Button onClick={() => { setCompleteForm({ actualDistance: selectedTrip.plannedDistance, fuelUsed: '' }); setModalType('complete'); }} disabled={actionLoading} className="shadow-sm"><CheckCircle2 className="h-4 w-4 mr-2" /> Complete Trip</Button>
+                    <Button onClick={openCompleteModal} disabled={actionLoading} className="shadow-sm"><CheckCircle2 className="h-4 w-4 mr-2" /> Complete Trip</Button>
                   )}
                   <button onClick={() => setSelectedTrip(null)} className="ml-2 flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-base)] text-[var(--text-muted)] bg-[var(--bg-surface)] shadow-sm transition-all hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]" title="Close Details">
                     <XCircle className="h-5 w-5" />
@@ -566,15 +575,15 @@ const TripsPage = () => {
       {/* ─── Modals ───────────────────────────────────────────── */}
       {modalType === 'complete' && (
         <Modal title="Complete Trip" onClose={() => setModalType(null)}>
-          <form onSubmit={handleComplete} className="space-y-5">
+          <form onSubmit={handleCompleteFormSubmit(handleComplete)} className="space-y-5">
             <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-100 dark:border-blue-800/30 mb-4">
               <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">Please verify the final metrics for this trip.</p>
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Planned distance was <span className="font-bold">{selectedTrip?.plannedDistance} km</span>.</p>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input required label="Actual Distance (km)" type="number" min="0" step="0.1" value={completeForm.actualDistance} onChange={e => setCompleteForm({...completeForm, actualDistance: e.target.value})} />
-              <Input required label="Fuel Used (Liters)" type="number" min="0" step="0.1" value={completeForm.fuelUsed} onChange={e => setCompleteForm({...completeForm, fuelUsed: e.target.value})} />
+              <Input required label="Actual Distance (km)" type="number" min="0" step="0.1" error={completeErrors.actualDistance?.message} {...registerComplete('actualDistance')} />
+              <Input required label="Fuel Used (Liters)" type="number" min="0" step="0.1" error={completeErrors.fuelUsed?.message} {...registerComplete('fuelUsed')} />
             </div>
             
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)] mt-6">

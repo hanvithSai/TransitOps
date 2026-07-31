@@ -5,7 +5,7 @@ TransitOps is an end-to-end transport operations platform designed to digitize v
 ## Core Features
 
 *   **Driver Management:** Track driver qualifications, employment status, and automate license expiry tracking to ensure continuous regulatory compliance.
-*   **Vehicle Lifecycle Management:** Manage fleet inventory including capacity, odometer readings, and status tracking. Enforces defensive data retention by supporting soft deletion (retirement) to preserve historical data integrity.
+*   **Vehicle Lifecycle Management:** Manage fleet inventory including capacity, odometer readings, and status tracking. Vehicles with historical records cannot be hard-deleted; use the **Retire** action to deactivate while preserving trip, maintenance, fuel, and expense history.
 *   **Trip Dispatch & Tracking:** Seamlessly assign drivers and vehicles to trips. Monitor cargo weights, planned versus actual distances, fuel consumption, and generated revenue.
 *   **Maintenance Workflow:** Track maintenance activities, associated repair costs, and vehicle downtime to optimize fleet health and longevity.
 *   **Operational Expenses:** Record fuel purchases, tolls, and general operational expenses linked directly to specific trips or vehicles.
@@ -16,8 +16,8 @@ TransitOps is an end-to-end transport operations platform designed to digitize v
 
 The platform is built using the MERN stack with a focus on maintainability and modern development practices.
 
-*   **Frontend:** React 19, Vite, Tailwind CSS, React Router v7, Recharts, Axios.
-*   **Backend:** Node.js, Express, MongoDB, Mongoose ORM.
+*   **Frontend:** React 19, Vite 8, Tailwind CSS v4, React Router v7, Recharts, Axios, React Hook Form, Zod.
+*   **Backend:** Node.js, Express 5, MongoDB, Mongoose 9.
 *   **Security & Authentication:** JSON Web Tokens (JWT) for stateless authentication and Role-Based Access Control (RBAC). Passwords are encrypted using bcrypt.
 *   **Automation:** Node-cron for background tasks (e.g., automated license suspension).
 *   **Continuous Integration:** Configured with GitHub Actions for automated testing and strict linting.
@@ -34,7 +34,7 @@ The project is structured as a monorepo, clearly separating the client applicati
 
 ### Prerequisites
 
-*   Node.js (v20 or higher recommended)
+*   Node.js v20.19+ or v22.12+ (required by Vite 8 / ESLint 10)
 *   MongoDB instance (local or Atlas)
 
 ### Backend Setup
@@ -47,9 +47,13 @@ The project is structured as a monorepo, clearly separating the client applicati
     ```bash
     npm install
     ```
-3.  Create a `.env` file based on your environment requirements (e.g., `PORT`, `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`).
+3.  Copy `.env.example` to `.env` and configure `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`, and `FRONTEND_URL`.
     For password reset emails, configure SMTP in production. In development without SMTP, forgot-password returns an Ethereal preview link in the API response.
-4.  Start the development server:
+4.  Seed roles and demo data (optional):
+    ```bash
+    npm run seed
+    ```
+5.  Start the development server:
     ```bash
     npm run dev
     ```
@@ -79,10 +83,38 @@ The project is structured as a monorepo, clearly separating the client applicati
 
 Users can register at `/register`. Password must be **at least 6 characters**. New accounts are created **inactive** until an admin activates them in the Users page. Admins can set **active/inactive** when creating users via the Users page.
 
+## Demo Credentials
+
+After running `npm run seed`, log in with any of these accounts. Password for all: **`Password@123`**
+
+| Role | Email |
+|------|-------|
+| Admin | `admin@transitops.com` |
+| Fleet Manager | `manager@transitops.com` |
+| Driver | `driver@transitops.com` |
+| Safety Officer | `safety@transitops.com` |
+| Financial Analyst | `finance@transitops.com` |
+
+See `docs/mock_data.md` for full seeded dataset details.
+
+## Implementation Status
+
+**MVP Phases 1–8 are complete** (auth, vehicles, drivers, trips, maintenance, fuel/expenses, dashboard KPIs, ROI reports with CSV export).
+
+Pending production hardening, security fixes, and future enhancements are tracked in `docs/backlog.md`. A full codebase audit lives in `docs/audit-report.md`.
+
 ## Documentation
 
-For deeper insights into the project's architectural decisions, database schemas, and product backlog, please refer to the documents located in the `/docs` directory:
-
-*   `Engineering.md`: Architectural decisions and detailed technology stack.
-*   `Product.md`: User stories, UX principles, and comprehensive feature breakdowns.
-*   `Database.md`: Mongoose schemas, constraints, and index optimizations.
+| Document | Purpose |
+|----------|---------|
+| `docs/technical.md` | Full technical reference — API routes, services, frontend architecture |
+| `docs/Engineering.md` | Engineering decisions and stack overview |
+| `docs/Product.md` | Features, user stories, UX principles |
+| `docs/Database.md` | Schemas, constraints, indexes |
+| `docs/prd.md` | Product requirements document |
+| `docs/backlog.md` | **Pending work** — bugs, security, and future items |
+| `docs/audit-report.md` | Codebase audit with priority recommendations |
+| `docs/validation.md` | Production readiness checklist |
+| `docs/mock_data.md` | Seeder credentials and generated data overview |
+| `docs/style-guide.md` | Design system v2.1 tokens and component rules |
+| `docs/frontend-redesign.md` | Frontend UX evaluation and redesign notes |

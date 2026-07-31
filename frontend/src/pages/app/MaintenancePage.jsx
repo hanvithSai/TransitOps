@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   Wrench, 
   Search, 
@@ -7,7 +9,6 @@ import {
   DollarSign, 
   Trash2, 
   AlertTriangle, 
-  CheckCircle2, 
   CarFront,
   AlertCircle
 } from 'lucide-react';
@@ -16,10 +17,12 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/common/Modal';
+import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
-import { Toast } from '../../components/ui/Toast';
+import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { maintenanceFormSchema } from '../../schemas/maintenance';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const STATUS_VARIANT = {
@@ -87,13 +90,17 @@ const MaintenancePage = () => {
     serviceType: '',
     cost: '',
     date: getTodayDateStr(),
-    status: 'Active'
+    status: 'Active',
   };
 
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [editingLog, setEditingLog] = useState(null); // null when creating
+  const [editingLog, setEditingLog] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    resolver: zodResolver(maintenanceFormSchema),
+    defaultValues: EMPTY_FORM,
+  });
 
   // Delete State
   const [deletingLog, setDeletingLog] = useState(null);
@@ -130,31 +137,23 @@ const MaintenancePage = () => {
     fetchLogs();
   }, [fetchVehicles, fetchLogs]);
 
-  // Form Field Binder
-  const set = (k) => (e) => {
-    setForm((p) => ({ ...p, [k]: e.target.value }));
-  };
-
   // Submit Handler: Create or Update
-  const handleSave = async (e) => {
-    e.preventDefault();
+  const handleSave = async (form) => {
     setFormLoading(true);
     setFormError('');
 
     try {
       if (editingLog) {
-        // Edit flow
         await api.put(`/maintenance/${editingLog._id}`, form);
         showToast('Service record updated successfully');
         resetForm();
       } else {
-        // Create flow
         await api.post('/maintenance', form);
         showToast('Service record created successfully');
         resetForm();
       }
       fetchLogs();
-      fetchVehicles(); // Refresh statuses
+      fetchVehicles();
     } catch (err) {
       setFormError(err.response?.data?.message || 'Failed to save service record');
     } finally {
@@ -166,12 +165,12 @@ const MaintenancePage = () => {
   const handleRowClick = (log) => {
     setEditingLog(log);
     setFormError('');
-    setForm({
+    reset({
       vehicle: log.vehicle?._id || '',
       serviceType: log.serviceType || '',
       cost: log.cost || '',
       date: formatDateForInput(log.date),
-      status: log.status || 'Active'
+      status: log.status || 'Active',
     });
   };
 
@@ -179,12 +178,12 @@ const MaintenancePage = () => {
   const resetForm = () => {
     setEditingLog(null);
     setFormError('');
-    setForm({
+    reset({
       vehicle: '',
       serviceType: '',
       cost: '',
       date: getTodayDateStr(),
-      status: 'Active'
+      status: 'Active',
     });
   };
 
@@ -230,7 +229,7 @@ const MaintenancePage = () => {
               </h2>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 flex-1 flex flex-col">
+            <form onSubmit={handleSubmit(handleSave)} className="space-y-4 flex-1 flex flex-col">
               {formError && (
                 <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
                   <AlertCircle className="h-4 w-4 shrink-0" />
@@ -238,60 +237,45 @@ const MaintenancePage = () => {
                 </div>
               )}
 
-              {/* VEHICLE dropdown */}
-              <div className="space-y-1.5">
-                <label htmlFor="vehicle" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <div>
+                <label htmlFor="vehicle" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                   <CarFront className="h-3.5 w-3.5" /> Vehicle
                 </label>
-                <div className="relative">
-                  <select 
-                    id="vehicle" 
-                    className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] disabled:opacity-60 disabled:cursor-not-allowed hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
-                    value={form.vehicle} 
-                    onChange={set('vehicle')} 
-                    required 
-                    disabled={!!editingLog}
-                  >
-                    <option value="" disabled>Select Vehicle...</option>
-                    {vehicles.map((v) => (
-                      <option key={v._id} value={v._id}>
-                        {v.registrationNumber} ({v.vehicleName}) - {v.status}
-                      </option>
-                    ))}
-                    {editingLog && editingLog.vehicle && !vehicles.find(v => v._id === editingLog.vehicle._id) && (
-                      <option value={editingLog.vehicle._id}>
-                        {editingLog.vehicle.registrationNumber} ({editingLog.vehicle.vehicleName})
-                      </option>
-                    )}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  </div>
-                </div>
+                <SelectField id="vehicle" error={errors.vehicle?.message} disabled={!!editingLog} required {...register('vehicle')}>
+                  <option value="" disabled>Select Vehicle...</option>
+                  {vehicles.map((v) => (
+                    <option key={v._id} value={v._id}>
+                      {v.registrationNumber} ({v.vehicleName}) - {v.status}
+                    </option>
+                  ))}
+                  {editingLog && editingLog.vehicle && !vehicles.find(v => v._id === editingLog.vehicle._id) && (
+                    <option value={editingLog.vehicle._id}>
+                      {editingLog.vehicle.registrationNumber} ({editingLog.vehicle.vehicleName})
+                    </option>
+                  )}
+                </SelectField>
               </div>
 
-              {/* SERVICE TYPE */}
-              <div className="space-y-1.5">
-                <label htmlFor="serviceType" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <div>
+                <label htmlFor="serviceType" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                   <Wrench className="h-3.5 w-3.5" /> Service Type
                 </label>
                 <Input 
                   id="serviceType" 
                   placeholder="e.g., Oil Change, Tire Rotation" 
-                  value={form.serviceType} 
-                  onChange={set('serviceType')} 
+                  error={errors.serviceType?.message}
+                  {...register('serviceType')}
                   required 
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* COST */}
-                <div className="space-y-1.5">
-                  <label htmlFor="cost" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label htmlFor="cost" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <DollarSign className="h-3.5 w-3.5" /> Cost
                   </label>
                   <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 z-10">
                       <span className="text-[var(--text-muted)] sm:text-sm">$</span>
                     </div>
                     <Input 
@@ -301,49 +285,31 @@ const MaintenancePage = () => {
                       step="0.01"
                       className="pl-7"
                       placeholder="0.00" 
-                      value={form.cost} 
-                      onChange={set('cost')} 
+                      error={errors.cost?.message}
+                      {...register('cost')}
                       required 
                     />
                   </div>
                 </div>
 
-                {/* DATE */}
-                <div className="space-y-1.5">
-                  <label htmlFor="date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label htmlFor="date" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <Calendar className="h-3.5 w-3.5" /> Date
                   </label>
                   <Input 
                     id="date" 
                     type="date" 
-                    value={form.date} 
-                    onChange={set('date')} 
+                    error={errors.date?.message}
+                    {...register('date')}
                     required 
                   />
                 </div>
               </div>
 
-              {/* STATUS */}
-              <div className="space-y-1.5">
-                <label htmlFor="status" className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Status
-                </label>
-                <div className="relative">
-                  <select 
-                    id="status" 
-                    className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
-                    value={form.status} 
-                    onChange={set('status')} 
-                    required
-                  >
-                    <option value="Active">Active (In Shop)</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  </div>
-                </div>
-              </div>
+              <SelectField label="Status" id="status" error={errors.status?.message} required {...register('status')}>
+                <option value="Active">Active (In Shop)</option>
+                <option value="Completed">Completed</option>
+              </SelectField>
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-3 pt-6 mt-auto">

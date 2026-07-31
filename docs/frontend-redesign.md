@@ -180,10 +180,14 @@ See git diff for full file list. Key changes:
 - Pages updated with PageHeader, Skeleton, EmptyState where applicable
 - Badge aliases: `success`→`emerald`, `info`→`blue`, `warning`→`amber`, `danger`→`red`, `default`→`gray`
 
-### Known Follow-ups
+### Known Follow-ups (Jul 31, 2026)
 
+- ✅ React Hook Form + Zod on CRUD forms — **Done**
+- ✅ Retire / Set Off Duty delete alternatives — **Done**
 - Extract shared CRUD hooks to reduce page duplication
 - Add Vitest + RTL for auth redirect tests
 - Mobile card fallback for tables
 - Wire remember-me or remove checkbox
-- Backend RBAC for dashboard/reports endpoints
+- Backend RBAC for dashboard/reports endpoints — see `backlog.md` #4
+- Fix mock data schema alignment — see `backlog.md` #2
+- Modal focus trap and `aria-labelledby`

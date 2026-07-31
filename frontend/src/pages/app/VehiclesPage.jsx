@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, CarFront, Activity, Map, Wrench, ShieldAlert } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, Archive, CarFront, Activity, Map, Wrench, ShieldAlert } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/common/Modal';
+import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
-import { Toast } from '../../components/ui/Toast';
+import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { vehicleFormSchema } from '../../schemas/vehicle';
 import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -33,20 +37,23 @@ const EMPTY_FORM = {
 
 /* ─── VehicleForm ─────────────────────────────────────────────── */
 const VehicleForm = ({ initial, onSubmit, loading, error }) => {
-  const [form, setForm] = useState(initial || EMPTY_FORM);
   const isEdit = !!initial;
+  const statusLocked = isEdit && (initial.status === 'In Shop' || initial.status === 'On Trip');
 
-  const set = (k) => (e) => {
-    setForm((p) => ({ ...p, [k]: e.target.value }));
-  };
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(vehicleFormSchema),
+    defaultValues: initial || EMPTY_FORM,
+  });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(form);
+  const onValidSubmit = (data) => {
+    onSubmit({
+      ...data,
+      registrationNumber: data.registrationNumber.toUpperCase(),
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-5">
       {error && (
         <div className="flex items-center gap-3 rounded-lg bg-[var(--color-error)]/10 p-4 text-sm text-[var(--color-error)] animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="h-5 w-5 shrink-0" />
@@ -55,47 +62,29 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Registration No." id="registrationNumber" className="uppercase" placeholder="AB12CD3456" value={form.registrationNumber} onChange={set('registrationNumber')} required />
-        <Input label="Vehicle Name" id="vehicleName" placeholder="Truck 1" value={form.vehicleName} onChange={set('vehicleName')} required />
+        <Input label="Registration No." id="registrationNumber" className="uppercase" placeholder="AB12CD3456" error={errors.registrationNumber?.message} {...register('registrationNumber')} required />
+        <Input label="Vehicle Name" id="vehicleName" placeholder="Truck 1" error={errors.vehicleName?.message} {...register('vehicleName')} required />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Model" id="model" placeholder="Volvo FH16" value={form.model} onChange={set('model')} required />
-        <Input label="Type" id="type" placeholder="Heavy Duty" value={form.type} onChange={set('type')} required />
+        <Input label="Model" id="model" placeholder="Volvo FH16" error={errors.model?.message} {...register('model')} required />
+        <Input label="Type" id="type" placeholder="Heavy Duty" error={errors.type?.message} {...register('type')} required />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Capacity (kg)" id="capacity" type="number" step="0.1" min="0.1" placeholder="10.5" value={form.capacity} onChange={set('capacity')} required />
-        <Input label="Odometer (km)" id="odometer" type="number" step="0.1" min="0" placeholder="50000" value={form.odometer} onChange={set('odometer')} required />
+        <Input label="Capacity (kg)" id="capacity" type="number" step="0.1" min="0.1" placeholder="10.5" error={errors.capacity?.message} {...register('capacity')} required />
+        <Input label="Odometer (km)" id="odometer" type="number" step="0.1" min="0" placeholder="50000" error={errors.odometer?.message} {...register('odometer')} required />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Acquisition Cost" id="acquisitionCost" type="number" min="0" placeholder="1500000" value={form.acquisitionCost} onChange={set('acquisitionCost')} />
-        <div className="space-y-1.5">
-          <label htmlFor="status" className="block text-sm font-medium text-[var(--text-secondary)]">Status</label>
-          <div className="relative">
-            <select 
-              id="status" 
-              className={cn(
-                "w-full appearance-none select-field px-4 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]",
-                isEdit && (initial.status === 'In Shop' || initial.status === 'On Trip') ? 'opacity-60 cursor-not-allowed bg-[var(--bg-base)]' : 'hover:bg-[var(--bg-surface-hover)]'
-              )}
-              value={form.status} 
-              onChange={set('status')} 
-              required
-              disabled={isEdit && (initial.status === 'In Shop' || initial.status === 'On Trip')}
-            >
-              <option value="Available">Available</option>
-              <option value="On Trip">On Trip</option>
-              <option value="In Shop">In Shop</option>
-              <option value="Retired">Retired</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
+        <Input label="Acquisition Cost" id="acquisitionCost" type="number" min="0" placeholder="1500000" error={errors.acquisitionCost?.message} {...register('acquisitionCost')} />
+        <div>
+          <SelectField label="Status" id="status" error={errors.status?.message} disabled={statusLocked} required {...register('status')}>
+            <option value="Available">Available</option>
+            <option value="On Trip">On Trip</option>
+            <option value="In Shop">In Shop</option>
+            <option value="Retired">Retired</option>
+          </SelectField>
           {isEdit && initial.status === 'In Shop' && (
             <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-500">
               <Wrench className="h-3.5 w-3.5" /> Vehicle is currently in maintenance.
@@ -119,7 +108,7 @@ const VehicleForm = ({ initial, onSubmit, loading, error }) => {
 };
 
 /* ─── ConfirmModal ─────────────────────────────────────────── */
-const ConfirmModal = ({ vehicle, onConfirm, onCancel, loading }) => (
+const ConfirmModal = ({ vehicle, onConfirm, onCancel, onRetire, loading, deleteError }) => (
   <div className="space-y-5">
     <div className="flex items-start gap-4 rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-error)]/20">
@@ -129,12 +118,26 @@ const ConfirmModal = ({ vehicle, onConfirm, onCancel, loading }) => (
         <p className="text-base font-semibold text-[var(--text-primary)]">Delete {vehicle.registrationNumber}?</p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">{vehicle.vehicleName} - {vehicle.model}</p>
         <p className="mt-3 text-sm text-[var(--text-muted)]">
-          This action <span className="font-semibold text-[var(--color-error)]">cannot be undone</span>. All data associated with this vehicle will be permanently removed or marked inactive depending on system rules.
+          This action <span className="font-semibold text-[var(--color-error)]">cannot be undone</span>. Vehicles with trip, maintenance, fuel, or expense history cannot be deleted.
         </p>
       </div>
     </div>
-    <div className="flex justify-end gap-3 pt-2">
+    {deleteError && (
+      <div className="flex items-start gap-3 rounded-lg bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-900/30">
+        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+        <div>
+          <p className="font-medium">{deleteError}</p>
+          {vehicle.status !== 'Retired' && vehicle.status !== 'On Trip' && vehicle.status !== 'In Shop' && (
+            <p className="mt-2 text-xs">Use Retire to keep historical records while removing the vehicle from active dispatch.</p>
+          )}
+        </div>
+      </div>
+    )}
+    <div className="flex flex-wrap justify-end gap-3 pt-2">
       <Button variant="outline" onClick={onCancel} disabled={loading}>Cancel</Button>
+      {deleteError && vehicle.status === 'Available' && (
+        <Button variant="outline" onClick={onRetire} loading={loading} icon={Archive}>Retire Instead</Button>
+      )}
       <Button variant="danger" onClick={onConfirm} loading={loading}>Delete Vehicle</Button>
     </div>
   </div>
@@ -153,6 +156,7 @@ const VehiclesPage = () => {
   const [selected, setSelected] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const [toast, setToast] = useState(null);
 
@@ -208,13 +212,34 @@ const VehiclesPage = () => {
 
   const handleDelete = async () => {
     setFormLoading(true);
+    setDeleteError('');
     try {
       await api.delete(`/vehicles/${selected._id}`);
       showToast(`Vehicle "${selected.registrationNumber}" deleted`);
       setModal(null);
       fetchVehicles();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to delete vehicle', 'error');
+      const message = err.response?.data?.message || 'Failed to delete vehicle';
+      if (err.response?.status === 409) {
+        setDeleteError(message);
+      } else {
+        showToast(message, 'error');
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleRetire = async (vehicle = selected) => {
+    if (!vehicle || vehicle.status === 'Retired') return;
+    setFormLoading(true);
+    try {
+      await api.put(`/vehicles/${vehicle._id}`, { status: 'Retired' });
+      showToast(`Vehicle "${vehicle.registrationNumber}" retired`);
+      setModal(null);
+      fetchVehicles();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to retire vehicle', 'error');
     } finally {
       setFormLoading(false);
     }
@@ -228,6 +253,7 @@ const VehiclesPage = () => {
 
   const openDelete = (vehicle) => {
     setSelected(vehicle);
+    setDeleteError('');
     setModal('delete');
   };
 
@@ -235,6 +261,7 @@ const VehiclesPage = () => {
     setModal(null);
     setSelected(null);
     setFormError('');
+    setDeleteError('');
   };
 
   return (
@@ -362,6 +389,11 @@ const VehiclesPage = () => {
                           <Button variant="ghost" size="icon" onClick={() => openEdit(vehicle)} aria-label="Edit vehicle">
                             <Edit2 className="h-4 w-4" />
                           </Button>
+                          {vehicle.status === 'Available' && (
+                            <Button variant="ghost" size="icon" onClick={() => handleRetire(vehicle)} aria-label="Retire vehicle" title="Retire vehicle">
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => openDelete(vehicle)} aria-label="Delete vehicle">
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -396,7 +428,7 @@ const VehiclesPage = () => {
 
       {modal === 'delete' && selected && (
         <Modal title="Confirm Deletion" onClose={closeModal} maxWidth="max-w-sm">
-          <ConfirmModal vehicle={selected} onConfirm={handleDelete} onCancel={closeModal} loading={formLoading} />
+          <ConfirmModal vehicle={selected} onConfirm={handleDelete} onCancel={closeModal} onRetire={() => handleRetire()} loading={formLoading} deleteError={deleteError} />
         </Modal>
       )}
 

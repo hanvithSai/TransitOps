@@ -1,7 +1,10 @@
 # TransitOps Repository Audit Report
 
 **Date:** July 30, 2026  
+**Last synced with codebase:** July 31, 2026  
 **Scope:** Full repository review — backend, frontend, documentation, infrastructure
+
+> **Documentation note:** `backlog.md`, `technical.md`, `readme.md`, and related docs were synced on July 31, 2026. Items marked ✅ **Fixed since audit** below were addressed after the original audit date.
 
 ---
 
@@ -122,6 +125,8 @@ TransitOps/
 | Audit Logging | ✅ (write-only) | — | Middleware logs mutations; no read API |
 | Marketing Landing | — | ✅ | Full landing page with theme toggle |
 | Design System v2.1 | — | ✅ | Tokens, UI primitives, app shell |
+| Form validation (RHF + Zod) | — | ✅ | All major CRUD pages |
+| Retire / Off Duty UX | — | ✅ | Soft-deactivate alternatives to delete |
 
 ### Partially Implemented
 
@@ -132,7 +137,7 @@ TransitOps/
 | Password reset emails | Backend works | Uses `CLIENT_URL` for reset links |
 | Dark mode | Landing + app shell | Inconsistent across all pages |
 | Audit logs | Written on mutations | No admin UI or API to query them |
-| License expiry cron | Suspends drivers | No email notifications; can suspend mid-trip |
+| License expiry cron | Suspends drivers | ✅ Fixed since audit: skips drivers on active dispatched trips; no email notifications |
 
 ### Not Implemented (PRD / Future)
 
@@ -151,16 +156,16 @@ TransitOps/
 
 ### PRD Phase Roadmap vs. Code
 
-| Phase | Module | Docs Status | Actual Code Status |
-|-------|--------|-------------|---------------------|
+| Phase | Module | Docs Status (Jul 31) | Actual Code Status |
+|-------|--------|----------------------|---------------------|
 | 1 | Auth & RBAC | Complete | **Complete** |
 | 2 | Vehicle Registry | Complete | **Complete** |
 | 3 | Driver Management | Complete | **Complete** |
 | 4 | Trip Engine | Complete | **Complete** |
 | 5 | Maintenance | Complete | **Complete** |
 | 6 | Fuel & Expenses | Complete | **Complete** |
-| 7 | Dashboard KPIs | Pending in docs | **Implemented** |
-| 8 | Reports & CSV | Pending in docs | **Implemented** |
+| 7 | Dashboard KPIs | Complete | **Complete** |
+| 8 | Reports & CSV | Complete | **Complete** |
 
 ---
 
@@ -227,9 +232,9 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 |-----|--------|
 | **`completeTrip` doesn't update vehicle odometer** | `actualDistance` recorded on trip but never rolls forward `vehicle.odometer` |
 | **Revenue never set on completion** | ROI report filters `revenue: { $ne: null }` — trips completed without upfront revenue excluded from ROI |
-| **ROI excludes maintenance log costs** | Only Expense + FuelLog counted; `MaintenanceLog.cost` ignored despite dashboard tracking maintenance separately |
+| **ROI excludes maintenance log costs** | ✅ Fixed since audit — `reportService` now includes `MaintenanceLog.cost` |
 | **`closeDate` never set on maintenance completion** | Field exists in schema but `maintenanceService.updateLog` never populates it |
-| **Cron auto-suspends drivers mid-trip** | License expiry job sets status to Suspended without checking active Dispatched trips |
+| **Cron auto-suspends drivers mid-trip** | ✅ Fixed since audit — cron skips drivers on Dispatched trips |
 | **Driver status can be manually overridden** | PUT `/api/drivers/:id` allows setting `status: "On Trip"` without an actual trip |
 | **Trip create doesn't verify vehicle/driver exist** | Invalid IDs create orphan references; fails later at dispatch with confusing errors |
 | **Seed data inconsistency** | Seeds trips with Dispatched/On Trip statuses without syncing vehicle/driver statuses |
@@ -332,15 +337,14 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 ## 7. Documentation Drift
 
-| Document | Says | Reality |
-|----------|------|---------|
-| `technical.md` | Phases 7–8 pending | **Implemented** in code |
-| `backlog.md` | Cron, delete protection, dashboard, reports missing | **All implemented** |
-| `validation.md` | Password reset missing | **Exists** in authService + frontend |
-| `readme.md` | Admin password `Admin@123` | Seeder uses `Password@123` |
-| `technical.md` | Admin password `Admin@123` | Seeder uses `Password@123` |
-| `readme.md` | "Soft deletion (retirement)" | Vehicles use status `Retired`, but DELETE is hard delete with association check |
-| Docs mention `json2csv` | Library for CSV | Hand-rolled CSV in `reportService.js` |
+| Document | Said (Jul 30 audit) | Status (Jul 31 sync) |
+|----------|---------------------|----------------------|
+| `technical.md` | Phases 7–8 pending | ✅ Updated — complete |
+| `backlog.md` | MVP items missing | ✅ Replaced with pending-work backlog |
+| `validation.md` | Password reset missing | ✅ Updated — exists; PUT/POST bug noted |
+| `readme.md` | Admin password `Admin@123` | ✅ Updated — `Password@123` |
+| `readme.md` | Soft deletion wording | ✅ Updated — Retire status + delete protection |
+| CSV library | Docs mention `json2csv` | Hand-rolled in `reportService.js` (documented) |
 
 ### Demo Credentials (actual seeder values)
 
@@ -384,10 +388,10 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 
 8. Wrap trip dispatch in MongoDB transaction
 9. Update vehicle odometer on trip completion
-10. Include maintenance costs in ROI calculation
+10. Include maintenance costs in ROI calculation — ✅ **Done**
 11. Set `closeDate` when maintenance log is completed
-12. Check active trips before cron-suspending drivers
-13. ~~Escape user input in `$regex` search queries~~ **Done**
+12. Check active trips before cron-suspending drivers — ✅ **Done**
+13. Escape user input in `$regex` search queries — ✅ **Done**
 14. Handle CastError for invalid ObjectIds
 
 ### Medium-term (quality & security)
@@ -400,7 +404,7 @@ Vehicle/driver availability checks and status updates are **not wrapped in a Mon
 20. ~~Remove `/dev/components` route~~ **Done** (dev-only)
 21. Adopt `EmptyState`, fix Badge variants, add modal focus trap
 22. Add search debouncing
-23. Update stale documentation
+23. ~~Update stale documentation~~ — ✅ **Done** (Jul 31, 2026)
 
 ### Long-term (PRD future items)
 
@@ -438,7 +442,7 @@ Despite the issues above, several areas are solid:
 | Data integrity | **65%** | Business rules good; race conditions, ROI gaps |
 | Frontend UX | **80%** | Polished UI; mock mode broken, a11y gaps |
 | Testing | **30%** | RBAC mocks only; no integration or frontend tests |
-| Documentation | **55%** | Comprehensive but stale in several places |
+| Documentation | **80%** | Synced Jul 31; `backlog.md` tracks remaining work |
 | DevOps | **40%** | CI only; no deployment config |
 
 ---

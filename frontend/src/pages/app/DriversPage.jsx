@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, Users, Shield, Map, XCircle, ShieldAlert } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Search, Filter, AlertCircle, Edit2, Trash2, UserX, Users, Shield, Map, XCircle, ShieldAlert } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/common/Modal';
+import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
-import { Toast } from '../../components/ui/Toast';
+import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { driverFormSchema } from '../../schemas/driver';
 import { cn } from '../../lib/utils';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -60,29 +64,23 @@ const EMPTY_FORM = {
 
 const DriverForm = ({ initial, onSubmit, loading, error }) => {
   const isEdit = !!initial;
-  
-  const getInitialForm = () => {
-    if (!initial) return EMPTY_FORM;
-    const formatted = { ...initial };
-    if (formatted.expiryDate) {
-      formatted.expiryDate = formatted.expiryDate.split('T')[0];
-    }
-    return formatted;
-  };
 
-  const [form, setForm] = useState(getInitialForm());
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(driverFormSchema),
+    defaultValues: initial
+      ? { ...initial, expiryDate: initial.expiryDate?.split('T')[0] || '' }
+      : EMPTY_FORM,
+  });
 
-  const set = (k) => (e) => {
-    setForm((p) => ({ ...p, [k]: e.target.value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(form);
+  const onValidSubmit = (data) => {
+    onSubmit({
+      ...data,
+      licenseNumber: data.licenseNumber.toUpperCase(),
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-5">
       {error && (
         <div className="flex items-center gap-3 rounded-lg bg-[var(--color-error)]/10 p-4 text-sm text-[var(--color-error)] animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="h-5 w-5 shrink-0" />
@@ -90,45 +88,26 @@ const DriverForm = ({ initial, onSubmit, loading, error }) => {
         </div>
       )}
 
-      <Input label="Full Name" id="name" placeholder="John Doe" value={form.name} onChange={set('name')} required />
+      <Input label="Full Name" id="name" placeholder="John Doe" error={errors.name?.message} {...register('name')} required />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="License No." id="licenseNumber" className="uppercase" placeholder="DL-12345678" value={form.licenseNumber} onChange={set('licenseNumber')} required />
-        <Input label="License Category" id="licenseCategory" placeholder="Class A CDL" value={form.licenseCategory} onChange={set('licenseCategory')} required />
+        <Input label="License No." id="licenseNumber" className="uppercase" placeholder="DL-12345678" error={errors.licenseNumber?.message} {...register('licenseNumber')} required />
+        <Input label="License Category" id="licenseCategory" placeholder="Class A CDL" error={errors.licenseCategory?.message} {...register('licenseCategory')} required />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="License Expiry" id="expiryDate" type="date" value={form.expiryDate} onChange={set('expiryDate')} required />
-        <Input label="Contact" id="contact" placeholder="+1 (555) 019-2834" value={form.contact} onChange={set('contact')} required />
+        <Input label="License Expiry" id="expiryDate" type="date" error={errors.expiryDate?.message} {...register('expiryDate')} required />
+        <Input label="Contact" id="contact" placeholder="+1 (555) 019-2834" error={errors.contact?.message} {...register('contact')} required />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Safety Score (0-100)" id="safetyScore" type="number" min="0" max="100" value={form.safetyScore} onChange={set('safetyScore')} required />
-        <div className="space-y-1.5">
-          <label htmlFor="status" className="block text-sm font-medium text-[var(--text-secondary)]">Status</label>
-          <div className="relative">
-            <select 
-              id="status" 
-              className={cn(
-                "w-full appearance-none select-field px-4 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)]",
-                "hover:bg-[var(--bg-surface-hover)]"
-              )}
-              value={form.status} 
-              onChange={set('status')} 
-              required
-            >
-              <option value="Available">Available</option>
-              <option value="On Trip">On Trip</option>
-              <option value="Off Duty">Off Duty</option>
-              <option value="Suspended">Suspended</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <Input label="Safety Score (0-100)" id="safetyScore" type="number" min="0" max="100" error={errors.safetyScore?.message} {...register('safetyScore')} required />
+        <SelectField label="Status" id="status" error={errors.status?.message} required {...register('status')}>
+          <option value="Available">Available</option>
+          <option value="On Trip">On Trip</option>
+          <option value="Off Duty">Off Duty</option>
+          <option value="Suspended">Suspended</option>
+        </SelectField>
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-base)] mt-6">
@@ -141,7 +120,7 @@ const DriverForm = ({ initial, onSubmit, loading, error }) => {
 };
 
 /* ─── ConfirmModal ─────────────────────────────────────────── */
-const ConfirmModal = ({ driver, onConfirm, onCancel, loading }) => (
+const ConfirmModal = ({ driver, onConfirm, onCancel, onSetOffDuty, loading, deleteError }) => (
   <div className="space-y-5">
     <div className="flex items-start gap-4 rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-error)]/20">
@@ -151,12 +130,21 @@ const ConfirmModal = ({ driver, onConfirm, onCancel, loading }) => (
         <p className="text-base font-semibold text-[var(--text-primary)]">Delete {driver.name}?</p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">License: {driver.licenseNumber} • {driver.licenseCategory}</p>
         <p className="mt-3 text-sm text-[var(--text-muted)]">
-          This action <span className="font-semibold text-[var(--color-error)]">cannot be undone</span>. Associated trip history will remain but the driver profile will be removed.
+          Drivers with associated trips cannot be deleted. Set the driver to Off Duty to deactivate them while preserving trip history.
         </p>
       </div>
     </div>
-    <div className="flex justify-end gap-3 pt-2">
+    {deleteError && (
+      <div className="flex items-start gap-3 rounded-lg bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-900/30">
+        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+        <p className="font-medium">{deleteError}</p>
+      </div>
+    )}
+    <div className="flex flex-wrap justify-end gap-3 pt-2">
       <Button variant="outline" onClick={onCancel} disabled={loading}>Cancel</Button>
+      {deleteError && driver.status !== 'Off Duty' && driver.status !== 'On Trip' && (
+        <Button variant="outline" onClick={onSetOffDuty} loading={loading} icon={UserX}>Set Off Duty</Button>
+      )}
       <Button variant="danger" onClick={onConfirm} loading={loading}>Delete Driver</Button>
     </div>
   </div>
@@ -174,6 +162,7 @@ const DriversPage = () => {
   const [selected, setSelected] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const [toast, setToast] = useState(null);
 
@@ -234,13 +223,34 @@ const DriversPage = () => {
 
   const handleDelete = async () => {
     setFormLoading(true);
+    setDeleteError('');
     try {
       await api.delete(`/drivers/${selected._id}`);
       showToast(`Driver "${selected.name}" deleted`);
       setModal(null);
       fetchDrivers();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to delete driver', 'error');
+      const message = err.response?.data?.message || 'Failed to delete driver';
+      if (err.response?.status === 409) {
+        setDeleteError(message);
+      } else {
+        showToast(message, 'error');
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleSetOffDuty = async (driver = selected) => {
+    if (!driver || driver.status === 'Off Duty') return;
+    setFormLoading(true);
+    try {
+      await api.put(`/drivers/${driver._id}`, { status: 'Off Duty' });
+      showToast(`Driver "${driver.name}" set to Off Duty`);
+      setModal(null);
+      fetchDrivers();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update driver status', 'error');
     } finally {
       setFormLoading(false);
     }
@@ -254,6 +264,7 @@ const DriversPage = () => {
 
   const openDelete = (driver) => {
     setSelected(driver);
+    setDeleteError('');
     setModal('delete');
   };
 
@@ -261,6 +272,7 @@ const DriversPage = () => {
     setModal(null);
     setSelected(null);
     setFormError('');
+    setDeleteError('');
   };
 
   return (
@@ -429,6 +441,17 @@ const DriversPage = () => {
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
+                            {driver.status === 'Available' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleSetOffDuty(driver)}
+                                className="h-8 w-8 text-[var(--text-muted)] hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                title="Set off duty"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -470,7 +493,7 @@ const DriversPage = () => {
 
       {modal === 'delete' && selected && (
         <Modal title="Confirm Deletion" onClose={closeModal} maxWidth="max-w-sm">
-          <ConfirmModal driver={selected} onConfirm={handleDelete} onCancel={closeModal} loading={formLoading} />
+          <ConfirmModal driver={selected} onConfirm={handleDelete} onCancel={closeModal} onSetOffDuty={() => handleSetOffDuty()} loading={formLoading} deleteError={deleteError} />
         </Modal>
       )}
 

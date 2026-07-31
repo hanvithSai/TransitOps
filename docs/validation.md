@@ -1,6 +1,10 @@
 # TransitOps Production Readiness Validation Checklist
 
-This checklist is structured by priority to ensure complete production readiness for the TransitOps platform. It covers backend, frontend, security, and infrastructure validations.
+**Last updated:** July 31, 2026
+
+This checklist tracks production readiness. ✅ = implemented and verified · ⚠️ = partial or known issue · ☐ = not yet done.
+
+For prioritized fix list see `backlog.md`. For audit details see `audit-report.md`.
 
 ---
 
@@ -8,10 +12,11 @@ This checklist is structured by priority to ensure complete production readiness
 
 ## Feature / Functionality
 ### Current Implementation
-- **Complete**: JWT-based login, role-based access control (admin, fleet_manager, driver, safety_officer, financial_analyst), `ProtectedRoute.jsx` for UI.
-- **Partial**: Token refresh mechanism (exists but needs concurrent request handling check).
-- **Missing**: Account lockout on failed attempts.
-- **Done**: Password reset flow (`POST /auth/forgot-password`, `POST /auth/reset-password/:token`). Dev without SMTP returns Ethereal preview URL.
+- ✅ JWT login, RBAC (role names), `ProtectedRoute.jsx`, token refresh queue
+- ✅ Password reset flow (`POST /auth/forgot-password`, `POST /auth/reset-password/:token`); dev without SMTP returns Ethereal preview URL
+- ⚠️ Mock login fallback on 401 masks wrong-password errors
+- ☐ Account lockout on failed attempts
+- ☐ Rate limiting on auth endpoints (broader coverage beyond auth routes)
 
 ### Business Logic Validation
 - □ User cannot access endpoints outside their assigned role permissions.
@@ -49,9 +54,9 @@ This checklist is structured by priority to ensure complete production readiness
 
 ## Feature / Functionality
 ### Current Implementation
-- **Complete**: CRUD operations, pagination, search, status enum, soft-delete prevention (cannot delete if associated records exist).
-- **Partial**: Vehicle lifecycle management.
-- **Missing**: Image uploads for vehicles, detailed technical specifications schema.
+- ✅ CRUD, pagination, search, status enum, delete protection (409 if associated records)
+- ✅ Retire action (status `Retired`) as alternative to delete
+- ☐ Image uploads, extended specifications schema
 
 ### Business Logic Validation
 - □ Vehicle registration number must be strictly unique (case-insensitive).
@@ -327,10 +332,13 @@ Follow this workflow in a staging environment to guarantee end-to-end functional
 
 ---
 
-# 14. Technical Debt & Improvements (Nice-to-Have)
+# 14. Technical Debt & Improvements
 
-- **MongoDB Transactions**: Wrap `tripService.dispatchTrip` and `completeTrip` in `session.withTransaction()` to ensure atomic updates across Vehicle, Driver, and Trip collections. Currently vulnerable to race conditions or partial failures.
-- **Concurrent Request Handling**: Implement a mutex or optimistic concurrency control (versioning) on the Vehicle/Driver status to prevent rapid double-clicks from double-dispatching.
-- **Frontend State Management**: Transition from heavy prop-drilling or local state to React Query (TanStack Query) for advanced caching, background refetching, and simplified loading states.
-- **Data Archiving**: Implement cron jobs to archive old completed trips to a cold collection to keep the main Trip collection fast.
-- **Automated Testing**: Expand Jest coverage to include integration tests for API endpoints using Supertest.
+See `docs/backlog.md` for the current prioritized backlog. Key open items:
+
+- **MongoDB transactions** on trip dispatch (race condition)
+- **RBAC** on dashboard/reports endpoints
+- **Mock data schema alignment** for offline demo mode
+- **Vehicle odometer roll-forward** on trip completion
+- **Expand Jest coverage** beyond RBAC mocks
+- **React Query** adoption for server-state caching (optional)

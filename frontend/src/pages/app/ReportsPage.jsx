@@ -139,7 +139,7 @@ const ReportsPage = () => {
                     </TableCell>
                     <TableCell className="font-medium text-[var(--text-secondary)]">${row.revenue.toLocaleString()}</TableCell>
                     <TableCell className="font-medium text-[var(--text-secondary)]">${row.fuel.toLocaleString()}</TableCell>
-                    <TableCell className="font-medium text-[var(--text-secondary)]">${row.expenses.toLocaleString()}</TableCell>
+                    <TableCell className="font-medium text-[var(--text-secondary)]">${((row.expenses || 0) + (row.maintenance || 0)).toLocaleString()}</TableCell>
                     <TableCell className={`text-right font-bold ${row.roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {row.roi >= 0 ? '+' : '-'}${Math.abs(row.roi).toLocaleString()}
                     </TableCell>

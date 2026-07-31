@@ -40,6 +40,8 @@ const maintenanceLogSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+maintenanceLogSchema.index({ vehicle: 1, date: -1 });
+
 const MaintenanceLog = mongoose.model('MaintenanceLog', maintenanceLogSchema);
 
 module.exports = MaintenanceLog;

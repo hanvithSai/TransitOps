@@ -444,11 +444,13 @@ Phase 5
 Phase 6
 - Fuel & Expenses
 
-Phase 7
-- Dashboard
+Phase 7 ✅ Complete
+- Dashboard KPIs + Recharts
 
-Phase 8
-- Reports & Bonus Features
+Phase 8 ✅ Complete
+- Reports, ROI aggregation, CSV export
+
+Phase 9+ — see `docs/backlog.md`
 
 ---
 

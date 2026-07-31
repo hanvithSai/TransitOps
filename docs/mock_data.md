@@ -1,7 +1,10 @@
 # Mock Data for TransitOps Demo
 
-The platform has been populated with a comprehensive set of mock data to facilitate demonstrations and testing. 
-All data has been updated to reflect realistic Indian operations, using Indian metric systems (INR for currency, Kilograms for weight, Kilometers for distance).
+**Last updated:** July 31, 2026
+
+The backend seeder populates MongoDB with realistic Indian fleet data. The frontend also has a separate `mockData.js` fallback for offline demo mode — **schema alignment with the live API is pending** (see `backlog.md` #2).
+
+All seeded accounts use password **`Password@123`**.
 
 ## User Accounts
 

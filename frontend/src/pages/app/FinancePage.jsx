@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Wallet, 
@@ -19,10 +21,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/common/Modal';
+import { SelectField } from '../../components/common/SelectField';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
-import { Toast } from '../../components/ui/Toast';
+import { Toast } from '../../components/common/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { fuelFormSchema, expenseFormSchema } from '../../schemas/finance';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 const CATEGORY_COLORS = {
@@ -58,13 +62,26 @@ const FinancePage = () => {
   
   // Dropdown data for forms
   const [vehicles, setVehicles] = useState([]);
-  const [trips, setTrips] = useState([]); // Draft or Dispatched trips for selection
-  
-  // Form State
-  const [formData, setFormData] = useState({
-    vehicle: '', trip: '', amount: '', category: 'Toll', notes: '',
-    liters: '', cost: '', odometer: '', date: new Date().toISOString().substring(0, 10)
+  const [trips, setTrips] = useState([]);
+
+  const defaultFormValues = {
+    vehicle: '',
+    trip: '',
+    amount: '',
+    category: 'Toll',
+    notes: '',
+    liters: '',
+    cost: '',
+    odometer: '',
+    date: new Date().toISOString().substring(0, 10),
+  };
+
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
+    resolver: zodResolver(isFuelTab ? fuelFormSchema : expenseFormSchema),
+    defaultValues: defaultFormValues,
   });
+
+  const selectedVehicle = watch('vehicle');
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
@@ -88,15 +105,12 @@ const FinancePage = () => {
   // Load vehicles and trips when opening modal
   const handleOpenModal = async () => {
     setErrorMsg('');
-    setFormData({
-      vehicle: '', trip: '', amount: '', category: 'Toll', notes: '',
-      liters: '', cost: '', odometer: '', date: new Date().toISOString().substring(0, 10)
-    });
-    
+    reset(defaultFormValues);
+
     try {
       const [vehRes, tripRes] = await Promise.all([
         api.get('/vehicles?limit=100'),
-        api.get('/trips?limit=100')
+        api.get('/trips?limit=100'),
       ]);
       setVehicles(vehRes.data.data.vehicles);
       setTrips(tripRes.data.data.trips);
@@ -106,25 +120,24 @@ const FinancePage = () => {
     }
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
+  const onFormSubmit = async (formData) => {
     setModalLoading(true);
     setErrorMsg('');
-    
+
     try {
       const endpoint = isFuelTab ? '/fuel' : '/expenses';
       const payload = {
         vehicle: formData.vehicle,
         trip: formData.trip || undefined,
-        date: new Date(formData.date).toISOString()
+        date: new Date(formData.date).toISOString(),
       };
-      
+
       if (isFuelTab) {
-        payload.liters = Number(formData.liters);
-        payload.cost = Number(formData.cost);
-        payload.odometer = Number(formData.odometer);
+        payload.liters = formData.liters;
+        payload.cost = formData.cost;
+        payload.odometer = formData.odometer;
       } else {
-        payload.amount = Number(formData.amount);
+        payload.amount = formData.amount;
         payload.category = formData.category;
         payload.notes = formData.notes;
       }
@@ -153,7 +166,7 @@ const FinancePage = () => {
   };
 
   // Filter trips in the dropdown based on selected vehicle
-  const filteredTrips = trips.filter(t => !formData.vehicle || t.vehicle?._id === formData.vehicle);
+  const filteredTrips = trips.filter((t) => !selectedVehicle || t.vehicle?._id === selectedVehicle);
 
   // Compute total for the current view
   const currentTotal = dataList.reduce((sum, item) => sum + (isFuelTab ? (item.cost || 0) : (item.amount || 0)), 0);
@@ -373,7 +386,7 @@ const FinancePage = () => {
       {/* ─── Log Modal ────────────────────────────────────────── */}
       {showModal && (
         <Modal title={`Log ${isFuelTab ? 'Fuel Entry' : 'Expense'}`} onClose={() => setShowModal(false)}>
-          <form onSubmit={handleFormSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
             {errorMsg && (
               <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
                 <AlertCircle className="h-4 w-4 shrink-0" />
@@ -382,118 +395,90 @@ const FinancePage = () => {
             )}
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                   <CarFront className="h-3.5 w-3.5" /> Vehicle <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <select 
-                    required 
-                    className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
-                    value={formData.vehicle} 
-                    onChange={e => setFormData({...formData, vehicle: e.target.value, trip: ''})}
-                  >
-                    <option value="" disabled>— Select Vehicle —</option>
-                    {vehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  </div>
-                </div>
+                <SelectField error={errors.vehicle?.message} required {...register('vehicle', {
+                  onChange: () => setValue('trip', ''),
+                })}>
+                  <option value="" disabled>— Select Vehicle —</option>
+                  {vehicles.map(v => <option key={v._id} value={v._id}>{v.registrationNumber}</option>)}
+                </SelectField>
               </div>
               
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                   <Map className="h-3.5 w-3.5" /> Trip (Optional)
                 </label>
-                <div className="relative">
-                  <select 
-                    className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)] disabled:opacity-60 disabled:cursor-not-allowed" 
-                    value={formData.trip} 
-                    onChange={e => setFormData({...formData, trip: e.target.value})}
-                    disabled={!formData.vehicle}
-                  >
-                    <option value="">— Select Associated Trip —</option>
-                    {filteredTrips.map(t => <option key={t._id} value={t._id}>{t.source} → {t.destination}</option>)}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  </div>
-                </div>
+                <SelectField disabled={!selectedVehicle} {...register('trip')}>
+                  <option value="">— Select Associated Trip —</option>
+                  {filteredTrips.map(t => <option key={t._id} value={t._id}>{t.source} → {t.destination}</option>)}
+                </SelectField>
               </div>
             </div>
 
             {isFuelTab ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <Fuel className="h-3.5 w-3.5" /> Liters <span className="text-red-500">*</span>
                   </label>
-                  <Input required type="number" step="0.1" min="0" placeholder="0.0" value={formData.liters} onChange={e => setFormData({...formData, liters: e.target.value})} />
+                  <Input required type="number" step="0.1" min="0" placeholder="0.0" error={errors.liters?.message} {...register('liters')} />
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <DollarSign className="h-3.5 w-3.5" /> Total Cost <span className="text-red-500">*</span>
                   </label>
-                  <Input required type="number" step="0.01" min="0" placeholder="0.00" value={formData.cost} onChange={e => setFormData({...formData, cost: e.target.value})} />
+                  <Input required type="number" step="0.01" min="0" placeholder="0.00" error={errors.cost?.message} {...register('cost')} />
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <Hash className="h-3.5 w-3.5" /> Odometer <span className="text-red-500">*</span>
                   </label>
-                  <Input required type="number" min="0" placeholder="e.g. 15000" value={formData.odometer} onChange={e => setFormData({...formData, odometer: e.target.value})} />
+                  <Input required type="number" min="0" placeholder="e.g. 15000" error={errors.odometer?.message} {...register('odometer')} />
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <Receipt className="h-3.5 w-3.5" /> Category <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <select 
-                      required 
-                      className="w-full appearance-none rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--color-brand-500)] focus:ring-1 focus:ring-[var(--color-brand-500)] hover:border-[var(--color-brand-300)] dark:hover:border-[var(--color-brand-700)]" 
-                      value={formData.category} 
-                      onChange={e => setFormData({...formData, category: e.target.value})}
-                    >
-                      <option value="Toll">Toll</option>
-                      <option value="Repair">Repair</option>
-                      <option value="Parking">Parking</option>
-                      <option value="Insurance">Insurance</option>
-                      <option value="Miscellaneous">Miscellaneous</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-muted)]">
-                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                    </div>
-                  </div>
+                  <SelectField error={errors.category?.message} required {...register('category')}>
+                    <option value="Toll">Toll</option>
+                    <option value="Repair">Repair</option>
+                    <option value="Parking">Parking</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Miscellaneous">Miscellaneous</option>
+                  </SelectField>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <DollarSign className="h-3.5 w-3.5" /> Amount <span className="text-red-500">*</span>
                   </label>
-                  <Input required type="number" step="0.01" min="0" placeholder="0.00" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
+                  <Input required type="number" step="0.01" min="0" placeholder="0.00" error={errors.amount?.message} {...register('amount')} />
                 </div>
               </div>
             )}
 
             <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                   <Calendar className="h-3.5 w-3.5" /> Date <span className="text-red-500">*</span>
                 </label>
-                <Input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                <Input required type="date" error={errors.date?.message} {...register('date')} />
               </div>
               
               {!isFuelTab && (
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 mb-1.5">
                     <FileText className="h-3.5 w-3.5" /> Notes
                   </label>
-                  <Input placeholder="Optional details about this expense..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+                  <Input placeholder="Optional details about this expense..." {...register('notes')} />
                 </div>
               )}
             </div>

@@ -1,10 +1,12 @@
 # TransitOps – Technical Implementation Reference
 
-> **Branch:** `FuEx`
-> **Phases:** 1–6 — Auth, Vehicles, Drivers, Trips, Maintenance, Fuel & Expenses
-> **Status:** ✅ Phases 1–6 Complete
-> **Stack:** MERN (MongoDB · Express.js · React · Node.js)
-> **Last Updated:** 2026-07-12
+> **Status:** ✅ Phases 1–8 Complete  
+> **Stack:** MERN (MongoDB · Express 5 · React 19 · Node.js)  
+> **Last Updated:** 2026-07-31
+
+**Phases:** 1 Auth · 2 Vehicles · 3 Drivers · 4 Trips · 5 Maintenance · 6 Fuel/Expenses · 7 Dashboard · 8 Reports/CSV
+
+Pending bugs and production items: see `backlog.md`.
 
 ---
 
@@ -23,10 +25,13 @@ TransitOps/
 │   │   ├── tripController.js             # Trip create/dispatch/complete/cancel
 │   │   ├── maintenanceController.js      # Maintenance log CRUD
 │   │   ├── fuelController.js             # Fuel log CRUD
-│   │   └── expenseController.js          # Expense CRUD
+│   │   ├── expenseController.js          # Expense CRUD
+│   │   ├── dashboardController.js        # Dashboard KPI aggregations
+│   │   └── reportController.js             # ROI report + CSV export
 │   ├── middlewares/
 │   │   ├── authenticate.js               # JWT Bearer verification
-│   │   └── authorize.js                  # RBAC role-gate factory
+│   │   ├── authorize.js                  # RBAC role-gate factory
+│   │   └── auditMiddleware.js            # Mutation audit logging
 │   ├── models/
 │   │   ├── Role.js                       # Role schema
 │   │   ├── User.js                       # User schema (bcrypt pre-save)
@@ -36,7 +41,8 @@ TransitOps/
 │   │   ├── Trip.js                       # Trip schema (compound indexes)
 │   │   ├── MaintenanceLog.js             # Maintenance log schema
 │   │   ├── FuelLog.js                    # Fuel log schema
-│   │   └── Expense.js                    # Expense schema
+│   │   ├── Expense.js                    # Expense schema
+│   │   └── AuditLog.js                   # Audit log schema
 │   ├── routes/
 │   │   ├── authRoutes.js                 # /api/auth
 │   │   ├── userRoutes.js                 # /api/users (admin only)
@@ -46,20 +52,25 @@ TransitOps/
 │   │   ├── tripRoutes.js                 # /api/trips
 │   │   ├── maintenanceRoutes.js          # /api/maintenance
 │   │   ├── fuelRoutes.js                 # /api/fuel
-│   │   └── expenseRoutes.js              # /api/expenses
+│   │   ├── expenseRoutes.js              # /api/expenses
+│   │   ├── dashboardRoutes.js            # /api/dashboard
+│   │   └── reportRoutes.js               # /api/reports
 │   ├── seeders/
-│   │   └── seed.js                       # Seeds roles + default admin
+│   │   └── seed.js                       # Seeds roles + demo fleet data
 │   ├── services/
 │   │   ├── authService.js                # Auth business logic
 │   │   ├── userService.js                # User CRUD business logic
-│   │   ├── vehicleService.js             # Vehicle CRUD business logic
-│   │   ├── driverService.js              # Driver CRUD business logic
+│   │   ├── vehicleService.js             # Vehicle CRUD + delete protection
+│   │   ├── driverService.js              # Driver CRUD + delete protection
 │   │   ├── tripService.js                # Trip lifecycle + business rules
-│   │   ├── maintenanceService.js         # Maintenance log + vehicle status transitions
+│   │   ├── maintenanceService.js         # Maintenance + vehicle status sync
 │   │   ├── fuelService.js                # Fuel log CRUD logic
-│   │   └── expenseService.js             # Expense CRUD logic
+│   │   ├── expenseService.js             # Expense CRUD logic
+│   │   └── reportService.js              # ROI aggregation + CSV generation
 │   ├── utils/
-│   │   └── errorHandler.js              # AppError class + global handler
+│   │   ├── errorHandler.js               # AppError class + global handler
+│   │   ├── cronJobs.js                   # Daily license expiry suspension
+│   │   └── sendEmail.js                  # Nodemailer helper
 │   ├── validators/
 │   │   ├── authValidator.js              # express-validator rule sets
 │   │   ├── vehicleValidator.js           # Vehicle field rules
@@ -74,24 +85,21 @@ TransitOps/
 └── frontend/
     ├── src/
     │   ├── components/
+    │   │   ├── ui/                       # Button, Card, Modal, Table, Toast, Skeleton, etc.
+    │   │   ├── common/                   # Modal/Toast re-exports, SelectField
     │   │   └── ProtectedRoute.jsx        # Auth + role guard component
+    │   ├── schemas/                      # Zod form schemas (mirror backend validators)
     │   ├── contexts/
     │   │   └── AuthContext.jsx           # Auth state + login/logout + useAuth()
     │   ├── layouts/
-    │   │   └── AppLayout.jsx             # Collapsible sidebar + top bar
+    │   │   └── AppLayout.jsx             # Sidebar, breadcrumbs, theme toggle
     │   ├── pages/
-    │   │   ├── auth/
-    │   │   │   └── LoginPage.jsx         # Premium dark login page
-    │   │   ├── DashboardPage.jsx         # Phase 7 placeholder
-    │   │   ├── UsersPage.jsx             # Admin user management UI
-    │   │   ├── VehiclesPage.jsx          # Vehicle Registry UI
-    │   │   ├── DriversPage.jsx           # Driver Registry UI
-    │   │   ├── TripsPage.jsx             # Trip management UI
-    │   │   ├── MaintenancePage.jsx       # Maintenance split-pane UI
-    │   │   ├── FinancePage.jsx           # Tabbed Fuel & Expense UI
-    │   │   └── UnauthorizedPage.jsx      # 403 page
+    │   │   ├── LandingPage.jsx           # Marketing landing page
+    │   │   ├── auth/                     # Login, Register, Forgot/Reset Password
+    │   │   └── app/                      # Dashboard, Vehicles, Drivers, Trips, etc.
     │   ├── services/
-    │   │   └── api.js                    # Axios instance + interceptors
+    │   │   ├── api.js                    # Axios instance + interceptors + mock fallback
+    │   │   └── mockData.js               # Offline demo data
     │   ├── App.jsx                       # React Router + route definitions
     │   ├── index.css                     # Tailwind v4 + design tokens
     │   └── main.jsx                      # React entry point
@@ -116,6 +124,8 @@ TransitOps/
 | `cors` | ^2.8.6 | Cross-origin resource sharing |
 | `dotenv` | ^17.4.2 | Environment variable loading |
 | `nodemon` | ^3.1.14 | Dev auto-restart |
+| `node-cron` | ^4.6.0 | Scheduled jobs (license expiry) |
+| `nodemailer` | ^9.0.3 | Password-reset emails |
 
 ### Frontend
 
@@ -125,6 +135,11 @@ TransitOps/
 | `react-dom` | ^19.2.7 | DOM renderer |
 | `react-router-dom` | ^7.18.1 | Client-side routing |
 | `axios` | ^1.18.1 | HTTP client |
+| `recharts` | ^3.9.2 | Dashboard charts |
+| `react-hook-form` | ^7.83.0 | Form state |
+| `zod` | ^4.4.3 | Client validation |
+| `@hookform/resolvers` | ^5.5.7 | Zod ↔ RHF bridge |
+| `lucide-react` | ^1.24.0 | Icons |
 | `tailwindcss` | ^4.3.2 | Utility-first CSS (v4) |
 | `@tailwindcss/vite` | ^4.3.2 | Vite integration plugin |
 | `vite` | ^8.1.1 | Build tool & dev server |
@@ -136,16 +151,24 @@ TransitOps/
 **File:** `backend/.env`
 
 ```env
-MONGO_URI=mongodb+srv://...          # MongoDB Atlas connection string
-PORT=5000                            # Express server port
+MONGO_URI=mongodb://localhost:27017/transitops_dev
+PORT=5000
 JWT_SECRET=...                       # Access token signing secret
-CLIENT_URL=http://localhost:5173     # Frontend origin for CORS and password-reset links
-NODE_ENV=development                 # Environment flag
+JWT_REFRESH_SECRET=...               # Reserved (refresh tokens are random bytes)
+CLIENT_URL=http://localhost:5173     # CORS allowed origin; also used for password-reset links
+FRONTEND_URL=http://localhost:5173   # Password-reset email link base URL (auth controller fallback)
+NODE_ENV=development
+SMTP_HOST=...
+SMTP_PORT=465
+SMTP_USER=...
+SMTP_PASS=...
+FROM_EMAIL=...
+FROM_NAME=TransitOps
 ```
 
 ---
 
-## 4. Database Collections (Phases 1–6)
+## 4. Database Collections
 
 ### 4.1 `roles` Collection
 
@@ -411,7 +434,26 @@ All routes require: `Authorization: Bearer <accessToken>` with `admin` role.
 | `PUT` | `/api/expenses/:id` | admin, fleet_manager | Updated `{ expense }` |
 | `DELETE` | `/api/expenses/:id` | admin, fleet_manager | `{ message }` |
 
-### 5.10 Standard Response Envelope
+### 5.10 Dashboard Routes — `/api/dashboard`
+
+| Method | Endpoint | Auth | Response |
+|---|---|---|---|
+| `GET` | `/api/dashboard/stats` | Any authenticated user ⚠️ | KPI counts, fleet utilization, 6-month trend data for charts |
+
+> **Note:** RBAC restriction to operational roles is pending — see `backlog.md` #4.
+
+### 5.11 Report Routes — `/api/reports`
+
+| Method | Endpoint | Auth | Response |
+|---|---|---|---|
+| `GET` | `/api/reports/roi` | Any authenticated user ⚠️ | Per-vehicle ROI (revenue, fuel, expenses, maintenance, net ROI) + fleet metrics |
+| `GET` | `/api/reports/roi/download` | Any authenticated user ⚠️ | CSV file download |
+
+> **Note:** RBAC restriction to admin/financial_analyst is pending — see `backlog.md` #4.
+
+CSV is generated in `reportService.generateCSV()` (hand-rolled, not `json2csv`).
+
+### 5.12 Standard Response Envelope
 
 ```json
 // Success
@@ -659,7 +701,18 @@ Stack traces included only in `NODE_ENV=development`.
 
 **Seeds:**
 1. All 5 roles with permissions
-2. Admin user: `admin@transitops.com` / `Admin@123`
+2. Five demo users (see table below)
+3. 20 vehicles, 25 drivers, 60 trips, fuel logs, expenses, maintenance logs
+
+**Demo credentials** (password for all: `Password@123`):
+
+| Email | Role |
+|---|---|
+| `admin@transitops.com` | admin |
+| `manager@transitops.com` | fleet_manager |
+| `driver@transitops.com` | driver |
+| `safety@transitops.com` | safety_officer |
+| `finance@transitops.com` | financial_analyst |
 
 ---
 
@@ -670,22 +723,24 @@ Stack traces included only in `NODE_ENV=development`.
 **File:** `frontend/src/App.jsx`
 
 ```
-/                     → redirect to /dashboard
+/                     → LandingPage (public marketing site)
 /login                → LoginPage (public)
+/register             → RegisterPage (public)
+/forgot-password      → ForgotPasswordPage (public)
+/reset-password/:token → ResetPasswordPage (public) ⚠️ PUT/POST mismatch — see backlog #1
 /unauthorized         → UnauthorizedPage (public)
 /*                    → NotFoundPage (public)
-
-/dev/components       → DevComponentsPage (development only)
+/dev/components       → DevComponentsPage (development only — remove before production)
 
 Protected (ProtectedRoute wrapping AppLayout):
-  /dashboard          → DashboardPage (placeholder)
+  /dashboard          → DashboardPage (live KPIs + Recharts)
   /vehicles           → VehiclesPage (admin, fleet_manager, driver)
   /drivers            → DriversPage (admin, driver, safety_officer)
   /trips              → TripsPage (admin, fleet_manager, driver, safety_officer)
   /maintenance        → MaintenancePage (admin, fleet_manager)
   /fuel               → FinancePage (admin, fleet_manager, driver)
   /expenses           → FinancePage (admin, fleet_manager, driver)
-  /reports            → ComingSoon (Phase 8)
+  /reports            → ReportsPage (ROI table + CSV export)
   /users              → UsersPage (admin only)
 
 *                     → redirect to /dashboard
@@ -793,8 +848,9 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Stats bar | Total / Available / On Trip / In Shop or Retired |
 | Search & Filter | Real-time filter on reg/name/model + Status dropdown |
 | Vehicle table | Formatted details, capacity/odometer, status badges |
-| Create/Edit modal | Form with numeric constraints for capacity/odometer/cost |
-| Delete modal | Confirmation dialog before hard delete |
+| Create/Edit modal | React Hook Form + Zod; numeric constraints for capacity/odometer/cost |
+| Delete modal | Confirmation dialog; 409 shows Retire alternative |
+| Retire action | Row action + delete-modal fallback sets status to `Retired` |
 | RBAC UI | Create/Edit/Delete actions hidden from `driver` |
 
 ### 11.9 DriversPage — Driver Registry
@@ -808,8 +864,9 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Driver table | Avatar initials, license details, expiry date with warning highlights |
 | Expiry warnings | Color-coded badges for expired (red) or expiring within 30 days (amber) |
 | Safety Score | Color-coded badge: >= 90 green, >= 70 amber, < 70 red |
-| Create/Edit modal | Full form with date picker for expiry |
-| Delete modal | Confirmation dialog before hard delete |
+| Create/Edit modal | React Hook Form + Zod; date picker for expiry |
+| Delete modal | Confirmation dialog; 409 shows Set Off Duty alternative |
+| Set Off Duty | Row action deactivates driver while preserving trip history |
 | RBAC UI | Create/Edit/Delete actions restricted to `admin` and `safety_officer` |
 
 ### 11.10 TripsPage — Trip Management
@@ -854,6 +911,30 @@ Protected (ProtectedRoute wrapping AppLayout):
 | Relational Validation | UI alerts user if the selected trip doesn't belong to the selected vehicle |
 | Category Badges | Unique color styling for Expense categories (`Toll`, `Repair`, `Parking`, etc.) |
 | RBAC UI | Creation restricted to `admin` and `fleet_manager`; `driver` has read-only access |
+| Form validation | React Hook Form + Zod in create modal |
+
+### 11.13 DashboardPage — Fleet KPIs
+
+**File:** `frontend/src/pages/app/DashboardPage.jsx`
+
+| Feature | Implementation |
+|---|---|
+| KPI cards | Vehicles, drivers, trips, fuel & maintenance cost totals |
+| Fleet utilization | Percentage from API |
+| Charts | 6-month trends + fleet status pie (Recharts) |
+| Loading | SkeletonKpiGrid |
+| API | `GET /api/dashboard/stats` |
+
+### 11.14 ReportsPage — ROI Analytics
+
+**File:** `frontend/src/pages/app/ReportsPage.jsx`
+
+| Feature | Implementation |
+|---|---|
+| Summary metrics | Fleet utilization, fuel efficiency, operational cost |
+| ROI table | Per-vehicle revenue, fuel, expenses + maintenance, net ROI |
+| CSV export | Download via `/api/reports/roi/download` |
+| API | `GET /api/reports/roi` |
 
 ---
 
@@ -904,13 +985,7 @@ npm run preview # Preview production build
 
 ## 14. Default Credentials
 
-| Email | Password | Role |
-|---|---|---|
-| `admin@transitops.com` | `Admin@123` | Administrator |
-
-> Additional users can self-register via the public **Create Account** page (`/login`),
-> which creates their accounts in a "pending approval" state (`isActive: false`).
-> The Admin must activate them via the User Management UI (`/users`).
+See `docs/mock_data.md` for the full table. Password for all seeded accounts: **`Password@123`**
 
 ---
 
@@ -924,5 +999,6 @@ npm run preview # Preview production build
 | **4** | Trip Engine | ✅ **Complete** |
 | **5** | Maintenance | ✅ **Complete** |
 | **6** | Fuel & Expenses | ✅ **Complete** |
-| 7 | Dashboard KPIs | ⏳ Pending |
-| 8 | Reports & Bonus Features | ⏳ Pending |
+| **7** | Dashboard KPIs | ✅ **Complete** |
+| **8** | Reports & CSV Export | ✅ **Complete** |
+| **9+** | Future enhancements | See `backlog.md` P6 |
