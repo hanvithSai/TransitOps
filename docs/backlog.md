@@ -1,7 +1,7 @@
 # TransitOps Backlog
 
-**Last updated:** July 31, 2026 (P6 batch — `minorFixes`)  
-**Scope:** Remaining post-MVP work after P6 implementation batch.
+**Last updated:** July 31, 2026 (production live · Vercel + Render + Atlas)  
+**Scope:** Remaining post-MVP work after P6 implementation and cloud deployment.
 
 **Recently shipped (P6 batch):** PDF ROI export, license expiry email reminders + in-app notifications, user↔driver linking, recurring maintenance schedules, RBAC `permissions` array enforcement, API rate limiting, account lockout, refresh token cap, notification bell UI, Trips EmptyState, mobile vehicle cards, `useEntityList` hook.
 
@@ -44,7 +44,8 @@
 |------|--------|
 | MVP (Phases 1–8) | ✅ Complete |
 | P0–P4 hardening | ✅ Complete |
-| P6 automatable batch | ✅ Mostly complete |
+| P6 automatable batch | ✅ Complete |
+| Cloud deployment (Vercel + Render + Atlas) | ✅ Live — `docs/deployment.md` |
 | P6 external/deferred | 5 items |
 
-**Bottom line:** Core P6 security and ops features are shipped. Remaining items need file storage, GPS, mobile app, or AI services.
+**Bottom line:** Core P6 and deployment are complete. Remaining items need file storage, GPS, mobile app, or AI services.

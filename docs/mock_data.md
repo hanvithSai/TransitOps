@@ -1,8 +1,10 @@
 # Mock Data for TransitOps Demo
 
-**Last updated:** July 31, 2026 (post P4 hardening · CI green)
+**Last updated:** July 31, 2026 (production · Atlas `transitops` database)
 
-The backend seeder populates MongoDB with realistic Indian fleet data. The frontend `mockData.js` fallback serves aligned offline data when the API is unreachable (network error or 5xx only — auth errors are never mocked).
+The backend seeder populates MongoDB with realistic Indian fleet data. Run with `node seeders/seed.js` from `backend/`. The frontend `mockData.js` fallback serves aligned offline data when the API is unreachable (network error or 5xx only — auth errors are never mocked).
+
+**Production and local dev** share the same seeded credentials when pointed at the Atlas `transitops` database.
 
 All seeded accounts use password **`Password@123`**.
 

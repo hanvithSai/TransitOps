@@ -1,10 +1,10 @@
 # TransitOps Repository Audit Report
 
-**Audit date:** July 31, 2026 (fourth pass — post P4 hardening + CI green)  
-**Branch reviewed:** `main` (`f61fcfb`)  
-**Scope:** Full repository review — backend, frontend, documentation, infrastructure, CI
+**Audit date:** July 31, 2026 (fifth pass — post cloud deployment)  
+**Branch reviewed:** `main`  
+**Scope:** Full repository review — backend, frontend, documentation, infrastructure, CI, production deployment
 
-> **Previous audits:** July 30, 2026 (initial); July 31, 2026 (P0–P3 hardening); July 31, 2026 (P4 production items). This pass reflects Docker Compose, expanded tests, audit log UI, health endpoint, and restored green GitHub Actions CI.
+> **Previous audits:** July 30–31, 2026 (P0–P4 hardening, P6 batch, CI green). This pass reflects **live production** on Vercel + Render + MongoDB Atlas and dev/prod environment split.
 
 ---
 
@@ -12,9 +12,9 @@
 
 **TransitOps** is a fleet operations platform built for the ODOO Hiring Hackathon — vehicles, drivers, trips, maintenance, fuel/expenses, dashboard KPIs, and ROI reporting.
 
-The codebase is **MVP-complete and production-hardened for demo deployment**. PRD Phases 1–8 are implemented. Hardening passes P0–P4 closed security, data-integrity, test, Docker, and operational gaps. **GitHub Actions CI is passing on `main`.**
+The codebase is **MVP-complete, production-deployed, and demo-ready**. PRD Phases 1–8 are implemented. P0–P6 automatable features are shipped. **Production:** https://transitops-han.vercel.app · **API:** https://transitops-yqkc.onrender.com · **CI:** passing on `main`.
 
-**Remaining work** is **P6** future product features (PDF export, notifications, GPS, etc.) plus optional polish — see `backlog.md`.
+**Remaining work** is **P6 deferred** items (file uploads, GPS, mobile app, AI) — see `backlog.md`.
 
 ---
 
@@ -50,7 +50,7 @@ Organizations running fleet operations on spreadsheets face:
 | Auth | JWT (`pwdAt` claim) + httpOnly refresh cookies (rotated), bcrypt (12 rounds) |
 | Automation | `node-cron` — daily license expiry suspension (IST) |
 | CI | GitHub Actions — backend Jest (8 suites), frontend Vitest + ESLint + build (**passing**) |
-| Deployment | Docker Compose (MongoDB replica set + API + nginx frontend); no cloud IaC in repo |
+| Deployment | **Production:** Vercel (frontend) + Render Docker (backend) + MongoDB Atlas; local: Docker Compose |
 
 ---
 
@@ -72,20 +72,20 @@ Organizations running fleet operations on spreadsheets face:
 | Audit Logging | ✅ | ✅ | Write middleware + `GET /api/audit-logs` + admin UI |
 | Offline demo mode | — | ✅ | `mockData.js` aligned with API schemas |
 | Form validation | — | ✅ | RHF + Zod on major CRUD pages |
-| Operations | ✅ | — | `/api/health`, env validation, SIGTERM shutdown, Docker Compose |
+| Operations | ✅ | — | `/api/health`, env validation, SIGTERM shutdown, Docker Compose, **Vercel + Render + Atlas** |
+| RBAC permissions | ✅ | ✅ | `Role.permissions` enforced in `authorize()` |
 
 ### Partially Implemented
 
 | Feature | Status | Gap |
 |---------|--------|-----|
-| RBAC permissions array | Stored in DB | Not enforced — role names only |
 | Dark mode | Landing + app shell | Semantic success/warning colors incomplete |
 | Frontend test coverage | Vitest smoke tests | Only `ProtectedRoute` covered so far |
 | Trip dispatch transactions | Implemented | Requires MongoDB **replica set** (Docker Compose / Atlas) |
 
-### Not Implemented (PRD Future — P6)
+### Not Implemented (P6 deferred — external services)
 
-PDF export, license email reminders, notifications, user↔driver linking, document uploads, GPS, mobile app, AI forecasting, cloud deployment config (Vercel/Railway/etc.).
+Vehicle document uploads, receipt images, live GPS, mobile driver app, AI forecasting.
 
 ### PRD Phase Roadmap
 
@@ -184,17 +184,17 @@ All routes RBAC-gated via `ProtectedRoute` + backend `authorize()`. See `technic
 | Graceful shutdown | ✅ SIGTERM/SIGINT in `server.js` |
 | Startup env validation | ✅ `utils/validateEnv.js` |
 | GitHub Actions CI | ✅ Passing on `main` |
-| Cloud deployment config | ☐ Not in repo (manual Vercel/Railway setup) |
+| Cloud deployment | ✅ Vercel + Render + Atlas — `docs/deployment.md` |
+| Dev/prod env split | ✅ `.env.development` / `.env.production`, `vercel.json`, cross-origin cookies |
 | Seeder wipes all data | ⚠️ Dangerous on non-dev DB |
 
 ---
 
 ## 8. Recommended Next Steps
 
-1. **P6:** PDF export, license email reminders, in-app notifications
-2. **P6:** Enforce `Role.permissions` array programmatically
-3. **Optional:** Expand Vitest coverage; E2E tests for dispatch rule matrix
-4. **Optional:** Document or automate cloud deployment (frontend static + backend host)
+1. **P6 deferred:** File uploads (S3 policy), GPS/maps integration
+2. **Optional:** Expand Vitest/E2E coverage; E2E tests for dispatch rule matrix
+3. **Optional:** Upgrade Render from free tier to avoid cold starts
 
 ---
 
@@ -208,11 +208,11 @@ All routes RBAC-gated via `ProtectedRoute` + backend `authorize()`. See `technic
 | Data integrity | **90%** | Transactions, odometer, revenue, validation |
 | Frontend UX | **90%** | Debounce, skeletons, EmptyState, a11y modal, audit UI |
 | Testing | **58%** | 8 backend suites + Vitest smoke; no E2E |
-| Documentation | **92%** | Synced this pass |
-| DevOps | **72%** | CI green + Docker Compose; no cloud IaC |
+| Documentation | **95%** | Synced incl. `deployment.md` |
+| DevOps | **88%** | CI green + Docker Compose + live Vercel/Render/Atlas deployment |
 
 ---
 
 ## Bottom Line
 
-TransitOps is **demo-ready and production-hardened** for local/Docker deployment with a complete MVP, solid security baseline, reliable business rules, and **passing CI**. Remaining work is post-MVP product features (P6) and optional cloud deployment automation.
+TransitOps is **production-deployed and demo-ready** with a complete MVP, solid security baseline, reliable business rules, and **passing CI**. Live at https://transitops-han.vercel.app. Remaining work is P6 deferred features requiring external services.

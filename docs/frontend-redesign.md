@@ -181,7 +181,10 @@ See git diff for full file list. Key changes:
 - Pages updated with PageHeader, Skeleton, EmptyState where applicable
 - Badge aliases: `success`→`emerald`, `info`→`blue`, `warning`→`amber`, `danger`→`red`, `default`→`gray`
 
-### Known Follow-ups (Jul 31, 2026 — post P4)
+### Known Follow-ups (Jul 31, 2026 — post deployment)
+
+- Production live: https://transitops-han.vercel.app
+- Remaining polish: mobile cards on Drivers/Users/Finance, broader Vitest coverage
 
 - ✅ React Hook Form + Zod on CRUD forms — **Done**
 - ✅ Retire / Set Off Duty delete alternatives — **Done**

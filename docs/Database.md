@@ -1,6 +1,6 @@
 # Database Documentation
 
-**Last updated:** July 31, 2026 (post P4 hardening)
+**Last updated:** July 31, 2026 (production · Atlas database `transitops`)
 
 ## Collections
 
@@ -81,8 +81,8 @@
 
 ## Seeder
 
-**Command:** `cd backend && npm run seed`
+**Command:** `cd backend && node seeders/seed.js` (or `npm run seed` if npm works)
 
-Idempotent upsert of 5 roles, 5 demo users, 20 vehicles, 25 drivers, 60 trips, and associated fuel/expense/maintenance records. **Warning:** re-running clears and regenerates all operational data.
+Targets the database in `MONGO_URI` (local Docker, or Atlas `transitops`). Idempotent upsert of 5 roles, 5 demo users, 20 vehicles, 25 drivers, 60 trips, and associated fuel/expense/maintenance records. **Warning:** re-running clears and regenerates all operational data in that database.
 
-See `mock_data.md` for credentials and data volumes.
+See `mock_data.md` for credentials and `deployment.md` for Atlas setup.

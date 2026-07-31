@@ -1,6 +1,6 @@
 # Engineering Documentation
 
-**Last updated:** July 31, 2026 (P6 batch on `minorFixes`)
+**Last updated:** July 31, 2026 (production deployed · Vercel + Render + Atlas)
 
 ## Engineering Decisions
 
@@ -16,8 +16,11 @@
 * **Session security:** JWT access tokens include `pwdAt` (password change timestamp); invalidated in `authenticate` after reset. Refresh tokens rotate on each `/auth/refresh`.
 * **Trip dispatch:** MongoDB transactions in `tripService.dispatchTrip` (requires replica-set MongoDB).
 * **Audit trail:** Mutations logged via `auditMiddleware`; admin read API at `GET /api/audit-logs` with filter UI on Users page.
+* **Cross-origin production auth:** Refresh cookies use `SameSite=None; Secure` when `NODE_ENV=production`; CORS reads `CLIENT_URL` / `FRONTEND_URL` (comma-separated supported).
+* **Environment split:** Frontend `.env.development` (localhost API) vs `.env.production` (Render API for Vercel builds).
+* **Local dev bypass:** `./dev` shell scripts run Vite/Express without npm (avoids corporate registry MFA on some machines).
 * **P6 batch:** PDF export, notifications, maintenance schedules, user↔driver link, permission-based RBAC, account lockout, API rate limit, refresh token cap.
-* **Demo fallback:** Frontend `api.js` serves aligned `mockData.js` on network error or 5xx only (auth endpoints excluded).
+* **Production hosting:** Vercel (frontend) + Render Docker (backend) + MongoDB Atlas — see `deployment.md`.
 
 ## Tech Stack
 
@@ -82,12 +85,15 @@ frontend/src/
 
 | Variable | Used by | Purpose |
 |----------|---------|---------|
-| `MONGO_URI` | Backend | MongoDB connection string |
+| `MONGO_URI` | Backend | MongoDB connection string (local, Atlas, or Docker) |
 | `JWT_SECRET` | Backend | Access token signing |
-| `CLIENT_URL` | Backend (CORS) | Allowed frontend origin |
+| `CLIENT_URL` | Backend (CORS) | Allowed frontend origin(s); prod: `https://transitops-han.vercel.app` |
 | `FRONTEND_URL` | Backend (auth emails) | Password-reset link base URL |
 | `SMTP_*` / `FROM_*` | Backend | Email delivery |
-| `VITE_API_URL` | Frontend | API base URL (e.g. `http://localhost:5000/api`) |
+| `PASSWORD_POLICY_ENFORCEMENT` | Backend | Set `false` on Render for demo logins |
+| `VITE_API_URL` | Frontend | Dev: `http://localhost:5000/api` · Prod: baked via `.env.production` |
+
+See `deployment.md` for the full environment matrix and live URLs.
 
 ## CI
 
@@ -101,5 +107,6 @@ GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main` (Node.js 22):
 ## Related Docs
 
 * Architecture detail: `technical.md`
+* Deployment: `deployment.md`
 * Pending work: `backlog.md`
 * Audit findings: `audit-report.md`

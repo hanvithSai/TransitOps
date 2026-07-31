@@ -1,6 +1,6 @@
 # TransitOps Production Readiness Validation Checklist
 
-**Last updated:** July 31, 2026 (post P4 hardening · CI green)
+**Last updated:** July 31, 2026 (production live · Vercel + Render + Atlas)
 
 This checklist tracks production readiness. ✅ = implemented · ⚠️ = partial · ☐ = not done.
 
@@ -23,8 +23,10 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - ✅ SIGTERM graceful shutdown + startup env validation (`validateEnv.js`)
 - ✅ Audit log read API (`GET /api/audit-logs`) + admin UI tab
 - ✅ GitHub Actions CI passing (backend tests, frontend Vitest + lint + build)
-- ⚠️ No account lockout; no rate limiting on non-auth routes
-- ☐ `Role.permissions` array enforcement
+- ✅ Production deployed: Vercel frontend + Render backend + MongoDB Atlas (`docs/deployment.md`)
+- ✅ Account lockout, API rate limiting, refresh token cap (P6)
+- ✅ `Role.permissions` array enforcement (P6)
+- ⚠️ Render free tier cold starts (~30–60s after idle)
 
 ### Business Logic Validation
 - □ User cannot access endpoints outside their assigned role permissions.
@@ -341,10 +343,9 @@ Follow this workflow in a staging environment to guarantee end-to-end functional
 
 # 14. Technical Debt & Improvements
 
-See `docs/backlog.md` for the current prioritized backlog. P0–P4 hardening is **complete** (Jul 31, 2026). Open items are **P6** future features and optional polish:
+See `docs/backlog.md` for the current prioritized backlog. P0–P6 automatable work is **complete** (Jul 31, 2026). Open items are **P6 deferred** features (file storage, GPS, mobile, AI):
 
-- PDF export, license email reminders, in-app notifications
-- `Role.permissions` array enforcement
-- Per-user refresh token cap, non-auth rate limiting, account lockout
-- Broader Vitest/E2E coverage (smoke tests exist today)
-- Cloud deployment documentation (Docker Compose covers local/full-stack demo)
+- Vehicle document uploads, receipt images
+- Live GPS / route optimization, mobile driver app, AI forecasting
+
+**Deployment:** Documented in `docs/deployment.md` — production live at https://transitops-han.vercel.app

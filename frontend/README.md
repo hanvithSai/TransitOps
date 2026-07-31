@@ -2,27 +2,37 @@
 
 React 19 + Vite 8 SPA for the TransitOps fleet operations platform.
 
+**Production:** https://transitops-han.vercel.app
+
 ## Setup
 
 ```bash
 nvm use                # Node 20.20.2+ (see .nvmrc)
 npm install
-cp .env.example .env   # set VITE_API_URL
-npm run dev            # http://localhost:5173
+./dev                  # http://localhost:5173
 ```
+
+If `npm run dev` opens Uber MFA login, use `./dev` instead (bypasses npm).
+
+Requires **backend running** on port 5000 (`cd backend && ./dev`).
 
 ## Environment
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `VITE_API_URL` | `http://localhost:5000/api` | Backend API base URL |
+| File | `VITE_API_URL` | Used when |
+|------|----------------|-----------|
+| `.env.development` | `http://localhost:5000/api` | Local dev (`./dev`) |
+| `.env.production` | `https://transitops-yqkc.onrender.com/api` | Vercel build |
+| `.env` | Optional local override | Gitignored |
+
+See `/docs/deployment.md` for full prod/dev matrix.
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Development server with HMR |
-| `npm run build` | Production build |
+| `./dev` | Development server with HMR (preferred locally) |
+| `npm run dev` | Same via npm (may trigger corporate MFA) |
+| `npm run build` | Production build (`dist/`) |
 | `npm run lint` | ESLint (runs in CI) |
 | `npm test` | Vitest — smoke tests for `ProtectedRoute` |
 | `npm run preview` | Preview production build |
@@ -36,15 +46,17 @@ npm run dev            # http://localhost:5173
 - `src/schemas/` — Zod validation (mirrors backend validators)
 - `src/services/api.js` — Axios + JWT refresh + mock fallback
 - `src/test/setup.js` — Vitest + Testing Library setup
+- `vercel.json` — SPA rewrites + build settings for Vercel
 
 ## Node version
 
 Requires **Node.js ≥ 20.19** (Vite 8 / ESLint 10). CI uses **Node.js 22**. See `.nvmrc`.
 
-## CI
+## CI & Deployment
 
-Included in GitHub Actions `frontend-ci` job: `npm test` → `npm run lint` → `npm run build`.
+- **CI:** GitHub Actions `frontend-ci` — `npm test` → `npm run lint` → `npm run build`
+- **Deploy:** Vercel auto-deploys from `main` (root: `frontend/`)
 
 ## Documentation
 
-See `/docs/technical.md` §11 and `/docs/style-guide.md` for architecture and UI conventions.
+See `/docs/deployment.md`, `/docs/technical.md` §11, and `/docs/style-guide.md`.

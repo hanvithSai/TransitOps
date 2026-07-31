@@ -1,7 +1,7 @@
 # Product Documentation
 
-**Last updated:** July 31, 2026 (post P4 hardening · CI green)  
-**MVP status:** Phases 1–8 complete · demo-ready · production-hardened
+**Last updated:** July 31, 2026 (production live · https://transitops-han.vercel.app)  
+**MVP status:** Phases 1–8 complete · production-deployed · demo-ready
 
 ## Product Features
 
@@ -13,9 +13,14 @@
 | Maintenance Workflow | ✅ | Auto-syncs vehicle to In Shop / Available; `closeDate` set on completion |
 | Fuel & Expenses | ✅ | Tabbed Finance page, linked to vehicles/trips |
 | Dashboard & Analytics | ✅ | Live KPIs + Recharts trend charts |
-| Reports & CSV Export | ✅ | Per-vehicle ROI including fuel, expenses, and maintenance |
-| User Management | ✅ | Admin CRUD, role assignment, approval workflow |
+| Reports & CSV Export | ✅ | Per-vehicle ROI; PDF export (P6) |
+| User Management | ✅ | Admin CRUD, role assignment, user↔driver linking |
+| Notifications | ✅ | In-app bell + license expiry cron (P6) |
 | Audit Logging | ✅ | Written on mutations; admin read API + Users page Audit tab |
+
+## Live Demo
+
+**Production:** https://transitops-han.vercel.app · Login: `admin@transitops.com` / `Password@123`
 
 ## User Stories
 
@@ -27,7 +32,7 @@
 ## User Experience (UX)
 
 * **Design system v2.1:** Tokens, UI primitives, dark mode, marketing landing page
-* **Role-based views:** Nav, `ProtectedRoute`, and backend `authorize()` aligned per role; `Role.permissions` array not yet enforced programmatically
+* **Role-based views:** Nav, `ProtectedRoute`, and backend `authorize()` with `Role.permissions` enforcement
 * **Interactive analytics:** Recharts on dashboard; ROI summary cards on reports
 * **Defensive deletion:** Delete blocked when history exists; Retire (vehicles) and Set Off Duty (drivers) offered as alternatives
 * **Form validation:** React Hook Form + Zod on all major CRUD forms
@@ -37,8 +42,7 @@
 
 ## Future Enhancements
 
-Tracked in `docs/backlog.md` (P6) and `docs/prd.md` §14:
+Tracked in `docs/backlog.md` (P6 deferred) and `docs/prd.md` §14:
 
-* PDF export, license expiry email reminders, in-app notifications
-* User ↔ Driver profile linking, vehicle document uploads
+* Vehicle document uploads, receipt image uploads
 * Live GPS, route optimization, mobile driver app, AI forecasting

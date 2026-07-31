@@ -1,8 +1,8 @@
 # TransitOps – Technical Implementation Reference
 
-> **Status:** ✅ Phases 1–8 Complete · P0–P4 hardening shipped on `main` (CI green)  
+> **Status:** ✅ Phases 1–8 Complete · P6 shipped · **Production live** (Vercel + Render + Atlas)  
 > **Stack:** MERN (MongoDB · Express 5 · React 19 · Node.js)  
-> **Last Updated:** 2026-07-31 (post P4 hardening)
+> **Last Updated:** 2026-07-31 (post cloud deployment)
 
 **Phases:** 1 Auth · 2 Vehicles · 3 Drivers · 4 Trips · 5 Maintenance · 6 Fuel/Expenses · 7 Dashboard · 8 Reports/CSV
 
@@ -165,16 +165,18 @@ TransitOps/
 
 ## 3. Environment Variables
 
-**File:** `backend/.env`
+### Backend (`backend/.env`)
+
+**Local development:**
 
 ```env
-MONGO_URI=mongodb://localhost:27017/transitops_dev
+MONGO_URI=mongodb+srv://USER:PASS@cluster.mongodb.net/transitops?retryWrites=true&w=majority
 PORT=5000
-JWT_SECRET=...                       # Access token signing secret
-JWT_REFRESH_SECRET=...               # Reserved (refresh tokens are random bytes)
-CLIENT_URL=http://localhost:5173     # CORS allowed origin; also used for password-reset links
-FRONTEND_URL=http://localhost:5173   # Password-reset email link base URL (auth controller fallback)
+JWT_SECRET=...                       # Access token signing secret (≥ 16 chars)
+CLIENT_URL=http://localhost:5173     # CORS allowed origin
+FRONTEND_URL=http://localhost:5173   # Password-reset email link base URL
 NODE_ENV=development
+PASSWORD_POLICY_ENFORCEMENT=true
 SMTP_HOST=...
 SMTP_PORT=465
 SMTP_USER=...
@@ -182,6 +184,17 @@ SMTP_PASS=...
 FROM_EMAIL=...
 FROM_NAME=TransitOps
 ```
+
+**Render (production):** Set `CLIENT_URL=https://transitops-han.vercel.app`, `NODE_ENV=production`, same `MONGO_URI` / `JWT_SECRET`. `JWT_REFRESH_SECRET` is **not used** (refresh tokens are random bytes in MongoDB).
+
+### Frontend
+
+| File | `VITE_API_URL` |
+|------|----------------|
+| `.env.development` | `http://localhost:5000/api` |
+| `.env.production` | `https://transitops-yqkc.onrender.com/api` |
+
+Full deployment guide: **`docs/deployment.md`**
 
 ---
 
@@ -576,9 +589,10 @@ Route → authenticate → authorize("role1", "role2") → controller
 
 ### 6.4 CORS
 
-- Production: origin locked to `CLIENT_URL` env variable (default: `http://localhost:5173`)
+- Production: origin must match `CLIENT_URL` or `FRONTEND_URL` (comma-separated list supported)
 - Development: any `http://localhost:<port>` or `http://127.0.0.1:<port>` origin is allowed (Vite may use 5174+ if 5173 is in use)
 - `credentials: true` — required to send/receive cookies for refresh token
+- Production refresh cookies: `SameSite=None; Secure` (cross-origin Vercel ↔ Render)
 
 ---
 
@@ -996,20 +1010,23 @@ Protected (ProtectedRoute wrapping AppLayout):
 ### Backend
 
 ```bash
-npm run dev    # nodemon server.js (development with auto-restart)
-npm run start  # node server.js (production)
-npm run seed   # Seed roles + demo data (idempotent)
-npm test       # Jest — 8 suites (use --watchman=false on macOS if needed)
+./dev            # node server.js (preferred if npm triggers corporate MFA)
+npm run dev      # nodemon server.js
+npm run start    # node server.js (production)
+node seeders/seed.js   # Seed roles + demo data (preferred over npm run seed)
+npm run seed     # Same as above via npm
+npm test         # Jest — 8 suites
 ```
 
 ### Frontend
 
 ```bash
-npm run dev     # Vite dev server (http://localhost:5173)
-npm run build   # Production build to dist/
-npm run lint    # ESLint (required by CI)
-npm test        # Vitest (ProtectedRoute smoke tests)
-npm run preview # Preview production build
+./dev            # Vite dev server (preferred if npm triggers corporate MFA)
+npm run dev      # http://localhost:5173
+npm run build    # Production build to dist/ (uses .env.production)
+npm run lint     # ESLint (required by CI)
+npm test         # Vitest
+npm run preview  # Preview production build
 ```
 
 ### Docker (repo root)
@@ -1017,6 +1034,16 @@ npm run preview # Preview production build
 ```bash
 docker compose up --build   # MongoDB replica set + API :5000 + frontend :5173
 ```
+
+### Production URLs
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://transitops-han.vercel.app |
+| API | https://transitops-yqkc.onrender.com |
+| Health | `GET /api/health` |
+
+See **`docs/deployment.md`** for Render/Vercel/Atlas setup.
 
 ---
 

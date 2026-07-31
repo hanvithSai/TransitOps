@@ -21,6 +21,7 @@ The platform is built using the MERN stack with a focus on maintainability and m
 *   **Security & Authentication:** JSON Web Tokens (JWT) for stateless authentication and Role-Based Access Control (RBAC). Passwords are encrypted using bcrypt.
 *   **Automation:** Node-cron for background tasks (e.g., automated license suspension).
 *   **Continuous Integration:** GitHub Actions — backend tests (8 suites / 53 tests), frontend Vitest + ESLint + production build. **CI status: passing on `main`.**
+*   **Production deployment:** Frontend on [Vercel](https://transitops-han.vercel.app) · Backend on [Render](https://transitops-yqkc.onrender.com) · MongoDB Atlas. See `docs/deployment.md`.
 
 ## Repository Structure
 
@@ -51,12 +52,14 @@ The project is structured as a monorepo, clearly separating the client applicati
     For password reset emails, configure SMTP in production. In development without SMTP, forgot-password returns an Ethereal preview link in the API response.
 4.  Seed roles and demo data (optional):
     ```bash
-    npm run seed
+    node seeders/seed.js
     ```
+    If `npm run seed` opens a corporate MFA login, use the command above instead.
 5.  Start the development server:
     ```bash
-    npm run dev
+    ./dev
     ```
+    Or `node server.js`. Use `./dev` if `npm run dev` triggers Uber/npm corporate auth.
 
 ### Frontend Setup
 
@@ -69,15 +72,18 @@ The project is structured as a monorepo, clearly separating the client applicati
     nvm use
     npm install
     ```
-3.  Create a `.env` file and set the backend API URL:
-    ```env
-    VITE_API_URL=http://localhost:5000/api
-    ```
+3.  Environment files (committed for dev/prod split):
+    *   `.env.development` — `VITE_API_URL=http://localhost:5000/api` (local dev)
+    *   `.env.production` — Render API URL (Vercel builds)
+    *   Optional: copy `.env.example` to `.env` for local overrides (gitignored)
 4.  Start the development server:
     ```bash
-    npm run dev
+    ./dev
     ```
+    Or `npm run dev`. Use `./dev` if npm opens corporate MFA login.
     Opens at `http://localhost:5173` by default. If that port is taken, Vite uses the next available port (e.g. 5174). The backend allows any localhost port in development.
+
+**Both** backend (`./dev` on port 5000) and frontend must be running for local login.
 
 ### Docker (full stack)
 
@@ -93,13 +99,22 @@ docker compose up --build
 
 Set `JWT_SECRET` in the environment or `.env` before starting (Compose provides a dev default).
 
+### Production (Vercel + Render + Atlas)
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://transitops-han.vercel.app |
+| API | https://transitops-yqkc.onrender.com |
+
+Full setup: **`docs/deployment.md`**
+
 ### Self-registration
 
 Users can register at `/register`. Password must be **at least 6 characters**. New accounts are created **inactive** until an admin activates them in the Users page. Admins can set **active/inactive** when creating users via the Users page.
 
 ## Demo Credentials
 
-After running `npm run seed`, log in with any of these accounts. Password for all: **`Password@123`**
+After running `node seeders/seed.js` (or `npm run seed`), log in with any of these accounts. Password for all: **`Password@123`**
 
 | Role | Email |
 |------|-------|
@@ -113,14 +128,15 @@ See `docs/mock_data.md` for full seeded dataset details.
 
 ## Implementation Status
 
-**MVP Phases 1–8 are complete.** P0–P4 hardening is shipped: mock offline mode, trip dispatch transactions, session security, test coverage (8 backend suites + Vitest smoke tests), Docker Compose, health endpoint, admin audit log UI, and green CI on `main`.
+**MVP Phases 1–8 are complete.** P0–P6 hardening and core product features are shipped. **Production is live** on Vercel + Render + MongoDB Atlas.
 
-Remaining work is **P6** future product features — see `docs/backlog.md`. Audit: `docs/audit-report.md`.
+Remaining work is **P6 deferred items** (file uploads, GPS, mobile app, AI) — see `docs/backlog.md`. Audit: `docs/audit-report.md`. Deployment: `docs/deployment.md`.
 
 ## Documentation
 
 | Document | Purpose |
 |----------|---------|
+| `docs/deployment.md` | **Production & local deployment** — Vercel, Render, Atlas, env matrix |
 | `docs/technical.md` | Full technical reference — API routes, services, frontend architecture |
 | `docs/Engineering.md` | Engineering decisions and stack overview |
 | `docs/Product.md` | Features, user stories, UX principles |
