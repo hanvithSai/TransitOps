@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api, { setTokenRefreshHandler } from '../services/api';
+import api, { setTokenRefreshHandler, warmBackend } from '../services/api';
 import { getApiErrorMessage } from '../lib/apiErrors';
 
 const AuthContext = createContext(null);
@@ -8,6 +8,11 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true); // initial auth check
   const [error, setError]     = useState(null);
+
+  // ── Warm backend on load (helps Render cold starts) ───────────
+  useEffect(() => {
+    warmBackend();
+  }, []);
 
   // ── Restore session on mount ──────────────────────────────────
   useEffect(() => {

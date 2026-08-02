@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import BackendStatusBanner from './components/common/BackendStatusBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
 import LandingPage from './pages/LandingPage';
@@ -24,6 +25,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <BackendStatusBanner />
         <Routes>
           {import.meta.env.DEV && (
             <Route path="/dev/components" element={<DevComponentsPage />} />

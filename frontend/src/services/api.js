@@ -1,15 +1,72 @@
 import axios from 'axios';
 import { mockData } from './mockData';
 
+const isDev = import.meta.env.DEV;
+const REQUEST_TIMEOUT_MS = isDev ? 30_000 : 90_000;
+const MAX_NETWORK_RETRIES = 2;
+const RETRY_DELAY_MS = 5_000;
+
+export const BACKEND_STATUS = {
+  CHECKING: 'checking',
+  ONLINE: 'online',
+  SLOW: 'slow',
+  OFFLINE: 'offline',
+};
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  timeout: REQUEST_TIMEOUT_MS,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// ── Demo mode tracking ─────────────────────────────────────────
+// ── Backend connectivity ───────────────────────────────────────
+let backendStatus = BACKEND_STATUS.CHECKING;
+const statusListeners = new Set();
+
+export const getBackendStatus = () => backendStatus;
+
+export const subscribeBackendStatus = (listener) => {
+  statusListeners.add(listener);
+  listener(backendStatus);
+  return () => statusListeners.delete(listener);
+};
+
+const setBackendStatus = (status) => {
+  if (backendStatus === status) return;
+  backendStatus = status;
+  statusListeners.forEach((fn) => fn(status));
+};
+
+export const isNetworkError = (error) => (
+  !error?.response
+  || error.code === 'ECONNABORTED'
+  || error.code === 'ERR_NETWORK'
+);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getHealthUrl = () => {
+  const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+  return `${base}/health`;
+};
+
+/** Ping health endpoint — useful on app load and after cold starts. */
+export const warmBackend = async () => {
+  setBackendStatus(BACKEND_STATUS.CHECKING);
+  try {
+    await axios.get(getHealthUrl(), { timeout: REQUEST_TIMEOUT_MS });
+    setBackendStatus(BACKEND_STATUS.ONLINE);
+    return true;
+  } catch {
+    setBackendStatus(BACKEND_STATUS.OFFLINE);
+    return false;
+  }
+};
+
+// ── Demo mode (local dev only) ─────────────────────────────────
 let demoModeActive = false;
 const demoListeners = new Set();
 
@@ -58,6 +115,10 @@ const processQueue = (error, token = null) => {
 };
 
 const isAuthEndpoint = (url = '') => url.includes('/auth/');
+const isIdempotentRequest = (config = {}) => {
+  const method = (config.method || 'get').toLowerCase();
+  return method === 'get' || method === 'head';
+};
 
 const getMockDataForUrl = (url, method) => {
   if (url.includes('/dashboard/stats')) return mockData.dashboard.stats;
@@ -80,26 +141,54 @@ const resolveWithMock = (originalRequest) => {
   return Promise.resolve({ data: getMockDataForUrl(originalRequest.url, originalRequest.method) });
 };
 
+const retryNetworkRequest = async (originalRequest) => {
+  const retryCount = originalRequest._networkRetryCount || 0;
+  if (retryCount >= MAX_NETWORK_RETRIES || !isIdempotentRequest(originalRequest)) {
+    return null;
+  }
+
+  originalRequest._networkRetryCount = retryCount + 1;
+  setBackendStatus(BACKEND_STATUS.SLOW);
+  await sleep(RETRY_DELAY_MS);
+  return api(originalRequest);
+};
+
 api.interceptors.response.use(
   (response) => {
+    setBackendStatus(BACKEND_STATUS.ONLINE);
     setDemoMode(false);
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
+
+    if (isNetworkError(error)) {
+      const retried = await retryNetworkRequest(originalRequest);
+      if (retried) return retried;
+    }
 
     if (!error.response || error.response.status >= 500) {
+      if (isNetworkError(error)) {
+        setBackendStatus(BACKEND_STATUS.OFFLINE);
+      }
+
       if (isAuthEndpoint(originalRequest.url)) {
         return Promise.reject(error);
       }
-      return resolveWithMock(originalRequest);
+
+      if (isDev) {
+        return resolveWithMock(originalRequest);
+      }
+
+      return Promise.reject(error);
     }
 
     if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh') &&
-      !originalRequest.url?.includes('/auth/login')
+      error.response?.status === 401
+      && !originalRequest._retry
+      && !originalRequest.url?.includes('/auth/refresh')
+      && !originalRequest.url?.includes('/auth/login')
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {

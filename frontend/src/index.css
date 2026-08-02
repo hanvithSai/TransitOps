@@ -2159,6 +2159,12 @@ h6 {
   color: var(--color-success-text);
 }
 
+.auth-alert-info {
+  background: color-mix(in srgb, var(--color-brand-600) 10%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--color-brand-600) 25%, transparent);
+  color: var(--text-primary);
+}
+
 .auth-link {
   font-size: 0.875rem;
   font-weight: 600;
@@ -2305,6 +2311,50 @@ h6 {
   flex: 1;
   flex-direction: column;
   overflow: hidden;
+}
+
+.backend-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-base);
+  padding: 0.625rem 1rem;
+}
+
+.backend-status-banner--checking,
+.backend-status-banner--slow {
+  border-bottom-color: color-mix(in srgb, var(--color-brand-600) 35%, transparent);
+  background: color-mix(in srgb, var(--color-brand-600) 10%, var(--bg-surface));
+  color: var(--text-primary);
+}
+
+.backend-status-banner--offline {
+  border-bottom-color: color-mix(in srgb, var(--color-error) 35%, transparent);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+.backend-status-banner-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: var(--radius-md);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.backend-status-banner--offline .backend-status-banner-action {
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+.backend-status-banner--offline .backend-status-banner-action:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.backend-status-banner-action:disabled {
+  opacity: 0.6;
 }
 
 .demo-banner {

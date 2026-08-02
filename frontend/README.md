@@ -49,16 +49,28 @@ See `/docs/deployment.md` for full prod/dev matrix.
 - `src/pages/app/` — Authenticated modules (dashboard, vehicles, trips, etc.)
 - `src/pages/auth/` — Login, register, password reset
 - `src/components/ui/` — Design system primitives
-- `src/components/common/` — Modal, Toast, SelectField, SearchableSelectField, SearchInput
+- `src/components/common/` — BackendStatusBanner, SessionLoadingScreen, Modal, Toast, SelectField, …
+- `src/lib/apiErrors.js` — User-facing API error messages (timeouts, network)
 - `src/lib/selectOptions.js` — Vehicle/driver/trip option builders for searchable selects
 - `src/schemas/` — Zod validation (mirrors backend validators)
-- `src/services/api.js` — Axios + JWT refresh + mock fallback
+- `src/services/api.js` — Axios + JWT refresh + backend status + dev-only mock fallback
 - `src/test/setup.js` — Vitest + Testing Library setup
 - `vercel.json` — SPA rewrites + build settings for Vercel
 
 ## Node version
 
 Requires **Node.js ≥ 20.19** (Vite 8 / ESLint 10). CI uses **Node.js 22**. See `.nvmrc`.
+
+## Resilience (production)
+
+On Vercel builds, the app handles Render cold starts and downtime without mock data:
+
+- **`warmBackend()`** — health ping on load (`AuthContext`)
+- **`BackendStatusBanner`** — global connecting / slow / offline banner
+- **90s request timeout** · **GET retries** (2×, 5s apart)
+- **Mock fallback** — local dev only
+
+See `/docs/deployment.md` § Render cold starts and UptimeRobot setup.
 
 ## CI & Deployment
 

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import api from '../services/api';
+import { getApiErrorMessage } from '../lib/apiErrors';
 
 /**
  * Shared list fetch + toast helper for CRUD pages.
@@ -19,7 +20,7 @@ export function useEntityList({ endpoint, dataKey, initialParams = {} }) {
       const payload = data.data?.[dataKey] ?? data.data ?? data[dataKey] ?? [];
       setItems(Array.isArray(payload) ? payload : []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load data');
+      setError(getApiErrorMessage(err, 'Failed to load data'));
       setItems([]);
     } finally {
       setLoading(false);

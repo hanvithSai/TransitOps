@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPostLoginPath } from '../../lib/passwordPolicy';
+import { BACKEND_STATUS, getBackendStatus, subscribeBackendStatus } from '../../services/api';
 import AuthLayout from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -17,6 +18,9 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
+  const [backendStatus, setBackendStatus] = useState(getBackendStatus());
+
+  useEffect(() => subscribeBackendStatus(setBackendStatus), []);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -64,6 +68,13 @@ const LoginPage = () => {
         <div className="auth-alert auth-alert-error" role="alert">
           <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {(backendStatus === BACKEND_STATUS.CHECKING || backendStatus === BACKEND_STATUS.SLOW) && !error && (
+        <div className="auth-alert auth-alert-info" role="status">
+          <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden="true" />
+          <span>Server is starting up — login may take a little longer than usual.</span>
         </div>
       )}
 

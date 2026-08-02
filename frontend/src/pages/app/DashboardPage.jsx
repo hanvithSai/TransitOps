@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { LayoutDashboard, CarFront, Users, Map, Wrench, Fuel, Banknote, Activity, Clock } from 'lucide-react';
 import api from '../../services/api';
+import { getApiErrorMessage } from '../../lib/apiErrors';
 import { Card } from '../../components/ui/Card';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -24,7 +25,7 @@ const DashboardPage = () => {
       setData(response.data.data);
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch dashboard data');
+      setError(getApiErrorMessage(err, 'Failed to fetch dashboard data'));
     } finally {
       setLoading(false);
     }

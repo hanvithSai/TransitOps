@@ -8,7 +8,7 @@ const DemoModeBanner = () => {
 
   useEffect(() => subscribeDemoMode(setActive), []);
 
-  if (!active || dismissed) return null;
+  if (!import.meta.env.DEV || !active || dismissed) return null;
 
   return (
     <div className="demo-banner" role="status">

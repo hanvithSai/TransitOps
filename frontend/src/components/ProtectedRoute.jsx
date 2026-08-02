@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import SessionLoadingScreen from './common/SessionLoadingScreen';
 
 /**
  * ProtectedRoute
@@ -12,16 +13,8 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowPasswordUpdate = fal
   const { isAuthenticated, user, loading, requiresPasswordChange } = useAuth();
   const location = useLocation();
 
-  // Wait for initial session check
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[var(--bg-base)]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-brand-600)] border-t-transparent" />
-          <p className="text-sm text-[var(--text-secondary)]">Loading…</p>
-        </div>
-      </div>
-    );
+    return <SessionLoadingScreen />;
   }
 
   // Not authenticated → redirect to login

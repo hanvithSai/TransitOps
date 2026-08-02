@@ -25,6 +25,12 @@ const { errorHandler } = require('./utils/errorHandler');
 const app = express();
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Render (and similar hosts) terminate TLS at a reverse proxy and set X-Forwarded-For.
+// Required for express-rate-limit to identify clients correctly.
+if (!isDev) {
+    app.set('trust proxy', 1);
+}
+
 const getAllowedOrigins = () => {
     const origins = new Set(['http://localhost:5173']);
     for (const key of ['CLIENT_URL', 'FRONTEND_URL']) {
