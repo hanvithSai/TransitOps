@@ -6,7 +6,7 @@
 | **Status** | Active — mandatory reference for all UI work |
 | **Audience** | Product, design, engineering |
 | **Code source of truth** | `frontend/src/index.css` (tokens + layout utilities), `frontend/src/components/ui/` (React primitives) |
-| **Last updated** | July 31, 2026 — post frontend UX polish (searchable selects, trips/maintenance layouts, app shell) |
+| **Last updated** | August 2, 2026 — Render ops, backend status banners, dev-only demo mode |
 
 ---
 
@@ -590,9 +590,11 @@ Wrap page content in `.app-page-stack` for consistent vertical rhythm (`gap: 1.5
 
 Component: `components/DemoModeBanner.jsx`. Rendered at the top of `AppLayout` (above header).
 
-**When it appears:** The axios interceptor in `services/api.js` sets demo mode when:
+**Environment:** **Development only** (`import.meta.env.DEV`). Never shown in production builds.
 
-1. The backend is **unreachable** (network error, connection refused)
+**When it appears:** The axios interceptor in `services/api.js` sets demo mode when **in development**:
+
+1. The backend is **unreachable** (network error, connection refused, timeout)
 2. The backend returns **5xx** on non-auth endpoints
 
 Auth endpoints (`/auth/*`) never use mock fallback. Failed login (401) shows the real error message.
@@ -602,6 +604,22 @@ When any API call succeeds against the live backend, demo mode clears and the ba
 > "Demo mode — backend unavailable. Showing mock data; changes are not persisted."
 
 Dismissible per session via the close button; reappears on reload if fallback is still active. **Operational honesty:** never hide demo mode while mock data is being served.
+
+### 9.12 BackendStatusBanner
+
+Component: `components/common/BackendStatusBanner.jsx`. Rendered globally in `App.jsx` (all routes including login).
+
+**When it appears:** Backend status from `api.js` is not `online`:
+
+| Status | Banner copy (summary) |
+|--------|------------------------|
+| `checking` | Connecting — may take up to a minute after idle |
+| `slow` | Retrying slow request |
+| `offline` | Cannot reach server — **Retry** button calls `warmBackend()` |
+
+Hidden when status is `online`. Uses `.backend-status-banner` tokens in `index.css` (brand tint for checking/slow, error tint for offline).
+
+**Related:** `SessionLoadingScreen` during auth restore; login page info alert when status is `checking` or `slow`.
 
 ---
 
@@ -658,7 +676,8 @@ Every entity list page (Vehicles, Drivers, Trips, Users, etc.) follows:
 | Pattern | Requirement |
 |---------|-------------|
 | Destructive actions | Confirm modal with red accent + consequence copy |
-| Demo / mock data | `DemoModeBanner` visible at all times |
+| Demo / mock data | `DemoModeBanner` in **dev only** when mock fallback active |
+| Backend downtime | `BackendStatusBanner` in prod — no mock data; Retry + clear errors |
 | RBAC | Nav items filtered by role; routes protected server-side |
 | Export | Label format explicitly ("Export CSV") |
 | Errors | Inline field errors + toast for API failures |
@@ -897,9 +916,11 @@ Update this document when:
 | UI primitives | `frontend/src/components/ui/` |
 | Auth layout shell | `frontend/src/components/layout/AuthLayout.jsx` |
 | App shell | `frontend/src/layouts/AppLayout.jsx` |
-| Demo mode indicator | `frontend/src/components/DemoModeBanner.jsx` |
-| API client + demo fallback | `frontend/src/services/api.js` |
-| Mock data (demo only) | `frontend/src/services/mockData.js` |
+| Demo mode indicator (dev) | `frontend/src/components/DemoModeBanner.jsx` |
+| Backend status banner | `frontend/src/components/common/BackendStatusBanner.jsx` |
+| Session loading screen | `frontend/src/components/common/SessionLoadingScreen.jsx` |
+| API client + backend status | `frontend/src/services/api.js` |
+| Mock data (local dev only) | `frontend/src/services/mockData.js` |
 | Marketing page | `frontend/src/pages/LandingPage.jsx` |
 | Auth pages | `frontend/src/pages/auth/` |
 | App pages | `frontend/src/pages/app/` |

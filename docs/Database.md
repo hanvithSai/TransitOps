@@ -1,6 +1,6 @@
 # Database Documentation
 
-**Last updated:** July 31, 2026 (production · Atlas database `transitops`)
+**Last updated:** August 2, 2026 (production · Atlas database `transitops`)
 
 ## Collections
 

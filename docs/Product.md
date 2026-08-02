@@ -1,6 +1,6 @@
 # Product Documentation
 
-**Last updated:** July 31, 2026 (production live · frontend UX polish shipped)  
+**Last updated:** August 2, 2026 (Render ops · frontend cold-start UX)  
 **MVP status:** Phases 1–8 complete · production-deployed · demo-ready
 
 ## Product Features
@@ -37,7 +37,8 @@
 * **Defensive deletion:** Delete blocked when history exists; Retire (vehicles) and Set Off Duty (drivers) offered as alternatives
 * **Form validation:** React Hook Form + Zod on all major CRUD forms
 * **Feedback patterns:** Toast notifications, confirm modals for destructive actions; Modal focus trap
-* **Offline demo mode:** Aligned `mockData.js` fallback for network/5xx errors (auth never mocked); `DemoModeBanner` when active
+* **Offline demo mode (dev only):** `mockData.js` fallback when backend unreachable locally; `DemoModeBanner` when active — **not used in production**
+* **Production resilience:** `BackendStatusBanner`, health warm-up, GET retries, timeout-aware error messages — no mock data on downtime
 * **Search UX:** Debounced search on list pages; skeleton loading states; `SearchableSelectField` on large option lists (vehicles, drivers, trips)
 * **Page layouts:** Trips master-detail workspace; Maintenance sidebar (log + schedules) + scrollable service history; uniform KPI spacing via `StatCard` + `app-page-stack` rhythm
 * **App shell:** Collapsible sidebar on `md+`; hamburger menu mobile-only; theme persisted in `localStorage`

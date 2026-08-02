@@ -2,7 +2,7 @@
 
 > **Status:** ✅ Phases 1–8 Complete · P6 shipped · **Production live** (Vercel + Render + Atlas)  
 > **Stack:** MERN (MongoDB · Express 5 · React 19 · Node.js)  
-> **Last Updated:** 2026-07-31 (post cloud deployment)
+> **Last Updated:** 2026-08-02 (Render trust proxy · UptimeRobot · frontend cold-start UX)
 
 **Phases:** 1 Auth · 2 Vehicles · 3 Drivers · 4 Trips · 5 Maintenance · 6 Fuel/Expenses · 7 Dashboard · 8 Reports/CSV
 
@@ -99,7 +99,7 @@ TransitOps/
     ├── src/
     │   ├── components/
     │   │   ├── ui/                       # Button, Card, Modal, Table, Toast, Skeleton, etc.
-    │   │   ├── common/                   # Modal, Toast, SelectField, SearchableSelectField, SearchInput
+    │   │   ├── common/                   # BackendStatusBanner, SessionLoadingScreen, Modal, Toast, …
     │   │   ├── ProtectedRoute.jsx        # Auth + role guard component
     │   │   └── ProtectedRoute.test.jsx   # Vitest smoke tests
     │   ├── hooks/                        # useDebounce (search)
@@ -115,7 +115,7 @@ TransitOps/
     │   │   ├── auth/                     # Login, Register, Forgot/Reset Password
     │   │   └── app/                      # Dashboard, Vehicles, Drivers, Trips, etc.
     │   ├── services/
-    │   │   ├── api.js                    # Axios instance + interceptors + mock fallback
+    │   │   ├── api.js                    # Axios + JWT refresh + backend status + dev mock fallback
     │   │   └── mockData.js               # Offline demo data
     │   ├── App.jsx                       # React Router + route definitions
     │   ├── index.css                     # Tailwind v4 + design tokens
@@ -483,7 +483,7 @@ CSV is generated in `reportService.generateCSV()` (hand-rolled, not `json2csv`).
 
 | Method | Endpoint | Auth | Response |
 |---|---|---|---|
-| `GET` | `/api/health` | Public | `{ status: "ok", timestamp }` — used by Docker Compose healthcheck |
+| `GET` | `/api/health` | Public | `{ success, status, database }` — 200 when MongoDB connected, 503 when not; used by Docker Compose, Render health check, UptimeRobot |
 
 ### 5.13 Audit Log Routes — `/api/audit-logs` (Admin Only)
 
@@ -593,6 +593,12 @@ Route → authenticate → authorize("role1", "role2") → controller
 - Development: any `http://localhost:<port>` or `http://127.0.0.1:<port>` origin is allowed (Vite may use 5174+ if 5173 is in use)
 - `credentials: true` — required to send/receive cookies for refresh token
 - Production refresh cookies: `SameSite=None; Secure` (cross-origin Vercel ↔ Render)
+
+### 6.5 Reverse proxy (Render)
+
+- `app.set('trust proxy', 1)` when `NODE_ENV=production` (`backend/app.js`)
+- Required so `express-rate-limit` accepts `X-Forwarded-For` from Render’s load balancer
+- Without this, Render logs show `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` and rate limits may misidentify clients
 
 ---
 
@@ -808,7 +814,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 - `logout()` → calls `POST /api/auth/logout`, clears `localStorage`, resets user state
 - `clearError()` → clears error message
 
-**Session restoration:** On mount, checks `localStorage` for token → calls `GET /api/auth/me` → sets user or clears storage.
+**Session restoration:** On mount, calls `warmBackend()` (health ping), then checks `localStorage` for token → calls `GET /api/auth/me` → sets user or clears storage.
 
 **Session sync:** On token refresh, `AuthContext` updates `user` from the refresh response. On window focus, `/auth/me` is called to pick up admin role/status changes.
 
@@ -817,26 +823,40 @@ Protected (ProtectedRoute wrapping AppLayout):
 **File:** `frontend/src/services/api.js`
 
 - **Base URL:** `VITE_API_URL` or `http://localhost:5000/api`
+- **Timeout:** 90s production · 30s development (covers Render cold starts)
 - **`withCredentials: true`** — sends refresh token cookie on every request
 - **Request interceptor:** Reads `accessToken` from `localStorage`, sets `Authorization: Bearer <token>`
+- **Backend status:** `getBackendStatus()`, `subscribeBackendStatus()`, `warmBackend()` — states: `checking` · `online` · `slow` · `offline`
+- **Network retries:** Idempotent requests (GET/HEAD) retry up to 2× after 5s on network/timeout errors; sets status `slow` while retrying
 - **Response interceptor (token refresh queue):**
   - On `401` (excluding `/login` and `/refresh`): sets `isRefreshing = true`
   - Queues all concurrent failed requests in `failedQueue`
   - Calls `POST /api/auth/refresh` once
   - On success: replays all queued requests with new token
   - On failure: clears `localStorage`, redirects to `/login`
-- **Demo/mock fallback:** GET data endpoints only; all `/auth/*` requests always fail through to the UI (no fake success)
+- **Demo/mock fallback (development only):** On network error or 5xx for non-auth endpoints, serves `mockData.js`. **Production rejects** — no fake data during downtime.
+- **Auth endpoints:** Never use mock fallback in any environment
+
+**Exported helpers:** `BACKEND_STATUS`, `isNetworkError()`, `isDemoMode()`, `subscribeDemoMode()`
 
 **File:** `frontend/src/lib/apiErrors.js`
 
-- `getApiErrorMessage(err, fallback)` — extracts `errors[].msg` from validation responses before falling back to `message`
+- `getApiErrorMessage(err, fallback)` — extracts `errors[].msg` from validation responses; dedicated copy for timeouts (`ECONNABORTED`) and unreachable server in production
+
+### 11.3.1 Backend status UI
+
+| Component | File | Role |
+|-----------|------|------|
+| `BackendStatusBanner` | `components/common/BackendStatusBanner.jsx` | Global banner in `App.jsx` — connecting / slow / offline + Retry |
+| `SessionLoadingScreen` | `components/common/SessionLoadingScreen.jsx` | Auth restore loading with cold-start messaging |
+| `DemoModeBanner` | `components/DemoModeBanner.jsx` | **Dev only** — yellow banner when mock fallback active |
 
 ### 11.4 ProtectedRoute
 
 **File:** `frontend/src/components/ProtectedRoute.jsx`
 
 **Behaviour:**
-1. While `loading === true` → shows full-screen spinner
+1. While `loading === true` → shows `SessionLoadingScreen` (backend-status-aware messaging)
 2. If not authenticated → `<Navigate to="/login" state={{ from: location }} />`
 3. If `allowedRoles` provided and user role not in list → `<Navigate to="/unauthorized" />`
 4. Otherwise → renders `children`
@@ -850,8 +870,10 @@ Protected (ProtectedRoute wrapping AppLayout):
 - Breadcrumbs: Home → current page label
 - Navigation filtered by `user.role.name` — must match `ProtectedRoute` allowed roles
 - Theme toggle persists to `localStorage` key `transitops-theme`
-- `DemoModeBanner` above header when API mock fallback is active
+- `DemoModeBanner` above header when dev mock fallback is active
 - `<Outlet />` in `.app-content-inner` for page content
+
+**Global (outside layout):** `BackendStatusBanner` in `App.jsx` — visible on login and app routes when backend is connecting, slow, or offline
 
 ### 11.6 UsersPage — Admin User Management
 
@@ -879,6 +901,7 @@ Protected (ProtectedRoute wrapping AppLayout):
 - Self-registration form captures Name, Email, Password, and Role (RBAC) dropdown
 - Password show/hide toggle for both sign in and sign up
 - Error and Success alert boxes with icons
+- Info alert while backend status is `checking` or `slow` (cold start)
 - Submit button with spinner during loading
 - Card shake animation on failed login/register (CSS `@keyframes shake`)
 - Preserves `from` location — redirects back after successful login

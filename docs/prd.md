@@ -6,7 +6,7 @@
 >
 > **Purpose:** Production-grade submission for the ODOO Hiring Hackathon.
 >
-> **Implementation status (Jul 31, 2026):** MVP Phases 1–8 **complete**. P0–P6 automatable features **complete**. **Production live** at https://transitops-han.vercel.app (Vercel + Render + Atlas). GitHub Actions CI **passing**. Remaining: P6 deferred items — see `docs/backlog.md`.
+> **Implementation status (Aug 2, 2026):** MVP Phases 1–8 **complete**. P0–P6 automatable features **complete**. **Production live** at https://transitops-han.vercel.app (Vercel + Render + Atlas). Render cold starts mitigated (UptimeRobot + frontend UX). GitHub Actions CI **passing**. Remaining: P6 deferred items — see `docs/backlog.md`.
 
 ---
 
@@ -455,7 +455,7 @@ Phase 8 ✅ Complete
 **Post-MVP hardening (P0–P4) ✅ Complete**
 - Security: helmet, auth rate limit, JWT session hardening, RBAC expansion
 - Data integrity: dispatch transactions, odometer/revenue on completion
-- Operations: Docker Compose, `/api/health`, graceful shutdown, env validation; **production:** Vercel + Render + Atlas (`docs/deployment.md`)
+- Operations: Docker Compose, `/api/health`, graceful shutdown, env validation, Render `trust proxy`; **production:** Vercel + Render + Atlas + UptimeRobot keep-warm + frontend cold-start UX (`docs/deployment.md`)
 - Quality: 8 Jest backend suites, Vitest smoke tests, green CI
 - Audit: read API + admin UI tab on Users page
 

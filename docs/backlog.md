@@ -1,9 +1,9 @@
 # TransitOps Backlog
 
-**Last updated:** July 31, 2026 (post frontend UX polish · redesign doc consolidated)  
+**Last updated:** August 2, 2026 (Render ops · UptimeRobot · frontend cold-start UX)  
 **Scope:** Remaining post-MVP work after P6 implementation and cloud deployment.
 
-**Recently shipped (P6 batch):** PDF ROI export, license expiry email reminders + in-app notifications, user↔driver linking, recurring maintenance schedules, RBAC `permissions` array enforcement, API rate limiting, account lockout, refresh token cap, notification bell UI, Trips EmptyState, mobile vehicle cards, `useEntityList` hook.
+**Recently shipped (Aug 2026):** Render `trust proxy` · UptimeRobot keep-warm docs · `BackendStatusBanner` · `SessionLoadingScreen` · production-safe API errors (no mock fallback) · GET retries + 90s timeout · `warmBackend()` health ping
 
 ---
 
@@ -51,6 +51,7 @@
 | P0–P4 hardening | ✅ Complete |
 | P6 automatable batch | ✅ Complete |
 | Cloud deployment (Vercel + Render + Atlas) | ✅ Live — `docs/deployment.md` |
+| Render cold-start mitigation | ✅ UptimeRobot + frontend UX — `docs/deployment.md` |
 | P6 external/deferred | 5 items |
 
 **Bottom line:** Core P6 and deployment are complete. Remaining items need file storage, GPS, mobile app, or AI services.

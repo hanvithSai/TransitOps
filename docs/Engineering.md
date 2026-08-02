@@ -1,6 +1,6 @@
 # Engineering Documentation
 
-**Last updated:** July 31, 2026 (production deployed · docs sync · frontend-redesign.md retired)
+**Last updated:** August 2, 2026 (UptimeRobot keep-warm · Render trust proxy · frontend cold-start UX)
 
 ## Engineering Decisions
 
@@ -12,7 +12,7 @@
 * **Layered backend:** `routes → controllers → services → models` with `express-validator` at the route layer.
 * **Client form validation:** React Hook Form + Zod schemas in `frontend/src/schemas/` mirror backend validators.
 * **Background jobs:** `node-cron` runs daily license-expiry suspension (midnight IST), skipping drivers on active dispatched trips.
-* **Security middleware:** `helmet()` on all responses; `express-rate-limit` on `/api/auth/*` and general `/api/*`; user search input escaped via `utils/escapeRegex.js`.
+* **Security middleware:** `helmet()` on all responses; `express-rate-limit` on `/api/auth/*` and general `/api/*`; user search input escaped via `utils/escapeRegex.js`. **`trust proxy`** enabled in production (`app.js`) for correct client IP behind Render.
 * **Session security:** JWT access tokens include `pwdAt` (password change timestamp); invalidated in `authenticate` after reset. Refresh tokens rotate on each `/auth/refresh`.
 * **Trip dispatch:** MongoDB transactions in `tripService.dispatchTrip` (requires replica-set MongoDB).
 * **Audit trail:** Mutations logged via `auditMiddleware`; admin read API at `GET /api/audit-logs` with filter UI on Users page.
@@ -22,6 +22,7 @@
 * **Repo hygiene:** Root `.gitignore` excludes `.cursor/` (local IDE config) and `.githooks/` (local git hooks — enable with `git config core.hooksPath .githooks`).
 * **P6 batch:** PDF export, notifications, maintenance schedules, user↔driver link, permission-based RBAC, account lockout, API rate limit, refresh token cap.
 * **Production hosting:** Vercel (frontend) + Render Docker (backend) + MongoDB Atlas — see `deployment.md`.
+* **Render cold starts:** UptimeRobot pings `/api/health` every **10 minutes** (wakes/spins up Render if idle); frontend `warmBackend()`, `BackendStatusBanner`, GET retries, 90s timeout; mock fallback **dev-only**.
 
 ## Tech Stack
 
@@ -73,13 +74,13 @@ backend/
 frontend/src/
   pages/app/     # Authenticated app pages
   pages/auth/    # Login, register, password reset
-  components/common/  # Modal, Toast, SelectField, SearchableSelectField, SearchInput
+  components/common/  # Modal, Toast, BackendStatusBanner, SessionLoadingScreen, NotificationBell, …
   components/ui/      # Design system primitives (StatCard, ClampedText, etc.)
   lib/                # selectOptions, utils (cn, formatFuelLiters*)
   schemas/       # Zod validation schemas
   contexts/      # AuthContext
   hooks/         # useDebounce (search)
-  services/      # api.js, mockData.js
+  services/      # api.js (JWT refresh, backend status, warmBackend), mockData.js (dev fallback)
   test/          # Vitest setup
 ```
 
@@ -104,7 +105,7 @@ GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main` (Node.js 22):
 * **backend-ci:** `npm install` → `npm test` (8 Jest suites)
 * **frontend-ci:** `npm install` → `npm test` (Vitest) → `npm run lint` → `npm run build`
 
-**Status:** Passing on `main` as of July 31, 2026.
+**Status:** Passing on `main` as of August 2, 2026.
 
 ## Related Docs
 

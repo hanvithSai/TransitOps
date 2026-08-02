@@ -1,7 +1,7 @@
 # TransitOps Deployment Guide
 
-**Last updated:** July 31, 2026  
-**Status:** Production live · local dev documented
+**Last updated:** August 2, 2026  
+**Status:** Production live · UptimeRobot keep-warm · frontend cold-start UX
 
 ---
 
@@ -13,8 +13,6 @@
 | **Backend API** | https://transitops-yqkc.onrender.com | Render (Docker) |
 | **Health check** | https://transitops-yqkc.onrender.com/api/health | Render |
 | **Database** | MongoDB Atlas — cluster `transitops-cluster`, database `transitops` | AWS ap-south-1 (M0) |
-
-**Demo login:** `admin@transitops.com` / `Password@123`
 
 ---
 
@@ -89,7 +87,9 @@ Vite bakes `VITE_API_URL` into the production bundle at build time.
 | Runtime | **Docker** |
 | Branch | `main` |
 | Health Check Path | `/api/health` |
-| Instance | Free tier (note: ~30–60s cold start after idle) |
+| Instance | Free tier (note: ~30–60s cold start after idle; mitigated — see below) |
+
+**Production Express config:** `backend/app.js` sets `app.set('trust proxy', 1)` when `NODE_ENV=production`. Required behind Render’s reverse proxy so `express-rate-limit` reads `X-Forwarded-For` correctly (avoids `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` in logs).
 
 ### Vercel (frontend)
 
@@ -120,14 +120,6 @@ cd frontend
 
 Open http://localhost:5173 (Vite uses next port if 5173 is busy).
 
-### npm / corporate registry (Uber unpm)
-
-If `npm run dev` or `npm run seed` opens Uber MFA (`ussh web login`):
-
-- Use `./dev` instead of `npm run dev`
-- Use `node seeders/seed.js` instead of `npm run seed`
-- Project `.npmrc` sets `registry=https://registry.npmjs.org` and `always-auth=false`
-
 ### Stale JWT on localhost
 
 If login fails after switching prod ↔ local, clear **Local Storage** → `accessToken` in DevTools, or use an incognito window.
@@ -143,6 +135,61 @@ Frontend (Vercel) and API (Render) are on different domains:
 - **Access tokens:** Stored in `localStorage`, sent via `Authorization: Bearer`
 
 After changing Vercel URL, update Render `CLIENT_URL` and redeploy.
+
+---
+
+## Render cold starts (free tier)
+
+Render free-tier web services **spin down after ~15 minutes** of no traffic. The next request can take **~30–60 seconds** while the container starts.
+
+### Mitigation 1 — UptimeRobot (recommended for demos)
+
+Use [UptimeRobot](https://uptimerobot.com) (free plan) to ping the health endpoint on a schedule so the service stays warm.
+
+| Setting | Value |
+|---------|-------|
+| Monitor type | HTTP(s) |
+| URL | `https://transitops-yqkc.onrender.com/api/health` |
+| Interval | **10 minutes** (production monitor — under Render’s ~15 min idle window) |
+| Timeout | 30–60s (allows cold-start wake-up on first check after long idle) |
+
+Each ping is a real HTTP request. If the Render service is spun down, **that request starts the backend** (cold start ~30–60s on the waking ping; ~100ms once already running). A 10-minute interval keeps traffic arriving before the idle timeout in normal operation.
+
+**Optional:** UptimeRobot free plan also supports **5-minute** intervals for extra margin if you prefer.
+
+**Verify:** Browser or `curl` should return HTTP 200:
+
+```json
+{ "success": true, "status": "ok", "database": "connected" }
+```
+
+HTTP **503** with `"database": "disconnected"` means MongoDB/Atlas is unreachable — fix `MONGO_URI` and Atlas Network Access before UptimeRobot will show **Up**.
+
+**Limits:**
+
+- Does **not** guarantee zero cold starts (deploys, missed pings, Render policy changes).
+- Free Render **compute hours** (~750/month) are consumed faster when the service stays awake.
+- Monitor **only active demo backends** — don’t keep every side project warm on one account.
+
+### Mitigation 2 — Frontend resilience
+
+The production SPA handles slow or unavailable APIs without falling back to mock data:
+
+| Feature | Location | Behaviour |
+|---------|----------|-----------|
+| Health warm-up | `AuthContext` → `warmBackend()` | Pings `/api/health` on app load |
+| Status banner | `BackendStatusBanner` | Global banner: connecting / slow / offline + Retry |
+| Session loading | `SessionLoadingScreen` | Cold-start messaging during auth restore |
+| Login hint | `LoginPage` | Info alert while server is starting |
+| Long timeout | `api.js` | 90s prod / 30s dev |
+| GET retries | `api.js` | Up to 2 retries (5s apart) on network errors |
+| Mock fallback | `api.js` | **Development only** — production shows real errors |
+
+See `docs/technical.md` §11.3 and `docs/style-guide.md` §9.11–9.12.
+
+### Mitigation 3 — Paid Render tier
+
+Upgrade to Render **Starter** or higher for always-on instances (no spin-down). Best option for real users beyond demos.
 
 ---
 

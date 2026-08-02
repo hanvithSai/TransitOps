@@ -21,7 +21,7 @@ The platform is built using the MERN stack with a focus on maintainability and m
 *   **Security & Authentication:** JSON Web Tokens (JWT) for stateless authentication and Role-Based Access Control (RBAC). Passwords are encrypted using bcrypt.
 *   **Automation:** Node-cron for background tasks (e.g., automated license suspension).
 *   **Continuous Integration:** GitHub Actions — backend tests (8 suites / 53 tests), frontend Vitest + ESLint + production build. **CI status: passing on `main`.**
-*   **Production deployment:** Frontend on [Vercel](https://transitops-han.vercel.app) · Backend on [Render](https://transitops-yqkc.onrender.com) · MongoDB Atlas. See `docs/deployment.md`.
+*   **Production deployment:** Frontend on [Vercel](https://transitops-han.vercel.app) · Backend on [Render](https://transitops-yqkc.onrender.com) · MongoDB Atlas. UptimeRobot health check every 10 min + frontend resilience UI. See `docs/deployment.md`.
 
 ## Repository Structure
 
@@ -136,7 +136,7 @@ Remaining work is **P6 deferred items** (file uploads, GPS, mobile app, AI) — 
 
 | Document | Purpose |
 |----------|---------|
-| `docs/deployment.md` | **Production & local deployment** — Vercel, Render, Atlas, env matrix |
+| `docs/deployment.md` | **Production & local deployment** — Vercel, Render, Atlas, UptimeRobot, cold-start UX |
 | `docs/technical.md` | Full technical reference — API routes, services, frontend architecture |
 | `docs/Engineering.md` | Engineering decisions and stack overview |
 | `docs/Product.md` | Features, user stories, UX principles |

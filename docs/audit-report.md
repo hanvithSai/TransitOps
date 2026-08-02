@@ -1,10 +1,10 @@
 # TransitOps Repository Audit Report
 
-**Audit date:** July 31, 2026 (sixth pass — frontend UX polish, docs consolidation)  
+**Audit date:** August 2, 2026 (seventh pass — Render ops: trust proxy, UptimeRobot, frontend cold-start UX)  
 **Branch reviewed:** `main`  
 **Scope:** Full repository review — backend, frontend, documentation, infrastructure, CI, production deployment
 
-> **Previous audits:** July 30–31, 2026 (P0–P4 hardening, P6 batch, CI green). This pass reflects **live production** on Vercel + Render + MongoDB Atlas and dev/prod environment split.
+> **Previous audits:** July 30–31, 2026 (P0–P4 hardening, P6 batch, CI green). July 31 pass: live production on Vercel + Render + MongoDB Atlas. August 2 pass: Render `trust proxy`, UptimeRobot keep-warm, production-safe API error handling.
 
 ---
 
@@ -70,9 +70,9 @@ Organizations running fleet operations on spreadsheets face:
 | Dashboard KPIs | ✅ | ✅ | KPIs + Recharts |
 | Reports & CSV | ✅ | ✅ | ROI incl. maintenance; revenue at completion |
 | Audit Logging | ✅ | ✅ | Write middleware + `GET /api/audit-logs` + admin UI |
-| Offline demo mode | — | ✅ | `mockData.js` aligned with API schemas |
+| Offline demo mode | — | ✅ | `mockData.js` — **dev only**; production shows errors + status banners |
 | Form validation | — | ✅ | RHF + Zod on major CRUD pages |
-| Operations | ✅ | — | `/api/health`, env validation, SIGTERM shutdown, Docker Compose, **Vercel + Render + Atlas** |
+| Operations | ✅ | — | `/api/health`, env validation, SIGTERM shutdown, Docker Compose, **Vercel + Render + Atlas**, **trust proxy**, **UptimeRobot** |
 | RBAC permissions | ✅ | ✅ | `Role.permissions` enforced in `authorize()` |
 
 ### Partially Implemented
@@ -128,6 +128,15 @@ FinancePage dual forms, modal focus trap, debounced search, Badge outline, Finan
 | Audit log read API + UI | `auditRoutes.js`, `UsersPage` Audit tab |
 | Frontend zero tests | Vitest + `ProtectedRoute.test.jsx` (4 tests) |
 | CI failing on ESLint | Unused import/variable fixes; CI green on `main` |
+
+### ✅ Fixed — P5 Render production ops (August 2, 2026)
+
+| Issue | Evidence |
+|-------|----------|
+| `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` on Render | `app.set('trust proxy', 1)` in production (`app.js`) |
+| Cold start showed mock data in production | Mock fallback gated to `import.meta.env.DEV` (`api.js`) |
+| No UX for slow/unavailable backend | `BackendStatusBanner`, `SessionLoadingScreen`, `warmBackend()`, GET retries, 90s timeout |
+| Render free tier idle spin-down | UptimeRobot monitor on `/api/health` every 10 min — `docs/deployment.md` |
 
 ### ⚠️ Open — Minor / P6
 
@@ -186,6 +195,9 @@ All routes RBAC-gated via `ProtectedRoute` + backend `authorize()`. See `technic
 | Startup env validation | ✅ `utils/validateEnv.js` |
 | GitHub Actions CI | ✅ Passing on `main` |
 | Cloud deployment | ✅ Vercel + Render + Atlas — `docs/deployment.md` |
+| UptimeRobot keep-warm | ✅ Active monitor — `/api/health` every **10 minutes** |
+| Render trust proxy | ✅ `app.js` production config |
+| Frontend cold-start UX | ✅ Status banners, warm-up ping, retries, prod-safe errors |
 | Dev/prod env split | ✅ `.env.development` / `.env.production`, `vercel.json`, cross-origin cookies |
 | Seeder wipes all data | ⚠️ Dangerous on non-dev DB |
 
@@ -195,7 +207,7 @@ All routes RBAC-gated via `ProtectedRoute` + backend `authorize()`. See `technic
 
 1. **P6 deferred:** File uploads (S3 policy), GPS/maps integration
 2. **Optional:** Expand Vitest/E2E coverage; E2E tests for dispatch rule matrix
-3. **Optional:** Upgrade Render from free tier to avoid cold starts
+3. **Optional:** Upgrade Render from free tier for always-on production (UptimeRobot mitigates demos)
 
 ---
 
@@ -210,7 +222,7 @@ All routes RBAC-gated via `ProtectedRoute` + backend `authorize()`. See `technic
 | Frontend UX | **92%** | Searchable selects, maintenance/trips layouts, mobile-only menu, uniform KPIs |
 | Testing | **58%** | 8 backend suites + Vitest smoke; no E2E |
 | Documentation | **96%** | Synced; redesign notes consolidated into style-guide, backlog, technical |
-| DevOps | **88%** | CI green + Docker Compose + live Vercel/Render/Atlas deployment |
+| DevOps | **92%** | CI green + Docker Compose + live deployment + UptimeRobot + trust proxy + cold-start UX |
 
 ---
 

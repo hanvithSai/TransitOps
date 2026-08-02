@@ -1,6 +1,6 @@
 # TransitOps Production Readiness Validation Checklist
 
-**Last updated:** July 31, 2026 (production live · Vercel + Render + Atlas)
+**Last updated:** August 2, 2026 (UptimeRobot keep-warm · frontend cold-start UX · Render trust proxy)
 
 This checklist tracks production readiness. ✅ = implemented · ⚠️ = partial · ☐ = not done.
 
@@ -16,6 +16,10 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - ✅ JWT `pwdAt` claim invalidates access tokens after password change
 - ✅ Password reset flow; dev without SMTP returns Ethereal preview URL
 - ✅ Auth endpoints excluded from mock fallback
+- ✅ Mock fallback **development only** — production shows real errors (no fake data on downtime)
+- ✅ Frontend cold-start UX: `warmBackend()`, `BackendStatusBanner`, GET retries, 90s timeout
+- ✅ Render `trust proxy` for rate limiting behind reverse proxy
+- ✅ UptimeRobot keep-warm — `/api/health` every **10 minutes** (`docs/deployment.md`)
 - ✅ Auth rate limiting + `helmet()` security headers
 - ✅ Admin self-registration blocked; forgot-password enumeration-safe
 - ✅ Docker Compose with MongoDB replica set for dispatch transactions
@@ -26,7 +30,7 @@ For prioritized fix list see `backlog.md`. For audit details see `audit-report.m
 - ✅ Production deployed: Vercel frontend + Render backend + MongoDB Atlas (`docs/deployment.md`)
 - ✅ Account lockout, API rate limiting, refresh token cap (P6)
 - ✅ `Role.permissions` array enforcement (P6)
-- ⚠️ Render free tier cold starts (~30–60s after idle)
+- ⚠️ Render free tier cold starts (~30–60s after idle) — **mitigated** via UptimeRobot + frontend UX; upgrade to paid tier for guarantees
 
 ### Business Logic Validation
 - □ User cannot access endpoints outside their assigned role permissions.
@@ -349,4 +353,4 @@ See `docs/backlog.md` for the current prioritized backlog. P0–P6 automatable w
 - Vehicle document uploads, receipt images
 - Live GPS / route optimization, mobile driver app, AI forecasting
 
-**Deployment:** Documented in `docs/deployment.md` — production live at https://transitops-han.vercel.app
+**Deployment:** Documented in `docs/deployment.md` — production live at https://transitops-han.vercel.app · UptimeRobot `/api/health` every 10 min · frontend resilience UI
